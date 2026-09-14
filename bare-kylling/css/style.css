@@ -463,7 +463,7 @@ body.meny-apen .burger span { background: var(--cream); }
   white-space: nowrap;
 }
 .spice--1 { top: 8%;  left: 3%;  }
-.spice--2 { top: 27%; right: 3%; }
+.spice--2 { top: 5%;  right: 3%; }   /* over pakkene – ikke oppå dem */
 .spice--3 { bottom: 25%; left: 1%; }
 .spice--4 { bottom: 6%;  left: 14%; }
 
