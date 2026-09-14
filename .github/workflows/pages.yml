@@ -1,0 +1,39 @@
+# Publiserer mappen bare-kylling/ som rot på GitHub Pages.
+# Krever at Settings → Pages → Source står til «GitHub Actions».
+name: Publiser til GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Klargjør Pages
+        uses: actions/configure-pages@v5
+
+      - name: Last opp bare-kylling/ som nettsted
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: bare-kylling
+
+      - name: Publiser
+        id: deployment
+        uses: actions/deploy-pages@v4
