@@ -75,24 +75,14 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   });
 
-  /* Aktiv lenke i menylinjen */
-  var navLinks = $$('.nav__links a');
-  var watched = navLinks
-    .map(function (a) { return { a: a, el: $(a.getAttribute('href')) }; })
-    .filter(function (p) { return p.el; });
-
-  if ('IntersectionObserver' in window && watched.length) {
-    var seen = new Map();
-    var spy = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { seen.set(en.target, en.intersectionRatio); });
-      var best = null, bestR = 0;
-      watched.forEach(function (p) {
-        var r = seen.get(p.el) || 0;
-        if (r > bestR) { bestR = r; best = p.a; }
-      });
-      navLinks.forEach(function (a) { a.classList.toggle('is-active', a === best); });
-    }, { threshold: [0, 0.25, 0.5, 0.75], rootMargin: '-25% 0px -45% 0px' });
-    watched.forEach(function (p) { spy.observe(p.el); });
+  /* Aktiv side i menyene. Sidene setter aria-current="page" selv i HTML-en;
+     dette er bare et sikkerhetsnett hvis noen glemmer det.                  */
+  var side = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  if (!$('.nav__links [aria-current]')) {
+    $$('.nav__links a, .menu__inner > a:not(.menu__cta)').forEach(function (a) {
+      var mal = (a.getAttribute('href') || '').split('#')[0].toLowerCase();
+      if (mal === side) { a.setAttribute('aria-current', 'page'); }
+    });
   }
 
   /* ---------------------------------------------------------------------------
@@ -102,16 +92,18 @@
     var targets = [];
     [
       '.hero__copy > *', '.hero__stage',
-      '.problem__h2', '.problem__intro > *', '.versus__col',
+      '.subhero__copy > *', '.subhero__stage',
+      '.problem__h2', '.problem__intro > *', '.versus__col', '.perk', '.problem__more', '.problem--teaser .mascot',
       '.ben__inner > *',
-      '.flavors__h2', '.flavor__inner > *',
-      '.how__h2', '.step', '.how__end',
+      '.flavors__h2', '.flavor__inner > *', '.card',
+      '.how__h2', '.step', '.how__end', '.how__link',
       '.uses__h2', '.tile',
       '.compare__h2', '.compare__scroll',
       '.trans__h2', '.ing', '.trans__stamp',
-      '.story__grid > *',
-      '.launch__h2', '.launch__lead', '.form',
-      '.faq__h2', '.qa',
+      '.story__grid > *', '.about__head > *', '.about__body > *', '.value', '.fun li', '.about__foot > *',
+      '.launch__h2', '.launch__lead', '.form', '.launch .mascot', '.launch .btn--lg',
+      '.faq__h2', '.faq__group', '.qa',
+      '.oops__grid > *',
       '.foot__mark'
     ].forEach(function (sel) { targets = targets.concat($$(sel)); });
 
@@ -134,14 +126,16 @@
 
   var stage = $('[data-parallax]');
   var sticky = $('.sticky-cta');
-  var hero = $('.hero');
+  var hero = $('.hero, .subhero, .launch--page, .oops');
 
   /* Knappen skal ikke ligge over skjemaet den peker til */
   var iLansering = false;
   var lansering = $('#lansering');
   if (lansering && 'IntersectionObserver' in window) {
-    new IntersectionObserver(function (e) { iLansering = e[0].isIntersecting; }, { threshold: 0 })
-      .observe(lansering);
+    new IntersectionObserver(function (e) {
+      iLansering = e[0].isIntersecting;
+      if (!ticking) { ticking = true; requestAnimationFrame(frame); }
+    }, { threshold: 0 }).observe(lansering);
   }
   var canParallax = !lite && stage && window.matchMedia('(min-width: 900px) and (pointer: fine)').matches;
   var ticking = false;

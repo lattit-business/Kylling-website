@@ -42,8 +42,8 @@ window.BK = {
     /* Sett til true når nettbutikken er live. Da bytter alle hoved-CTA-er.      */
     butikkAktiv: false,
     cta: {
-      medButikk: { tekst: 'Bestill nå',                 href: '#smakene'   },
-      utenButikk: { tekst: 'Få beskjed ved lansering',  href: '#lansering' }
+      medButikk: { tekst: 'Bestill nå',                 href: 'smakene.html'    },
+      utenButikk: { tekst: 'Få beskjed ved lansering',  href: 'venteliste.html' }
     }
   },
 

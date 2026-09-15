@@ -358,7 +358,8 @@ input { font: inherit; }
   transform: scaleX(0); transform-origin: left;
   transition: transform .28s var(--ease);
 }
-.nav__links a:hover::after, .nav__links a.is-active::after { transform: scaleX(1); }
+.nav__links a:hover::after, .nav__links a.is-active::after,
+.nav__links a[aria-current="page"]::after { transform: scaleX(1); }
 
 .nav__end { display: flex; align-items: center; gap: .6rem; }
 .nav__cta { display: none; }
@@ -402,6 +403,7 @@ body.meny-apen .burger span { background: var(--cream); }
   font-style: normal; font-family: var(--sans); font-weight: 700;
   font-size: .72rem; letter-spacing: .2em; opacity: .55;
 }
+.menu__inner > a[aria-current="page"] i { opacity: 1; color: var(--sage); }
 .menu__cta { margin-top: 1.8rem; }
 .menu__foot {
   margin-top: 1.4rem; font-size: .78rem;
@@ -467,23 +469,34 @@ body.meny-apen .burger span { background: var(--cream); }
 .spice--3 { bottom: 25%; left: 1%; }
 .spice--4 { bottom: 6%;  left: 14%; }
 
-.stamp {
-  position: absolute; z-index: 4;
-  right: 2%; bottom: 2%;
-  width: clamp(76px, 17vw, 124px); aspect-ratio: 1;
+/* Roterende stempel. Basen (.sticker) brukes over hele nettstedet;
+   .stamp er bare plasseringen i heroen. Tekstringen ligger i HTML og
+   peker på #sirkel, som er definert i den felles toppblokken. */
+.sticker {
+  position: relative; flex: none;
+  width: var(--sticker, clamp(84px, 12vw, 120px)); aspect-ratio: 1;
   display: grid; place-items: center;
-  color: var(--forest);
+  color: var(--sticker-fg, var(--forest));
 }
-.stamp svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 28s linear infinite; }
-.stamp svg text { font-family: var(--sans); font-size: 8px; font-weight: 800; fill: currentColor; }
-.stamp b {
+.sticker > svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 28s linear infinite; }
+.sticker > svg text { font-family: var(--sans); font-size: 8px; font-weight: 800; fill: currentColor; }
+.sticker b {
   font-family: var(--display); font-weight: 800;
   font-size: clamp(.8rem, 1.9vw, 1.15rem); letter-spacing: -.03em; line-height: 1; white-space: nowrap;
   display: grid; place-items: center;
   width: 58%; aspect-ratio: 1; border-radius: 50%;
-  background: var(--cream); box-shadow: 0 0 0 1.5px currentColor inset;
+  background: var(--sticker-bg, var(--cream)); box-shadow: 0 0 0 1.5px currentColor inset;
 }
-.stamp b small { font-size: .7em; font-weight: 700; margin-left: .08em; }
+.sticker b small { font-size: .7em; font-weight: 700; margin-left: .08em; }
+.sticker b .icon { width: 52%; height: 52%; }
+.sticker--paprika { --sticker-fg: var(--paprika); }
+.sticker--ink     { --sticker-fg: var(--ink); }
+.sticker--cream   { --sticker-fg: var(--cream); --sticker-bg: transparent; }
+.stamp {
+  position: absolute; z-index: 4;
+  right: 2%; bottom: 2%;
+  --sticker: clamp(76px, 17vw, 124px);
+}
 
 .hero__arrow { display: none; }
 
@@ -940,10 +953,204 @@ a.tile:hover .tile__label { transform: translateY(-4px); }
 .sticky-cta.is-on { transform: translate(-50%, 0); }
 
 /* ---------------------------------------------------------------------------
+   P. FIGURER
+   Tegnede SVG-figurer fra images/figurer.svg. Farge arves fra currentColor.
+   --------------------------------------------------------------------------- */
+.svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.figure {
+  display: inline-block; flex: none;
+  width: var(--fig, 96px); height: var(--fig, 96px);
+  color: inherit;
+}
+.figure--sm { --fig: 56px; }
+.figure--md { --fig: 96px; }
+.figure--lg { --fig: clamp(120px, 16vw, 180px); }
+.figure--xl { --fig: clamp(160px, 22vw, 260px); }
+
+.icon { display: inline-block; flex: none; width: 32px; height: 32px; vertical-align: -.35em; }
+
+/* Maskot + snakkeboble. Boblen er ekte tekst; figuren er aria-hidden. */
+.mascot { display: flex; align-items: flex-end; gap: .9rem; max-width: 36rem; }
+.mascot--rev { flex-direction: row-reverse; }
+.mascot--stack { flex-direction: column; align-items: flex-start; gap: .4rem; }
+.bubble {
+  position: relative; margin: 0 0 1.4rem;
+  padding: .8rem 1.05rem;
+  background: var(--cream); color: var(--ink);
+  border: var(--edge); border-radius: 14px;
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(.98rem, 1.25vw, 1.12rem); line-height: 1.3; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.bubble::before {
+  content: ''; position: absolute;
+  width: 13px; height: 13px;
+  background: var(--cream);
+  border: var(--edge); border-top: 0; border-left: 0;
+  left: -8px; bottom: 1.1rem; transform: rotate(135deg);
+}
+.mascot--rev .bubble::before { left: auto; right: -8px; transform: rotate(-45deg); }
+.mascot--stack .bubble::before { left: 1.4rem; bottom: -8px; transform: rotate(45deg); }
+.mascot--stack .bubble { margin-bottom: .4rem; }
+
+/* Kyllingen som kikker over hero-bildet */
+.hero__peek { display: none; }
+
+/* Doodles i smaksbånd og åpenhet-seksjonen */
+.doodles { display: flex; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.2rem; }
+.doodles .figure { --fig: 40px; opacity: .9; }
+.trans .doodles .figure { opacity: .7; }
+
+/* Steg med ikon oppe til høyre, og kyllingen som sover under «Det var det.» */
+.step { position: relative; }
+.step__icon { position: absolute; right: 0; top: 1.5rem; width: 36px; height: 36px; color: var(--ink); opacity: .8; }
+.how__mascot { display: flex; justify-content: center; margin-top: clamp(1.2rem, 3vw, 2rem); }
+
+/* Tekstfliser med figur */
+.tile__fig { --fig: clamp(46px, 9vw, 78px); align-self: end; margin-bottom: .2rem; }
+.tile__fig + .tile__label { align-self: start; }
+.tile--sage .tile__fig { color: var(--ink); }
+
+/* ---------------------------------------------------------------------------
+   Q. UNDERSIDER
+   --------------------------------------------------------------------------- */
+.subhero {
+  position: relative;
+  padding-block: clamp(1.6rem, 3.5vw, 2.8rem) clamp(2.4rem, 5vw, 4rem);
+}
+.subhero__grid { display: grid; gap: clamp(1.6rem, 4vw, 2.6rem); align-items: end; }
+.subhero__h1 { margin-bottom: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; letter-spacing: -.045em; }
+.subhero__lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 40ch; color: var(--ink-soft); }
+.subhero__stage { display: flex; justify-content: flex-start; }
+.subhero .problem__turn { margin-top: clamp(1rem, 2.5vw, 1.6rem); }
+
+/* Hopp til smak */
+.jump { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: clamp(1.4rem, 3vw, 2rem); }
+.jump a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  padding: .55rem 1.05rem;
+  border: var(--edge); border-radius: 999px;
+  font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em;
+  transition: background-color .25s var(--ease), color .25s var(--ease), transform .25s var(--ease);
+}
+.jump a:hover { background: var(--ink); color: var(--cream); transform: translateY(-2px); }
+
+/* Fordeler i kortform (forsiden) */
+.perks { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.2rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.75rem); margin-top: clamp(2.2rem, 5vw, 3.5rem); }
+.perk { padding-top: 1rem; border-top: var(--edge); }
+.perk .icon { display: block; width: 36px; height: 36px; color: var(--paprika); margin-bottom: .7rem; }
+.perk:nth-child(2n) .icon { color: var(--forest); }
+.perk h3 { font-family: var(--display); font-weight: 800; font-size: clamp(1.1rem, 1.7vw, 1.4rem); letter-spacing: -.025em; line-height: 1.05; margin-bottom: .4rem; }
+.perk p { color: var(--ink-soft); line-height: 1.5; max-width: 26ch; }
+.problem__more { margin-top: clamp(2rem, 4vw, 3rem); }
+.problem--teaser .problem__intro { margin-bottom: clamp(1.8rem, 4vw, 2.8rem); }
+.problem--teaser .mascot { margin-top: clamp(2.2rem, 5vw, 3.5rem); }
+
+/* Smakskort (forsiden) */
+.flavors--teaser { padding-block: var(--sec); }
+.cards { display: grid; gap: clamp(.8rem, 1.6vw, 1.25rem); }
+.card {
+  position: relative; isolation: isolate;
+  display: flex; flex-direction: column;
+  border-radius: var(--r); overflow: hidden;
+  color: var(--cream);
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.card::after {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background-image: var(--grain); opacity: .06;
+  mix-blend-mode: overlay; pointer-events: none;
+}
+.card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -24px rgba(17, 17, 15, .55); }
+.card:focus-visible { outline-offset: 4px; }
+.card--paprika { background: var(--paprika); }
+.card--forest  { background: var(--forest); }
+.card--sage    { background: var(--sage); color: var(--ink); }
+.media--card { position: relative; z-index: 2; aspect-ratio: 16 / 10; }
+.media--card .media__img { object-fit: cover; }
+.card--paprika .media__img, .card--sage .media__img { object-position: 85% 50%; }
+.card--forest .media__img { object-position: 12% 50%; }
+.card__body { position: relative; z-index: 2; flex: 1; display: grid; gap: .35rem; align-content: start; padding: clamp(1.1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.2vw, 1.6rem) clamp(1.3rem, 2.4vw, 1.8rem); padding-right: 4.5rem; }
+.card__kind { font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .2em; opacity: .8; }
+.card__name { font-family: var(--display); font-weight: 900; font-size: clamp(1.55rem, 2.6vw, 2.2rem); letter-spacing: -.035em; line-height: .95; }
+.card__desc { opacity: .92; }
+.card__more { margin-top: .5rem; font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
+.card__doodle { position: absolute; right: 1rem; bottom: 1rem; z-index: 2; --fig: 46px; opacity: .85; }
+
+/* Verdier (Om oss) */
+.values { display: grid; gap: clamp(1.4rem, 3vw, 2.2rem); margin-top: clamp(2rem, 4vw, 3rem); }
+.value { padding-top: 1rem; border-top: var(--edge); }
+.value .icon { display: block; width: 36px; height: 36px; color: var(--forest); margin-bottom: .7rem; }
+.value:nth-child(2n) .icon { color: var(--paprika); }
+.value h3 { font-family: var(--display); font-weight: 800; font-size: clamp(1.2rem, 1.9vw, 1.6rem); letter-spacing: -.025em; line-height: 1.05; margin-bottom: .45rem; }
+.value p { color: var(--ink-soft); line-height: 1.5; max-width: 34ch; }
+
+/* «Ja. Vi er ganske glad i kylling.» */
+.fun { max-width: 46rem; border-top: var(--edge); }
+.fun li { padding: 1.1rem 0; border-bottom: 1px solid rgba(17, 17, 15, .18); font-size: var(--fs-lead); line-height: 1.4; }
+.fun b { display: block; font-family: var(--display); font-weight: 800; letter-spacing: -.02em; margin-bottom: .2rem; }
+.about { padding-block: var(--sec); }
+.about--beige { background: var(--beige); }
+.about__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; margin-bottom: clamp(1.6rem, 3.5vw, 2.4rem); }
+.about__body { display: grid; gap: 1.1rem; font-size: var(--fs-lead); line-height: 1.55; max-width: 46ch; }
+.about__foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-top: clamp(2rem, 4vw, 3rem); }
+
+/* CTA-bånd (felles på fem sider) og venteliste-siden */
+.launch--band { padding-block: clamp(3.5rem, 8vw, 6.5rem); }
+.launch--band .launch__inner { max-width: none; display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); align-items: center; }
+.launch--band .launch__lead { margin-bottom: clamp(1.4rem, 3vw, 2rem); }
+.launch--band .mascot { color: var(--cream); }
+.launch--page .launch__inner { max-width: none; display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); align-items: end; }
+.launch--page .mascot { color: var(--cream); }
+.how--after { background: var(--cream); }
+.how__link { margin-top: clamp(2rem, 4vw, 3rem); text-align: center; font-size: var(--fs-lead); }
+
+/* Seksjoner som følger rett etter en subhero trenger mindre luft over seg */
+.flavors--page { padding-block: 0; }
+.problem--versus { padding-block: clamp(1.5rem, 4vw, 3rem) var(--sec); }
+.faq--page { padding-top: clamp(1rem, 3vw, 2rem); }
+.ben__fig { display: block; --fig: 56px; margin-bottom: .6rem; }
+
+/* FAQ-grupper */
+.faq__group {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(1.2rem, 1.9vw, 1.6rem); letter-spacing: -.025em;
+  color: var(--paprika);
+  margin: clamp(2.2rem, 4.5vw, 3.2rem) 0 .7rem;
+  max-width: 900px;
+}
+.faq__group:first-child { margin-top: 0; }
+.qa__body a, .how__link a {
+  text-decoration: underline; text-underline-offset: 4px;
+  text-decoration-thickness: 2px; text-decoration-color: var(--paprika);
+}
+.qa__body a:hover, .how__link a:hover { color: var(--paprika); }
+.faq__lists .faq__list { margin-bottom: 0; }
+
+/* Sticker ved sammenligningstabellen */
+.compare .shell { position: relative; }
+.compare__sticker { display: none; position: absolute; right: var(--gut); top: -.5rem; }
+
+/* 404 */
+.oops { padding-block: clamp(3rem, 8vw, 6rem) var(--sec); }
+.oops__num {
+  font-family: var(--display); font-weight: 900;
+  font-size: clamp(6.5rem, 26vw, 18rem); line-height: .8; letter-spacing: -.06em;
+  -webkit-text-stroke: 2px rgba(17, 17, 15, .32); color: transparent;
+  margin-bottom: clamp(1rem, 3vw, 2rem);
+}
+.oops__h1 { margin-bottom: 1rem; }
+.oops__lead { font-size: var(--fs-lead); color: var(--ink-soft); max-width: 36ch; margin-bottom: clamp(1.6rem, 3.5vw, 2.4rem); }
+.oops__actions { display: flex; flex-wrap: wrap; gap: .9rem 1.6rem; align-items: center; }
+.oops__grid { display: grid; gap: clamp(2rem, 5vw, 3rem); align-items: end; }
+
+/* ---------------------------------------------------------------------------
    RESPONSIV — mobil er utgangspunktet, herfra bygges det opp
    --------------------------------------------------------------------------- */
 @media (min-width: 560px) {
   .form__row { grid-template-columns: minmax(0, 1fr) auto; }
+  .values { grid-template-columns: 1fr 1fr; }
   .tiles { grid-template-columns: repeat(3, 1fr); }
   .tile--wide { grid-column: span 3; aspect-ratio: 16 / 9; }  /* samme format som bildet av de tre pakkene */
 }
@@ -954,6 +1161,9 @@ a.tile:hover .tile__label { transform: translateY(-4px); }
   .steps { grid-template-columns: repeat(3, 1fr); gap: clamp(1.2rem, 2.5vw, 2rem); }
   .spice { display: block; }
   .trans__grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+  .perks { grid-template-columns: repeat(4, 1fr); }
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .compare__sticker { display: grid; }
   .foot__cols { grid-template-columns: repeat(3, 1fr); }
 }
 
@@ -970,6 +1180,17 @@ a.tile:hover .tile__label { transform: translateY(-4px); }
   }
   .hero__h1 .r:nth-child(2) { margin-left: .06em; }
   .media--hero { aspect-ratio: 16 / 11; }
+  .hero__peek {
+    display: block; position: absolute; z-index: 3;
+    left: 17%; top: 9.1%;
+    --fig: clamp(72px, 7vw, 104px);
+    transform: translateY(-65%);
+  }
+  .subhero__grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  .subhero__stage { justify-content: flex-end; }
+  .launch--band .launch__inner { grid-template-columns: minmax(0, 1fr) auto; }
+  .launch--page .launch__inner { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+  .oops__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
 
   .ben__inner {
     grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1fr);
@@ -1035,7 +1256,7 @@ a.tile:hover .tile__label { transform: translateY(-4px); }
     transition-duration: .01ms !important;
     transition-delay: 0ms !important;
   }
-  .marquee__track, .stamp svg { animation: none !important; }
+  .marquee__track, .sticker > svg { animation: none !important; }
   [data-reveal] { opacity: 1; transform: none; }
   .btn:hover { transform: none; }
 }
