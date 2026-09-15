@@ -93,7 +93,8 @@
     [
       '.hero__copy > *', '.hero__stage',
       '.subhero__copy > *', '.subhero__stage',
-      '.problem__h2', '.problem__intro > *', '.versus__col', '.perk', '.problem__more', '.problem--teaser .mascot',
+      '.problem__h2', '.problem__intro > *', '.versus__col', '.perk', '.problem__more',
+      '.lei__h2', '.lei__lead', '.lei__item', '.lei__turn', '.lei .mascot',
       '.ben__inner > *',
       '.flavors__h2', '.flavor__inner > *', '.card',
       '.how__h2', '.step', '.how__end', '.how__link',

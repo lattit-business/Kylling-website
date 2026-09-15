@@ -118,7 +118,11 @@ def main() -> int:
             if sti:
                 mål = ROT / sti
                 if not mål.exists():
-                    feil.append(f"{fil}: «{ref}» finnes ikke")
+                    if tag.lower() == "img":
+                        # Bilder er valgfrie: siden viser plassholder / skjuler figuren
+                        advarsler.append(f"{fil}: bildet «{sti}» mangler (vises som plassholder)")
+                    else:
+                        feil.append(f"{fil}: «{ref}» finnes ikke")
                     continue
                 mål_ids = set(re.findall(r'\bid="([^"]+)"', html.get(sti, ""))) if sti.endswith(".html") else set()
             else:
