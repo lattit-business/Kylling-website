@@ -22,6 +22,7 @@ Alle filene er JPEG, maks 1800 px brede og under 300 kB.
 | `bruk-wrap.jpg` | Sitron & Urter ved siden av en ferdig wrap på et skrivebord | Flis «I wrap» (forside) |
 | `bruk-jobb.jpg` | Tre pakker i et lyst kjøkkenmiljø (liggende, 16:9) | Bred flis «På jobb» (forside) |
 | `bruk-skole.jpg` | Åpen skolesekk på pult med bøker, flaske og pakke (stående, 4:5) | Flis «På skolen» (forside) |
+| `bruk-ris.jpg` | Bolle med ris, skivet krydret kylling, agurk og lime (stående, 4:5) | Flis «Med ris» (forside) |
 | `lei-ultraprosessert.jpg` | Proteinbarer i folie, proteinpulver og shaker på grå betong (4:3) | Manifest-kort 01 (forside) |
 | `lei-ingrediensliste.jpg` | Kvinne studerer en lang ingrediensliste på en snackpose (4:3) | Manifest-kort 02 (forside) |
 | `lei-mikroplast.jpg` | Plastinnpakkede snacks og ferdigrett på kjøkkenbenk (4:3) | Manifest-kort 03 (forside) |
@@ -37,11 +38,10 @@ Smaksbildene beskjæres med `object-fit: cover`. Beskjæringen er ankret mot
 pakken (`object-position` i `css/style.css`), slik at det er ingrediensene i
 kanten som kuttes – ikke emballasjen.
 
-## Fliser uten bilde
+## Tekstfliser
 
-«Med ris» har ikke bilde ennå og er en ren tekstflis; «I farta» viser den
-løpende kyllingen. Vil dere ha foto på «Med ris», legg inn `bruk-ris.jpg` og
-gjør flisen om til bildeflis etter mønster fra de andre.
+«I farta» (med den løpende kyllingen) og «Rett fra pakken» er bevisst
+tekstfliser – de gir luft mellom fotoene.
 
 ## `ubrukt/`
 
