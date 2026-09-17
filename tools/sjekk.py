@@ -100,6 +100,7 @@ def main() -> int:
     brukte_ids = set()
     attr = re.compile(r'<(a|img|link|script|use|source)\b[^>]*?\b(?:href|src)="([^"]+)"', re.I)
     for fil, s in html.items():
+        s = re.sub(r"<!--.*?-->", "", s, flags=re.S)  # maler i kommentarer sjekkes ikke
         ids = set(re.findall(r'\bid="([^"]+)"', s))
         for tag, ref in attr.findall(s):
             if ref.startswith(("http://", "https://", "mailto:", "data:", "tel:")):
@@ -119,8 +120,7 @@ def main() -> int:
                 mål = ROT / sti
                 if not mål.exists():
                     if tag.lower() == "img":
-                        # Bilder er valgfrie: siden viser plassholder / skjuler figuren
-                        advarsler.append(f"{fil}: bildet «{sti}» mangler (vises som plassholder)")
+                        advarsler.append(f"{fil}: bildet «{sti}» mangler (alt-teksten vises i stedet)")
                     else:
                         feil.append(f"{fil}: «{ref}» finnes ikke")
                     continue

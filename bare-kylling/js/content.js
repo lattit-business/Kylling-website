@@ -27,7 +27,7 @@ window.BK = {
 
     /* Sett inn URL når skjemaet skal kobles til Formspree, Supabase, Mailchimp
        e.l. Så lenge denne er null lagres INGENTING, og siden sier det ærlig.    */
-    ventelisteEndepunkt: null,
+    ventelisteEndepunkt: 'https://formspree.io/f/xgaveyzd',
 
     /* Ekte e-postadresse. Så lenge denne er null vises ingen e-postlenke, og
        siden finner ikke på en adresse. Fyll inn når dere har en.               */
@@ -80,8 +80,8 @@ window.BK = {
     bekreftet: false,
     tekst: '100 % kylling*',
     note: '* pluss krydderet som gjør at den faktisk smaker godt.',
-    reserve: 'Kylling. Og krydder.',
-    reserveNote: 'Det er hele lista. Full ingrediensdeklarasjon publiseres når resepten er låst.'
+    reserve: 'Kylling og krydder',
+    reserveNote: 'Det er det som er i pakken. Mengder, salt og allergener kommer i den fullstendige deklarasjonen.'
   },
 
   /* ---------------------------------------------------------------------------

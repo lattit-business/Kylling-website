@@ -17,18 +17,30 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 120 120'%3E%3Crect x='-10' y='-10' width='120' height='120' rx='26' fill='%2311110F'/%3E%3Cg fill='none' stroke='%23F3F0E9' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5'/%3E%3Cpath d='M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3'/%3E%3Cpath d='M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11'/%3E%3Cpath d='M39.5 84.5V97h-8.5M60.5 84.5V97h8.5'/%3E%3C/g%3E%3Ccircle cx='75.5' cy='18.5' r='3.4' fill='%23F3F0E9'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 <!-- BK:FELLES hode END -->
 
-<title>Bare Kylling – ferdig kyllingbryst, klart når du er</title>
-<meta name="description" content="Ferdigstekt og ferdig krydret kyllingbryst. Ordentlig mat, mye protein og null meal prep. Bare Kylling er utviklet i Bergen." />
-<meta property="og:title" content="Bare Kylling – ferdig kyllingbryst, klart når du er" />
-<meta property="og:description" content="Ferdigstekt og ferdig krydret kyllingbryst. Ordentlig mat, mye protein og null meal prep. Utviklet i Bergen." />
+<title>Bare Kylling – ferdigstekt kyllingbryst, klart når du er</title>
+<meta name="description" content="Ferdigstekt og ferdig krydret kyllingbryst i porsjonspakke. Ordentlig mat i stedet for proteinbar og shake. Ungdomsbedrift fra Bergen – meld deg på lista før lansering." />
+<meta property="og:title" content="Bare Kylling – ferdigstekt kyllingbryst, klart når du er" />
+<meta property="og:description" content="Ferdigstekt og ferdig krydret kyllingbryst i porsjonspakke. Ordentlig mat i stedet for proteinbar og shake. Ungdomsbedrift fra Bergen." />
 <meta property="og:url" content="https://lattit-business.github.io/Kylling-website/" />
 <!-- FØR EGET DOMENE: legg inn canonical når dere har et.
      <link rel="canonical" href="https://DITT-DOMENE.no/" />
      En canonical mot feil domene skader synligheten i søk, så den er bevisst utelatt. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Bare Kylling",
+  "legalName": "Bare Kylling UB",
+  "url": "https://lattit-business.github.io/Kylling-website/",
+  "logo": "https://lattit-business.github.io/Kylling-website/images/bare-kylling-pakker.jpg",
+  "description": "Ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingbryst i porsjonspakke.",
+  "address": { "@type": "PostalAddress", "addressLocality": "Bergen", "addressCountry": "NO" }
+}
+</script>
 </head>
 
 <body id="top">
@@ -36,25 +48,13 @@
 <!-- BK:FELLES topp START -->
 <a class="skip" href="#hovedinnhold">Hopp til hovedinnhold</a>
 
-<!-- Felles SVG-definisjoner: sirkelen stemplene skriver tekst langs -->
+<!-- Felles SVG-definisjon: sirkelen stempelet i heroen skriver tekst langs -->
 <svg class="svg-defs" aria-hidden="true" focusable="false">
   <defs><path id="sirkel" d="M60,60 m-47,0 a47,47 0 1,1 94,0 a47,47 0 1,1 -94,0" /></defs>
 </svg>
 
 <!-- ============================================================
-     A. ANNOUNCEMENT BAR
-     ============================================================ -->
-<div class="announce">
-  <div class="announce__track">
-    <span>Bare Kylling er på vei</span>
-    <span class="announce__dot" aria-hidden="true"></span>
-    <span class="announce__extra">Første batch kommer snart</span>
-    <a class="announce__link" href="venteliste.html">Meld deg på</a>
-  </div>
-</div>
-
-<!-- ============================================================
-     B. NAVBAR
+     NAVBAR
      ============================================================ -->
 <header class="nav" id="nav">
   <div class="nav__inner shell">
@@ -76,10 +76,10 @@
     </a>
 
     <nav class="nav__links" aria-label="Hovedmeny">
-      <a href="smakene.html">Produktene</a>
-      <a href="hvorfor.html">Hvorfor Bare?</a>
+      <a href="smakene.html">Smakene</a>
+      <a href="hvorfor.html">Hvorfor kylling?</a>
       <a href="om-oss.html">Om oss</a>
-      <a href="faq.html">FAQ</a>
+      <a href="faq.html">Spørsmål og svar</a>
     </nav>
 
     <div class="nav__end">
@@ -94,10 +94,10 @@
 
 <div class="menu" id="meny" hidden>
   <nav class="menu__inner" aria-label="Meny">
-    <a href="smakene.html"><i aria-hidden="true">01</i>Produktene</a>
-    <a href="hvorfor.html"><i aria-hidden="true">02</i>Hvorfor Bare?</a>
-    <a href="om-oss.html"><i aria-hidden="true">03</i>Om oss</a>
-    <a href="faq.html"><i aria-hidden="true">04</i>FAQ</a>
+    <a href="smakene.html">Smakene</a>
+    <a href="hvorfor.html">Hvorfor kylling?</a>
+    <a href="om-oss.html">Om oss</a>
+    <a href="faq.html">Spørsmål og svar</a>
     <a class="btn btn--cream menu__cta" href="venteliste.html">Få beskjed ved lansering</a>
     <p class="menu__foot">Ren mat. Enkelt. Godt.</p>
   </nav>
@@ -107,11 +107,9 @@
 <main id="hovedinnhold">
 
 <!-- ============================================================
-     C. HERO
+     HERO
      ============================================================ -->
 <section class="hero" aria-labelledby="hero-tittel">
-  <span class="rail" aria-hidden="true">Ren mat. Enkelt. Godt.</span>
-
   <div class="hero__grid shell">
 
     <div class="hero__copy">
@@ -124,41 +122,33 @@
       </h1>
 
       <p class="hero__lead">
-        Vi var lei av barer, pulver og ingredienslister vi ikke skjønte.
-        Så vi lagde ferdigstekt, ferdig krydret kyllingbryst. Riv opp. Spis.
+        Vi var lei av proteinbarer, pulver og ingredienslister vi ikke skjønte.
+        Så vi lagde det vi egentlig ville ha: ferdigstekt, ferdig krydret
+        kyllingbryst i en pakke du river opp og spiser.
       </p>
 
       <div class="hero__cta">
-        <a class="btn btn--paprika btn--lg" href="smakene.html">Se smakene</a>
-        <a class="btn btn--ghost btn--lg" href="hvorfor.html">Hva er Bare Kylling?</a>
+        <a class="btn btn--paprika btn--lg" href="smakene.html">Se de tre smakene</a>
+        <a class="btn btn--ghost btn--lg" href="hvorfor.html">Hvorfor kylling?</a>
       </div>
 
-      <ul class="proof" id="proof">
-        <li>Ferdig stekt</li>
-        <li>200 g</li>
-        <li>Mye protein</li>
-        <li>Null stekepanne</li>
+      <ul class="proof">
+        <li>Ferdigstekt kyllingbryst</li>
+        <li>200 g per pakke</li>
+        <li>Spises kald eller varm</li>
       </ul>
     </div>
 
     <div class="hero__stage">
-      <span class="spice spice--1" aria-hidden="true">paprika</span>
-      <span class="spice spice--2" aria-hidden="true">lime</span>
-      <span class="spice spice--3" aria-hidden="true">hvitløk</span>
-      <span class="spice spice--4" aria-hidden="true">oregano</span>
-
       <svg class="figure hero__peek" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-titter"></use></svg>
 
-      <figure class="media media--hero" data-parallax>
+      <figure class="media media--hero">
         <img class="media__img"
              src="images/bare-kylling-pakker.jpg"
+             srcset="images/bare-kylling-pakker-900.jpg 900w, images/bare-kylling-pakker.jpg 1672w"
+             sizes="(min-width: 900px) 54vw, 100vw"
              alt="Tre pakker Bare Kylling ved siden av hverandre: Brown Sugar Paprika, Smoky Chili Lime og Sitron og Urter."
              width="1672" height="941" fetchpriority="high" decoding="async" />
-        <figcaption class="media__ph">
-          <span class="media__ph-tag">Produktbilde mangler</span>
-          <code>bare-kylling/images/bare-kylling-pakker.jpg</code>
-          <span class="media__ph-hint">Legg inn bildet av de tre pakkene her, så bytter det seg ut automatisk.</span>
-        </figcaption>
       </figure>
 
       <span class="stamp sticker" aria-hidden="true">
@@ -169,263 +159,217 @@
       </span>
     </div>
   </div>
-
-  <svg class="hero__arrow" viewBox="0 0 120 70" aria-hidden="true">
-    <path d="M4 8c22 34 54 50 96 46" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-    <path d="M86 45l14 9-12 10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
-  </svg>
 </section>
 
 <!-- ============================================================
-     D. MARQUEE
-     ============================================================ -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee__track">
-    <div class="marquee__set">
-      <span>Bare Kylling</span><b>&bull;</b><span>Ferdig stekt</span><b>&bull;</b>
-      <span>Ferdig krydret</span><b>&bull;</b><span>Ordentlig mat</span><b>&bull;</b>
-      <span>Null stekepanne</span><b>&bull;</b><span>Kylling. Bare enklere.</span><b>&bull;</b>
-    </div>
-    <div class="marquee__set">
-      <span>Bare Kylling</span><b>&bull;</b><span>Ferdig stekt</span><b>&bull;</b>
-      <span>Ferdig krydret</span><b>&bull;</b><span>Ordentlig mat</span><b>&bull;</b>
-      <span>Null stekepanne</span><b>&bull;</b><span>Kylling. Bare enklere.</span><b>&bull;</b>
-    </div>
-  </div>
-</div>
-<p class="sr-only">Bare Kylling. Ferdig stekt. Ferdig krydret. Ordentlig mat. Null stekepanne.</p>
-
-<!-- ============================================================
-     E. VI ER LEI – manifestet (hele historien ligger på hvorfor.html)
-     Bildene lei-*.jpg er valgfrie: mangler de, vises kortene som
-     rene tekstfliser. Legg inn filene, så dukker bildene opp av seg selv.
+     VI ER LEI – hvorfor vi begynte (hele historien ligger på hvorfor.html)
      ============================================================ -->
 <section class="lei" id="hvorfor" aria-labelledby="lei-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">01</span>Hvorfor</p>
+    <p class="marker">Hvorfor</p>
 
-    <h2 class="display lei__h2" id="lei-tittel">Vi er lei.</h2>
-    <p class="lead lei__lead">Ikke av mat. Av alt rundt maten.</p>
+    <h2 class="display lei__h2" id="lei-tittel">Vi er lei</h2>
+    <p class="lead lei__lead">Ikke av mat – av alt som selges som mat til folk som vil ha protein.</p>
 
     <div class="lei__grid">
       <article class="lei__item lei__item--paprika">
         <figure class="media media--lei">
-          <img class="media__img" src="images/lei-ultraprosessert.jpg" alt="En haug proteinbarer i blank plast, en skje proteinpulver og en shaker på en grå benk." loading="lazy" decoding="async" width="1600" height="1200" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/lei-ultraprosessert.jpg</code></figcaption>
+          <img class="media__img" src="images/lei-ultraprosessert.jpg"
+               srcset="images/lei-ultraprosessert-720.jpg 720w, images/lei-ultraprosessert.jpg 1448w"
+               sizes="(min-width: 768px) 30vw, 100vw"
+               alt="En haug proteinbarer i blank plast, en skje proteinpulver og en shaker på en grå benk." loading="lazy" decoding="async" width="1448" height="1086" />
         </figure>
         <div class="lei__body">
-          <span class="lei__num" aria-hidden="true">01</span>
-          <h3 class="lei__h3">Lei av ultra&shy;prosessert mat.</h3>
-          <p>Barer, pulver og shakes som later som de er mat. Protein skal ikke smake som en dessert du ikke ba om.</p>
+          <h3 class="lei__h3">Lei av barer og pulver som later som de er mat</h3>
+          <p>De fleste proteinbarer smaker som en dessert du ikke ba om. Vi ville ha noe salt, noe mett, noe du faktisk kan kalle et måltid.</p>
         </div>
       </article>
 
       <article class="lei__item lei__item--forest">
         <figure class="media media--lei">
-          <img class="media__img" src="images/lei-ingrediensliste.jpg" alt="En hånd holder en snackpakke snudd mot baksiden, med en lang ingrediensliste i liten skrift." loading="lazy" decoding="async" width="1600" height="1200" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/lei-ingrediensliste.jpg</code></figcaption>
+          <img class="media__img" src="images/lei-ingrediensliste.jpg"
+               srcset="images/lei-ingrediensliste-720.jpg 720w, images/lei-ingrediensliste.jpg 1448w"
+               sizes="(min-width: 768px) 30vw, 100vw"
+               alt="En hånd holder en snackpakke snudd mot baksiden, med en lang ingrediensliste i liten skrift." loading="lazy" decoding="async" width="1448" height="1086" />
         </figure>
         <div class="lei__body">
-          <span class="lei__num" aria-hidden="true">02</span>
-          <h3 class="lei__h3">Lei av å ikke vite hva som er i maten.</h3>
-          <p>Ingredienslister du trenger ordbok for å lese. Du skal skjønne hva du spiser – uten å google.</p>
+          <h3 class="lei__h3">Lei av ingredienslister vi må google</h3>
+          <p>Hvis du trenger ordbok for å lese baksiden av pakken, er det noe som skurrer. Du skal skjønne hva du spiser før du har åpnet den.</p>
         </div>
       </article>
 
       <article class="lei__item lei__item--ink">
         <figure class="media media--lei">
-          <img class="media__img" src="images/lei-mikroplast.jpg" alt="Plastinnpakkede snacks og en ferdigrett i plastfilm på en kjøkkenbenk." loading="lazy" decoding="async" width="1600" height="1200" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/lei-mikroplast.jpg</code></figcaption>
+          <img class="media__img" src="images/lei-mikroplast.jpg"
+               srcset="images/lei-mikroplast-720.jpg 720w, images/lei-mikroplast.jpg 1448w"
+               sizes="(min-width: 768px) 30vw, 100vw"
+               alt="Innpakkede snacks og en ferdigrett i plastskål på en kjøkkenbenk." loading="lazy" decoding="async" width="1448" height="1086" />
         </figure>
         <div class="lei__body">
-          <span class="lei__num" aria-hidden="true">03</span>
-          <h3 class="lei__h3">Lei av å lese om mikroplast i maten.</h3>
-          <p>Vi vil ha mat som er så nær råvaren som mulig. Kylling. Krydder. Ferdig.</p>
+          <h3 class="lei__h3">Lei av å bruke søndagen på matbokser</h3>
+          <p>Seks like bokser i kjøleskapet, og innen onsdag orker du ikke se dem. Vi ville ha noe som var ferdig uten at vi måtte lage det først.</p>
         </div>
       </article>
     </div>
 
-    <p class="problem__turn lei__turn"><span>Så vi begynte med kylling.</span></p>
+    <p class="turn lei__turn"><span>Så vi begynte med kylling.</span></p>
 
-    <ul class="perks">
-      <li class="perk">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-hake"></use></svg>
-        <h3>Allerede ferdig.</h3>
-        <p>Stekt og krydret før du åpner pakken.</p>
-      </li>
-      <li class="perk">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kylling"></use></svg>
-        <h3>Faktisk mat.</h3>
-        <p>Kyllingbryst. Ikke pulver med smak av kylling.</p>
-      </li>
-      <li class="perk">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-sekk"></use></svg>
-        <h3>Ta den med.</h3>
-        <p>Tar like liten plass som resten i sekken.</p>
-      </li>
-      <li class="perk">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kald-varm"></use></svg>
-        <h3>Kald eller varm.</h3>
-        <p>Begge deler er riktig svar.</p>
-      </li>
-    </ul>
-
-    <div class="mascot">
-      <svg class="figure figure--md" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
-      <p class="bubble">Jeg er ikke en bar. Jeg er middag.</p>
+    <div class="lei__after">
+      <div class="mascot">
+        <svg class="figure figure--md" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
+        <p class="bubble">Jeg er ikke en bar. Jeg er middag.</p>
+      </div>
+      <a class="btn btn--ghost" href="hvorfor.html">Les hvorfor vi valgte kylling</a>
     </div>
-
-    <p class="problem__more"><a class="btn btn--ghost" href="hvorfor.html">Les hvorfor Bare</a></p>
   </div>
 </section>
 
 <!-- ============================================================
-     F. SMAKENE – KORT (hele båndene ligger på smakene.html)
+     SMAKENE – kort (hele båndene ligger på smakene.html)
      ============================================================ -->
 <section class="flavors flavors--teaser" id="smakene" aria-labelledby="flavors-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">02</span>Smakene</p>
-    <h2 class="display flavors__h2" id="flavors-tittel">
-      Tre smaker.<br />Null kjedelig kylling.
-    </h2>
+    <p class="marker">Smakene</p>
+    <h2 class="display flavors__h2" id="flavors-tittel">Tre smaker å begynne med</h2>
 
     <div class="cards">
       <a class="card card--paprika" href="smakene.html#brown-sugar-paprika">
         <figure class="media media--card">
           <img class="media__img" src="images/smak-brown-sugar-paprika.jpg"
+               srcset="images/smak-brown-sugar-paprika-900.jpg 900w, images/smak-brown-sugar-paprika.jpg 1600w"
+               sizes="(min-width: 768px) 30vw, 100vw"
                alt="Brown Sugar Paprika-pakken omgitt av paprikapulver, brunt sukker, hvitløk, pepper og oregano." loading="lazy" decoding="async" width="1600" height="900" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Smaksbilde</span><code>images/smak-brown-sugar-paprika.jpg</code></figcaption>
         </figure>
         <span class="card__body">
-          <span class="card__kind">Smak 01</span>
           <span class="card__name">Brown Sugar Paprika</span>
-          <span class="card__desc">Søt. Røykfylt. Rund.</span>
-          <span class="card__more">Les mer &rarr;</span>
+          <span class="card__desc">Søtt og røykfylt, med hvitløk og oregano i bunn.</span>
+          <span class="card__more">Les mer</span>
         </span>
-        <svg class="figure card__doodle" aria-hidden="true" focusable="false"><use href="images/figurer.svg#doodle-paprika"></use></svg>
       </a>
 
       <a class="card card--forest" href="smakene.html#smoky-chili-lime">
         <figure class="media media--card">
           <img class="media__img" src="images/smak-smoky-chili-lime.jpg"
+               srcset="images/smak-smoky-chili-lime-900.jpg 900w, images/smak-smoky-chili-lime.jpg 1600w"
+               sizes="(min-width: 768px) 30vw, 100vw"
                alt="Smoky Chili Lime-pakken omgitt av lime, rød chili, koriander og pepperblanding." loading="lazy" decoding="async" width="1600" height="900" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Smaksbilde</span><code>images/smak-smoky-chili-lime.jpg</code></figcaption>
         </figure>
         <span class="card__body">
-          <span class="card__kind">Smak 02</span>
           <span class="card__name">Smoky Chili Lime</span>
-          <span class="card__desc">Røykfylt. Frisk. Litt spicy.</span>
-          <span class="card__more">Les mer &rarr;</span>
+          <span class="card__desc">Røkt chili og frisk lime. Litt sting, ikke mer enn at du tar en bit til.</span>
+          <span class="card__more">Les mer</span>
         </span>
-        <svg class="figure card__doodle" aria-hidden="true" focusable="false"><use href="images/figurer.svg#doodle-chili"></use></svg>
       </a>
 
       <a class="card card--sage" href="smakene.html#sitron-og-urter">
         <figure class="media media--card">
           <img class="media__img" src="images/smak-sitron-og-urter.jpg"
+               srcset="images/smak-sitron-og-urter-900.jpg 900w, images/smak-sitron-og-urter.jpg 1600w"
+               sizes="(min-width: 768px) 30vw, 100vw"
                alt="Sitron og Urter-pakken omgitt av sitron, timian og basilikum." loading="lazy" decoding="async" width="1600" height="900" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Smaksbilde</span><code>images/smak-sitron-og-urter.jpg</code></figcaption>
         </figure>
         <span class="card__body">
-          <span class="card__kind">Smak 03</span>
           <span class="card__name">Sitron &amp; Urter</span>
-          <span class="card__desc">Frisk. Lys. Rolig.</span>
-          <span class="card__more">Les mer &rarr;</span>
+          <span class="card__desc">Den mildeste av de tre, og den som passer til det meste.</span>
+          <span class="card__more">Les mer</span>
         </span>
-        <svg class="figure card__doodle" aria-hidden="true" focusable="false"><use href="images/figurer.svg#doodle-sitron"></use></svg>
       </a>
     </div>
   </div>
 </section>
 
 <!-- ============================================================
-     G. SLIK FUNKER DET
+     SLIK FUNKER DET
      ============================================================ -->
 <section class="how" id="slik" aria-labelledby="how-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">03</span>Slik funker det</p>
-    <h2 class="display how__h2" id="how-tittel">Matlagingen er<br />allerede gjort.</h2>
+    <p class="marker">Slik funker det</p>
+    <h2 class="display how__h2" id="how-tittel">Matlagingen er<br />allerede gjort</h2>
 
     <ol class="steps">
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-riv-opp"></use></svg>
-        <span class="step__num" aria-hidden="true">01</span>
+        <span class="step__num" aria-hidden="true">1</span>
         <h3 class="step__h3">Riv opp</h3>
-        <p>Pakken åpnes med én hånd.</p>
+        <p>Pakken åpnes med én hånd. Ingen saks, ingen kniv.</p>
       </li>
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kald-varm"></use></svg>
-        <span class="step__num" aria-hidden="true">02</span>
-        <h3 class="step__h3">Spis kald<br />eller varm raskt</h3>
-        <p>Rett fra kjøleskapet, eller et raskt vend i panne eller mikro.</p>
+        <span class="step__num" aria-hidden="true">2</span>
+        <h3 class="step__h3">Spis kald – eller varm den</h3>
+        <p>Rett fra kjøleskapet, i en wrap, over ris, eller et raskt vend i pannen hvis du har en.</p>
       </li>
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-hake"></use></svg>
-        <span class="step__num" aria-hidden="true">03</span>
+        <span class="step__num" aria-hidden="true">3</span>
         <h3 class="step__h3">Ferdig</h3>
-        <p>Ingen oppvask. Ingen rester. Ingenting å planlegge.</p>
+        <p>Ingen oppvask, ingen rester og ingen matbokser å planlegge.</p>
       </li>
     </ol>
-
-    <p class="how__end">Det var det.</p>
-    <div class="how__mascot">
-      <div class="mascot mascot--rev">
-        <svg class="figure figure--md" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-sover"></use></svg>
-        <p class="bubble">Zzz. Allerede ferdig.</p>
-      </div>
-    </div>
   </div>
 </section>
 
 <!-- ============================================================
-     H. BRUKSOMRÅDER
+     BRUKSOMRÅDER
      ============================================================ -->
 <section class="uses" aria-labelledby="uses-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">04</span>Når</p>
-    <h2 class="display uses__h2" id="uses-tittel">Kylling passer<br />overraskende mange steder.</h2>
+    <p class="marker">Når</p>
+    <h2 class="display uses__h2" id="uses-tittel">Passer flere steder<br />enn du skulle tro</h2>
 
     <div class="tiles">
-      <a class="tile" href="smakene.html">
-        <figure class="media media--tile">
-          <img class="media__img" src="images/bruk-etter-trening.jpg" alt="To pakker Bare Kylling på en treningsbenk ved siden av et håndkle og en drikkeflaske, med garderobeskap i bakgrunnen." loading="lazy" decoding="async" width="1122" height="1402" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/bruk-etter-trening.jpg</code></figcaption>
-        </figure>
-        <span class="tile__label">Etter trening</span>
-      </a>
-      <a class="tile" href="smakene.html">
-        <figure class="media media--tile">
-          <img class="media__img" src="images/bruk-skole.jpg" alt="En åpen skolesekk på en pult i et klasserom, med bøker, drikkeflaske og en pakke Bare Kylling stikkende opp." loading="lazy" decoding="async" width="1122" height="1402" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/bruk-skole.jpg</code></figcaption>
-        </figure>
-        <span class="tile__label">På skolen</span>
-      </a>
-      <a class="tile" href="smakene.html">
-        <figure class="media media--tile">
-          <img class="media__img" src="images/bruk-wrap.jpg" alt="En pakke Bare Kylling Sitron og Urter ved siden av en ferdig wrap på et skrivebord med laptop og notatbok." loading="lazy" decoding="async" width="1122" height="1402" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/bruk-wrap.jpg</code></figcaption>
-        </figure>
-        <span class="tile__label">I wrap</span>
-      </a>
-      <a class="tile" href="smakene.html">
-        <figure class="media media--tile">
-          <img class="media__img" src="images/bruk-ris.jpg" alt="En bolle med ris, skivet krydret kyllingfilet, agurk, koriander og lime, med spisepinner ved siden av." loading="lazy" decoding="async" width="1122" height="1402" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/bruk-ris.jpg</code></figcaption>
-        </figure>
-        <span class="tile__label">Med ris</span>
-      </a>
-      <span class="tile tile--type tile--paprika">
-        <svg class="figure tile__fig" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-loper"></use></svg>
-        <span class="tile__label">I farta</span>
-      </span>
-      <span class="tile tile--type tile--forest"><span class="tile__label">Rett fra pakken</span></span>
-      <a class="tile tile--wide" href="smakene.html">
-        <figure class="media media--tile">
-          <img class="media__img" src="images/bruk-jobb.jpg" alt="Tre pakker Bare Kylling på en kjøkkenbenk med urter, hvitløk, lime og sitroner." loading="lazy" decoding="async" width="1600" height="900" />
-          <figcaption class="media__ph"><span class="media__ph-tag">Bilde</span><code>images/bruk-jobb.jpg</code></figcaption>
-        </figure>
-        <span class="tile__label">På jobb</span>
-      </a>
+      <figure class="tile">
+        <div class="media media--tile">
+          <img class="media__img" src="images/bruk-etter-trening.jpg"
+               srcset="images/bruk-etter-trening-720.jpg 720w, images/bruk-etter-trening.jpg 1122w"
+               sizes="(min-width: 900px) 22vw, (min-width: 560px) 30vw, 50vw"
+               alt="To pakker Bare Kylling på en treningsbenk ved siden av et håndkle og en drikkeflaske." loading="lazy" decoding="async" width="1122" height="1402" />
+        </div>
+        <figcaption class="tile__label">Etter trening</figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="media media--tile">
+          <img class="media__img" src="images/bruk-skole.jpg"
+               srcset="images/bruk-skole-720.jpg 720w, images/bruk-skole.jpg 1122w"
+               sizes="(min-width: 900px) 22vw, (min-width: 560px) 30vw, 50vw"
+               alt="En åpen skolesekk på en pult, med bøker, drikkeflaske og en pakke Bare Kylling stikkende opp." loading="lazy" decoding="async" width="1122" height="1402" />
+        </div>
+        <figcaption class="tile__label">På skolen</figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="media media--tile">
+          <img class="media__img" src="images/bruk-wrap.jpg"
+               srcset="images/bruk-wrap-720.jpg 720w, images/bruk-wrap.jpg 1122w"
+               sizes="(min-width: 900px) 22vw, (min-width: 560px) 30vw, 50vw"
+               alt="En ferdig wrap med kylling og salat på en tallerken, ved siden av en pakke Sitron og Urter." loading="lazy" decoding="async" width="1122" height="1402" />
+        </div>
+        <figcaption class="tile__label">I wrap</figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="media media--tile">
+          <img class="media__img" src="images/bruk-ris.jpg"
+               srcset="images/bruk-ris-720.jpg 720w, images/bruk-ris.jpg 1122w"
+               sizes="(min-width: 900px) 22vw, (min-width: 560px) 30vw, 50vw"
+               alt="En bolle med ris, skivet krydret kyllingfilet, agurk, koriander og lime." loading="lazy" decoding="async" width="1122" height="1402" />
+        </div>
+        <figcaption class="tile__label">Over ris</figcaption>
+      </figure>
+      <div class="tile tile--text">
+        <svg class="figure" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-loper"></use></svg>
+        <div>
+          <p class="tile__h">Og i farta</p>
+          <p>På bussen, i friminuttet eller på vei til trening. Pakken trenger verken bestikk, tallerken eller mikro.</p>
+        </div>
+      </div>
+      <figure class="tile tile--wide">
+        <div class="media media--tile">
+          <img class="media__img" src="images/bruk-jobb.jpg"
+               srcset="images/bruk-jobb-900.jpg 900w, images/bruk-jobb.jpg 1600w"
+               sizes="(min-width: 900px) 45vw, 100vw"
+               alt="Tre pakker Bare Kylling på en kjøkkenbenk med urter, hvitløk, lime og sitroner." loading="lazy" decoding="async" width="1600" height="900" />
+        </div>
+        <figcaption class="tile__label">På jobb</figcaption>
+      </figure>
     </div>
   </div>
 </section>
@@ -439,14 +383,14 @@
     <div class="launch__copy">
       <h2 class="display launch__h2" id="launch-tittel">Vil du smake først?</h2>
       <p class="launch__lead">
-        Vi jobber med første batch. Legg igjen e-posten din, så sier vi fra når
-        kyllingen er klar.
+        Første batch er under arbeid. Legg igjen e-posten din, så får du én
+        beskjed når kyllingen er klar – og hvor du får tak i den.
       </p>
       <a class="btn btn--cream btn--lg" href="venteliste.html">Sett meg på lista</a>
     </div>
-    <div class="mascot mascot--stack">
-      <p class="bubble">De på lista får vite det først.</p>
-      <svg class="figure figure--lg" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-flekser"></use></svg>
+    <div class="launch__aside">
+      <p><strong>Ingen nyhetsbrev, ingen mas.</strong> Vi sender én e-post når vi lanserer. Det er alt adressen brukes til.</p>
+      <p>Lurer du på noe først? <a class="link" href="faq.html">Se spørsmål og svar</a>.</p>
     </div>
   </div>
 </section>
@@ -474,28 +418,28 @@
 
     <div class="foot__cols">
       <nav class="foot__nav" aria-label="Bunnmeny">
-        <h2 class="foot__h">Nettsiden</h2>
+        <p class="foot__h">Nettsiden</p>
         <a href="index.html">Forside</a>
         <a href="smakene.html">Smakene</a>
-        <a href="hvorfor.html">Hvorfor Bare?</a>
+        <a href="hvorfor.html">Hvorfor kylling?</a>
         <a href="om-oss.html">Om oss</a>
-        <a href="faq.html">FAQ</a>
+        <a href="faq.html">Spørsmål og svar</a>
         <a href="venteliste.html">Venteliste</a>
       </nav>
-      <nav class="foot__nav" aria-label="Kontakt og sosialt">
-        <h2 class="foot__h">Kontakt</h2>
-        <span data-link="instagram">Instagram</span>
-        <span data-link="kontakt">Kontakt</span>
-      </nav>
       <div class="foot__nav">
-        <h2 class="foot__h">Merket</h2>
+        <p class="foot__h">Om Bare Kylling</p>
+        <p>Ferdigstekt, ferdig krydret kyllingbryst i porsjonspakke. Laget av en ungdomsbedrift i Bergen.</p>
         <p>Ren mat. Enkelt. Godt.</p>
+      </div>
+      <div class="foot__nav" data-kontakt>
+        <p class="foot__h">Kontakt</p>
+        <p>E-post og Instagram legges ut her når vi lanserer. Fram til da er <a class="link" href="venteliste.html">ventelista</a> den sikreste måten å høre fra oss på.</p>
       </div>
     </div>
 
     <div class="foot__base">
-      <p>Bare Kylling UB &middot; Bergen, Norge</p>
-      <p class="foot__joke">Ja. Vi er ganske glad i kylling.</p>
+      <p>Bare Kylling UB &middot; Bergen</p>
+      <p>Produktet er ikke i salg ennå.</p>
     </div>
   </div>
 </footer>

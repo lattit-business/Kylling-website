@@ -17,14 +17,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 120 120'%3E%3Crect x='-10' y='-10' width='120' height='120' rx='26' fill='%2311110F'/%3E%3Cg fill='none' stroke='%23F3F0E9' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5'/%3E%3Cpath d='M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3'/%3E%3Cpath d='M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11'/%3E%3Cpath d='M39.5 84.5V97h-8.5M60.5 84.5V97h8.5'/%3E%3C/g%3E%3Ccircle cx='75.5' cy='18.5' r='3.4' fill='%23F3F0E9'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 <!-- BK:FELLES hode END -->
 
 <title>Venteliste – Bare Kylling</title>
-<meta name="description" content="Sett deg på lista, så får du beskjed når Bare Kylling lanserer. Vi bruker adressen kun til det, og maser ikke." />
+<meta name="description" content="Sett deg på lista, så får du én e-post når Bare Kylling lanserer – og hvor du får tak i den. Ingen nyhetsbrev." />
 <meta property="og:title" content="Venteliste – Bare Kylling" />
-<meta property="og:description" content="Sett deg på lista, så får du beskjed når Bare Kylling lanserer. Vi bruker adressen kun til det, og maser ikke." />
+<meta property="og:description" content="Sett deg på lista, så får du én e-post når Bare Kylling lanserer – og hvor du får tak i den. Ingen nyhetsbrev." />
 <meta property="og:url" content="https://lattit-business.github.io/Kylling-website/venteliste.html" />
 </head>
 
@@ -33,25 +33,13 @@
 <!-- BK:FELLES topp START -->
 <a class="skip" href="#hovedinnhold">Hopp til hovedinnhold</a>
 
-<!-- Felles SVG-definisjoner: sirkelen stemplene skriver tekst langs -->
+<!-- Felles SVG-definisjon: sirkelen stempelet i heroen skriver tekst langs -->
 <svg class="svg-defs" aria-hidden="true" focusable="false">
   <defs><path id="sirkel" d="M60,60 m-47,0 a47,47 0 1,1 94,0 a47,47 0 1,1 -94,0" /></defs>
 </svg>
 
 <!-- ============================================================
-     A. ANNOUNCEMENT BAR
-     ============================================================ -->
-<div class="announce">
-  <div class="announce__track">
-    <span>Bare Kylling er på vei</span>
-    <span class="announce__dot" aria-hidden="true"></span>
-    <span class="announce__extra">Første batch kommer snart</span>
-    <a class="announce__link" href="venteliste.html">Meld deg på</a>
-  </div>
-</div>
-
-<!-- ============================================================
-     B. NAVBAR
+     NAVBAR
      ============================================================ -->
 <header class="nav" id="nav">
   <div class="nav__inner shell">
@@ -73,10 +61,10 @@
     </a>
 
     <nav class="nav__links" aria-label="Hovedmeny">
-      <a href="smakene.html">Produktene</a>
-      <a href="hvorfor.html">Hvorfor Bare?</a>
+      <a href="smakene.html">Smakene</a>
+      <a href="hvorfor.html">Hvorfor kylling?</a>
       <a href="om-oss.html">Om oss</a>
-      <a href="faq.html">FAQ</a>
+      <a href="faq.html">Spørsmål og svar</a>
     </nav>
 
     <div class="nav__end">
@@ -91,10 +79,10 @@
 
 <div class="menu" id="meny" hidden>
   <nav class="menu__inner" aria-label="Meny">
-    <a href="smakene.html"><i aria-hidden="true">01</i>Produktene</a>
-    <a href="hvorfor.html"><i aria-hidden="true">02</i>Hvorfor Bare?</a>
-    <a href="om-oss.html"><i aria-hidden="true">03</i>Om oss</a>
-    <a href="faq.html"><i aria-hidden="true">04</i>FAQ</a>
+    <a href="smakene.html">Smakene</a>
+    <a href="hvorfor.html">Hvorfor kylling?</a>
+    <a href="om-oss.html">Om oss</a>
+    <a href="faq.html">Spørsmål og svar</a>
     <a class="btn btn--cream menu__cta" href="venteliste.html">Få beskjed ved lansering</a>
     <p class="menu__foot">Ren mat. Enkelt. Godt.</p>
   </nav>
@@ -109,29 +97,29 @@
 <section class="launch launch--page" id="lansering" aria-labelledby="launch-tittel">
   <div class="shell launch__inner">
     <div class="launch__copy">
-      <p class="marker marker--light"><span aria-hidden="true">01</span>Venteliste</p>
+      <p class="marker marker--light">Venteliste</p>
       <h1 class="display launch__h2" id="launch-tittel">Vil du smake først?</h1>
       <p class="launch__lead">
-        Vi jobber med første batch. Legg igjen e-posten din, så sier vi fra når
-        kyllingen er klar.
+        Første batch er under arbeid. Legg igjen e-posten din, så får du én
+        beskjed når kyllingen er klar – og hvor du får tak i den.
       </p>
 
-    <form class="form" id="venteliste" novalidate>
-      <div class="form__row">
-        <label class="sr-only" for="epost">E-postadresse</label>
-        <input class="form__input" id="epost" name="epost" type="email" inputmode="email"
-               autocomplete="email" placeholder="din@epost.no" required
-               aria-describedby="form-status" />
-        <button class="btn btn--cream btn--lg" type="submit">Sett meg på lista</button>
-      </div>
-      <p class="form__fine">Vi bruker adressen kun til å si fra om lansering.</p>
-      <p class="form__status" id="form-status" role="status" aria-live="polite"></p>
-    </form>
+      <form class="form" id="venteliste" novalidate>
+        <div class="form__row">
+          <label class="sr-only" for="epost">E-postadresse</label>
+          <input class="form__input" id="epost" name="epost" type="email" inputmode="email"
+                 autocomplete="email" placeholder="din@epost.no" required
+                 aria-describedby="form-status" />
+          <button class="btn btn--cream btn--lg" type="submit">Sett meg på lista</button>
+        </div>
+        <p class="form__fine">Én e-post ved lansering. Ingen nyhetsbrev, og adressen deles ikke videre.</p>
+        <p class="form__status" id="form-status" role="status" aria-live="polite"></p>
+      </form>
     </div>
     <div class="mascot mascot--stack">
-  <p class="bubble">Vi maser ikke. Vi sier bare fra.</p>
-  <svg class="figure figure--lg" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
-</div>
+      <p class="bubble">Vi maser ikke. Vi sier bare fra.</p>
+      <svg class="figure figure--lg" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
+    </div>
   </div>
 </section>
 
@@ -140,32 +128,31 @@
      ============================================================ -->
 <section class="how how--after" aria-labelledby="how-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">02</span>Hva skjer nå</p>
-    <h2 class="display how__h2" id="how-tittel">Så enkelt<br />er lista.</h2>
+    <p class="marker">Hva skjer nå</p>
+    <h2 class="display how__h2" id="how-tittel">Slik fungerer lista</h2>
 
     <ol class="steps">
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-epost"></use></svg>
-        <span class="step__num" aria-hidden="true">01</span>
-        <h3 class="step__h3">Du legger igjen<br />e-posten</h3>
+        <span class="step__num" aria-hidden="true">1</span>
+        <h3 class="step__h3">Du legger igjen e-posten</h3>
         <p>Det er alt vi trenger. Vi bruker den kun til å si fra om lansering.</p>
       </li>
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-panne"></use></svg>
-        <span class="step__num" aria-hidden="true">02</span>
-        <h3 class="step__h3">Vi lager<br />første batch</h3>
-        <p>Resept og produksjon låses trinn for trinn. Vi lover ingen dato før vi kan holde den.</p>
+        <span class="step__num" aria-hidden="true">2</span>
+        <h3 class="step__h3">Vi gjør ferdig første batch</h3>
+        <p>Resept og produksjon låses trinn for trinn. Hvor langt vi er kommet, ser du på <a class="link" href="om-oss.html#status">Om oss</a>.</p>
       </li>
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-bjelle"></use></svg>
-        <span class="step__num" aria-hidden="true">03</span>
-        <h3 class="step__h3">Du får<br />beskjed først</h3>
-        <p>Én e-post når kyllingen er klar – og hvor du får tak i den.</p>
+        <span class="step__num" aria-hidden="true">3</span>
+        <h3 class="step__h3">Du får beskjed først</h3>
+        <p>Én e-post når kyllingen er klar, med informasjon om hvor du får tak i den.</p>
       </li>
     </ol>
 
-    <p class="how__end">Så enkelt.</p>
-    <p class="how__link">Lurer du på noe? <a href="faq.html">Se spørsmål og svar</a>.</p>
+    <p class="how__link">Lurer du på noe? <a class="link" href="faq.html">Se spørsmål og svar</a>.</p>
   </div>
 </section>
 
@@ -191,28 +178,28 @@
 
     <div class="foot__cols">
       <nav class="foot__nav" aria-label="Bunnmeny">
-        <h2 class="foot__h">Nettsiden</h2>
+        <p class="foot__h">Nettsiden</p>
         <a href="index.html">Forside</a>
         <a href="smakene.html">Smakene</a>
-        <a href="hvorfor.html">Hvorfor Bare?</a>
+        <a href="hvorfor.html">Hvorfor kylling?</a>
         <a href="om-oss.html">Om oss</a>
-        <a href="faq.html">FAQ</a>
+        <a href="faq.html">Spørsmål og svar</a>
         <a href="venteliste.html">Venteliste</a>
       </nav>
-      <nav class="foot__nav" aria-label="Kontakt og sosialt">
-        <h2 class="foot__h">Kontakt</h2>
-        <span data-link="instagram">Instagram</span>
-        <span data-link="kontakt">Kontakt</span>
-      </nav>
       <div class="foot__nav">
-        <h2 class="foot__h">Merket</h2>
+        <p class="foot__h">Om Bare Kylling</p>
+        <p>Ferdigstekt, ferdig krydret kyllingbryst i porsjonspakke. Laget av en ungdomsbedrift i Bergen.</p>
         <p>Ren mat. Enkelt. Godt.</p>
+      </div>
+      <div class="foot__nav" data-kontakt>
+        <p class="foot__h">Kontakt</p>
+        <p>E-post og Instagram legges ut her når vi lanserer. Fram til da er <a class="link" href="venteliste.html">ventelista</a> den sikreste måten å høre fra oss på.</p>
       </div>
     </div>
 
     <div class="foot__base">
-      <p>Bare Kylling UB &middot; Bergen, Norge</p>
-      <p class="foot__joke">Ja. Vi er ganske glad i kylling.</p>
+      <p>Bare Kylling UB &middot; Bergen</p>
+      <p>Produktet er ikke i salg ennå.</p>
     </div>
   </div>
 </footer>

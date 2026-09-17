@@ -17,14 +17,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 120 120'%3E%3Crect x='-10' y='-10' width='120' height='120' rx='26' fill='%2311110F'/%3E%3Cg fill='none' stroke='%23F3F0E9' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5'/%3E%3Cpath d='M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3'/%3E%3Cpath d='M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11'/%3E%3Cpath d='M39.5 84.5V97h-8.5M60.5 84.5V97h8.5'/%3E%3C/g%3E%3Ccircle cx='75.5' cy='18.5' r='3.4' fill='%23F3F0E9'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
 <!-- BK:FELLES hode END -->
 
 <title>Om oss – Bare Kylling</title>
-<meta name="description" content="Bare Kylling er en ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingbryst. Historien, hvordan vi jobber – og ja, vi er ganske glad i kylling." />
+<meta name="description" content="Bare Kylling er en ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingbryst. Hvorfor vi startet, hvordan vi jobber og hvor langt vi er kommet." />
 <meta property="og:title" content="Om oss – Bare Kylling" />
-<meta property="og:description" content="Bare Kylling er en ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingbryst. Historien, hvordan vi jobber – og ja, vi er ganske glad i kylling." />
+<meta property="og:description" content="Bare Kylling er en ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingbryst. Hvorfor vi startet, hvordan vi jobber og hvor langt vi er kommet." />
 <meta property="og:url" content="https://lattit-business.github.io/Kylling-website/om-oss.html" />
 </head>
 
@@ -33,25 +33,13 @@
 <!-- BK:FELLES topp START -->
 <a class="skip" href="#hovedinnhold">Hopp til hovedinnhold</a>
 
-<!-- Felles SVG-definisjoner: sirkelen stemplene skriver tekst langs -->
+<!-- Felles SVG-definisjon: sirkelen stempelet i heroen skriver tekst langs -->
 <svg class="svg-defs" aria-hidden="true" focusable="false">
   <defs><path id="sirkel" d="M60,60 m-47,0 a47,47 0 1,1 94,0 a47,47 0 1,1 -94,0" /></defs>
 </svg>
 
 <!-- ============================================================
-     A. ANNOUNCEMENT BAR
-     ============================================================ -->
-<div class="announce">
-  <div class="announce__track">
-    <span>Bare Kylling er på vei</span>
-    <span class="announce__dot" aria-hidden="true"></span>
-    <span class="announce__extra">Første batch kommer snart</span>
-    <a class="announce__link" href="venteliste.html">Meld deg på</a>
-  </div>
-</div>
-
-<!-- ============================================================
-     B. NAVBAR
+     NAVBAR
      ============================================================ -->
 <header class="nav" id="nav">
   <div class="nav__inner shell">
@@ -73,10 +61,10 @@
     </a>
 
     <nav class="nav__links" aria-label="Hovedmeny">
-      <a href="smakene.html">Produktene</a>
-      <a href="hvorfor.html">Hvorfor Bare?</a>
+      <a href="smakene.html">Smakene</a>
+      <a href="hvorfor.html">Hvorfor kylling?</a>
       <a href="om-oss.html" aria-current="page">Om oss</a>
-      <a href="faq.html">FAQ</a>
+      <a href="faq.html">Spørsmål og svar</a>
     </nav>
 
     <div class="nav__end">
@@ -91,10 +79,10 @@
 
 <div class="menu" id="meny" hidden>
   <nav class="menu__inner" aria-label="Meny">
-    <a href="smakene.html"><i aria-hidden="true">01</i>Produktene</a>
-    <a href="hvorfor.html"><i aria-hidden="true">02</i>Hvorfor Bare?</a>
-    <a href="om-oss.html" aria-current="page"><i aria-hidden="true">03</i>Om oss</a>
-    <a href="faq.html"><i aria-hidden="true">04</i>FAQ</a>
+    <a href="smakene.html">Smakene</a>
+    <a href="hvorfor.html">Hvorfor kylling?</a>
+    <a href="om-oss.html" aria-current="page">Om oss</a>
+    <a href="faq.html">Spørsmål og svar</a>
     <a class="btn btn--cream menu__cta" href="venteliste.html">Få beskjed ved lansering</a>
     <p class="menu__foot">Ren mat. Enkelt. Godt.</p>
   </nav>
@@ -104,116 +92,139 @@
 <main id="hovedinnhold">
 
 <section class="subhero" aria-labelledby="side-tittel">
-  <span class="rail" aria-hidden="true">Ren mat. Enkelt. Godt.</span>
-  <div class="shell subhero__grid">
+  <div class="shell">
     <div class="subhero__copy">
       <p class="eyebrow"><span class="eyebrow__rule" aria-hidden="true"></span>Om oss</p>
-      <h1 class="display subhero__h1" id="side-tittel">Vi ville bare<br />ha kylling.</h1>
-      <p class="subhero__lead">Ungdomsbedrift fra Bergen. Startet fordi enkelt protein alltid betydde bar, shake eller seks matbokser på en søndag.</p>
-
-    </div>
-    <div class="subhero__stage">
-<div class="mascot mascot--stack">
-  <p class="bubble">Hei. Bergen her.</p>
-  <svg class="figure figure--lg" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
-</div>
+      <h1 class="display subhero__h1" id="side-tittel">Vi ville bare<br />ha kylling</h1>
+      <p class="subhero__lead">Bare Kylling er en ungdomsbedrift fra Bergen. Vi lager ferdigstekt, ferdig krydret kyllingbryst i porsjonspakke – fordi vi ikke fant det i butikken selv.</p>
     </div>
   </div>
 </section>
 
 <!-- ============================================================
-     01 HISTORIEN
+     HISTORIEN
      ============================================================ -->
 <section class="about" id="historien" aria-labelledby="story-tittel">
-  <div class="shell">
-    <p class="marker"><span aria-hidden="true">01</span>Historien</p>
-    <div class="about__head">
-      <h2 class="display story__h2" id="story-tittel">Hvorfor finnes ikke<br />bare ferdig, god kylling?</h2>
+  <div class="shell about__grid">
+    <div>
+      <p class="marker">Historien</p>
+      <h2 class="display about__h2" id="story-tittel">Hvorfor finnes ikke bare ferdig, god kylling?</h2>
+      <div class="about__body">
+        <p>Spørsmålet dukket opp i en kjøledisk. Vi ville ha noe med protein som var klart til å spises, og valget sto mellom proteinbarer, en shake, eller å gå hjem og steke kylling selv.</p>
+        <p>Det vi egentlig lette etter, fantes ikke: kyllingbryst som allerede var stekt og krydret, pakket i én porsjon, og som smakte godt nok til at vi ville spise det kaldt rett fra pakken.</p>
+        <p>Så vi bestemte oss for å lage det. Tre smaker, én pakkestørrelse, og en ingrediensliste du kan lese på et par sekunder.</p>
+        <p class="turn"><span>Nå lager vi den.</span></p>
+      </div>
     </div>
-    <div class="story__body">
-      <p>
-        Vi var lei av at enkelt protein enten betydde proteinbar, shake eller
-        søndagskveld med seks matbokser.
-      </p>
-      <p>Så vi tenkte: Hvorfor finnes ikke bare ferdig, god kylling?</p>
-      <p class="story__now">Nå prøver vi å lage den.</p>
-      <p class="tag">Laget i Bergen</p>
-    </div>
+    <figure class="media media--about">
+      <img class="media__img" src="images/bruk-jobb.jpg"
+           srcset="images/bruk-jobb-900.jpg 900w, images/bruk-jobb.jpg 1600w"
+           sizes="(min-width: 768px) 42vw, 100vw"
+           alt="Tre pakker Bare Kylling på en kjøkkenbenk med urter, hvitløk, lime og sitroner." loading="lazy" decoding="async" width="1600" height="900" />
+    </figure>
   </div>
 </section>
 
 <!-- ============================================================
-     02 HVEM
+     HVEM
      ============================================================ -->
 <section class="about about--beige" id="hvem" aria-labelledby="hvem-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">02</span>Hvem</p>
-    <div class="about__head">
-      <h2 class="display" id="hvem-tittel">Ungdomsbedrift<br />i Bergen.</h2>
-      <span class="sticker sticker--ink" aria-hidden="true"><svg viewBox="0 0 120 120" aria-hidden="true"><text><textPath href="#sirkel" startOffset="0" textLength="295" lengthAdjust="spacing">UNGDOMSBEDRIFT · BERGEN · UB · </textPath></text></svg><b>UB</b></span>
-    </div>
+    <p class="marker">Hvem</p>
+    <h2 class="display about__h2" id="hvem-tittel">En ungdomsbedrift<br />fra Bergen</h2>
     <div class="about__body">
-      <p>Bare Kylling er startet som ungdomsbedrift i Bergen. Vi driver det som et ordentlig merke, ikke som et skoleprosjekt: ekte produkt, ekte emballasje – og etter hvert ekte kunder.</p>
-      <p>Det betyr også at vi lærer underveis. Resept, produksjon og dokumentasjon låses trinn for trinn, og ingenting havner på denne siden før det er på plass.</p>
+      <p>Bare Kylling UB er startet av elever i Bergen, som ungdomsbedrift. Det betyr at vi driver et ekte selskap dette skoleåret: eget produkt, egen emballasje, egen økonomi – og etter hvert egne kunder.</p>
+      <p>Det betyr også at vi lærer mens vi gjør det. Resept, produksjon og dokumentasjon låses trinn for trinn, og vi legger ikke ut tall eller påstander før de er på plass. Lenger ned på siden ser du hvor langt vi er kommet.</p>
     </div>
+
+    <!-- TEAMET – fyll inn og fjern kommentartegnene når dere vil vise dere fram.
+         Ett kort per person. Bilder: kvadratiske, minst 600 × 600 px, lagt i images/.
+         En «Om oss»-side med ekte navn og ansikter er det som skiller en
+         ungdomsbedrift fra et hvilket som helst annet merke – bruk det.
+
+    <ul class="team">
+      <li class="team__card">
+        <img class="team__img" src="images/team-fornavn.jpg" alt="" width="600" height="600" loading="lazy" />
+        <p class="team__name">Fornavn Etternavn</p>
+        <p class="team__role">Daglig leder</p>
+      </li>
+      <li class="team__card">
+        <img class="team__img" src="images/team-fornavn.jpg" alt="" width="600" height="600" loading="lazy" />
+        <p class="team__name">Fornavn Etternavn</p>
+        <p class="team__role">Produkt og resept</p>
+      </li>
+    </ul>
+    -->
   </div>
 </section>
 
 <!-- ============================================================
-     03 SLIK JOBBER VI
+     SLIK JOBBER VI – verdiene er taglinen fra pakken
      ============================================================ -->
 <section class="about" id="slik-jobber-vi" aria-labelledby="verdier-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">03</span>Slik jobber vi</p>
-    <h2 class="display" id="verdier-tittel">Fire ting vi<br />ikke firer på.</h2>
+    <p class="marker">Slik jobber vi</p>
+    <h2 class="display about__h2" id="verdier-tittel">Ren mat. Enkelt. Godt.</h2>
+    <p class="lead">Det står på pakken, og det er de tre tingene vi måler alle valg mot.</p>
     <ul class="values">
       <li class="value">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-hake"></use></svg>
-        <h3>Ærlig.</h3>
-        <p>Vi skriver ikke tall vi ikke kan dokumentere. Derfor står det færre tall her enn på en proteinbar.</p>
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kylling"></use></svg>
+        <h3>Ren mat</h3>
+        <p>Kyllingfilet og krydder. Vi skriver ikke tall på pakken eller nettsiden som vi ikke kan dokumentere – derfor står det færre tall her enn på en proteinbar.</p>
       </li>
       <li class="value">
         <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-riv-opp"></use></svg>
-        <h3>Enkelt.</h3>
-        <p>Kylling. Krydder. Ferdig. Hvis noe trenger en bruksanvisning, har vi gjort noe feil.</p>
+        <h3>Enkelt</h3>
+        <p>Riv opp og spis. Hvis noe ved produktet trenger en bruksanvisning, har vi gjort noe feil.</p>
       </li>
       <li class="value">
         <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-panne"></use></svg>
-        <h3>Godt.</h3>
-        <p>Sunt som ikke smaker godt blir liggende i kjøleskapet. Det hjelper ingen.</p>
-      </li>
-      <li class="value">
-        <svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kylling"></use></svg>
-        <h3>Bergensk.</h3>
-        <p>Det regner. Vi steker kylling likevel.</p>
+        <h3>Godt</h3>
+        <p>Sunt som ikke smaker godt, blir liggende i kjøleskapet. Hver smak er justert til vi selv ville spist den kald, uten noe ved siden av.</p>
       </li>
     </ul>
   </div>
 </section>
 
 <!-- ============================================================
-     04 KYLLINGFAKTA
+     STATUS – hvor langt er vi kommet
      ============================================================ -->
-<section class="about about--beige" id="glad-i-kylling" aria-labelledby="fun-tittel">
+<section class="about about--beige" id="status" aria-labelledby="status-tittel">
   <div class="shell">
-    <p class="marker"><span aria-hidden="true">04</span>Kyllingfakta</p>
-    <div class="about__head">
-      <h2 class="display" id="fun-tittel">Ja. Vi er ganske<br />glad i kylling.</h2>
-      <span class="sticker sticker--paprika" aria-hidden="true"><svg viewBox="0 0 120 120" aria-hidden="true"><text><textPath href="#sirkel" startOffset="0" textLength="295" lengthAdjust="spacing">KYLLINGFAKTA · KYLLINGFAKTA · </textPath></text></svg><b><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kylling"></use></svg></b></span>
-    </div>
-    <ul class="fun">
-      <li><b>Antall ganger vi har sagt «kylling» i et møte</b>Vi sluttet å telle.</li>
-      <li><b>Favorittsmak internt</b>Avhenger av hvem du spør. Og når.</li>
-      <li><b>Lengste diskusjon</b>Om paprika. Den pågår fortsatt.</li>
-      <li><b>Antall stekepanner du trenger</b>Null. Vi har brukt våre.</li>
-      <li><b>Logoen</b>Tegnet på nytt flere ganger enn vi vil innrømme. Kyllingen ble mer fornøyd for hver runde.</li>
-    </ul>
+    <p class="marker">Status</p>
+    <h2 class="display about__h2" id="status-tittel">Hvor langt<br />er vi kommet?</h2>
+    <p class="lead">Vi oppdaterer denne lista etter hvert som ting faller på plass.</p>
+
+    <dl class="status">
+      <div class="status__row">
+        <dt><span>Smakene</span><span class="status__tag status__tag--done">Ferdig</span></dt>
+        <dd>Tre smaker er valgt: Brown Sugar Paprika, Smoky Chili Lime og Sitron &amp; Urter.</dd>
+      </div>
+      <div class="status__row">
+        <dt><span>Emballasjen</span><span class="status__tag status__tag--done">Ferdig</span></dt>
+        <dd>Designet er klart. Gjennomsiktig porsjonspakke på 200 g med smaksfarge nederst.</dd>
+      </div>
+      <div class="status__row">
+        <dt><span>Resepten</span><span class="status__tag status__tag--now">Pågår</span></dt>
+        <dd>Krydderblandingene finjusteres. Den endelige ingredienslisten med mengder og allergener publiseres når den er låst.</dd>
+      </div>
+      <div class="status__row">
+        <dt><span>Næringsanalyse</span><span class="status__tag">Ikke startet</span></dt>
+        <dd>Protein og energi per pakke oppgis først når det er målt i laboratorium. Fram til da skriver vi ingen tall.</dd>
+      </div>
+      <div class="status__row">
+        <dt><span>Produksjon</span><span class="status__tag status__tag--now">Pågår</span></dt>
+        <dd>Vi jobber med å få på plass første batch. Holdbarhet og oppbevaring fastsettes sammen med produksjonen.</dd>
+      </div>
+      <div class="status__row">
+        <dt><span>Lansering</span><span class="status__tag">Ikke satt</span></dt>
+        <dd>Ingen dato ennå. De som står på ventelista får beskjed først.</dd>
+      </div>
+    </dl>
+
     <div class="about__foot">
-      <div class="mascot">
-  <svg class="figure figure--md" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-flekser"></use></svg>
-  <p class="bubble">Vi mener det. Ganske glad.</p>
-</div>
-      <a class="btn btn--ink" href="smakene.html">Se hva vi lager</a>
+      <a class="btn btn--ink" href="venteliste.html">Få beskjed ved lansering</a>
+      <a class="btn btn--ghost" href="smakene.html">Se smakene</a>
     </div>
   </div>
 </section>
@@ -227,14 +238,14 @@
     <div class="launch__copy">
       <h2 class="display launch__h2" id="launch-tittel">Vil du smake først?</h2>
       <p class="launch__lead">
-        Vi jobber med første batch. Legg igjen e-posten din, så sier vi fra når
-        kyllingen er klar.
+        Første batch er under arbeid. Legg igjen e-posten din, så får du én
+        beskjed når kyllingen er klar – og hvor du får tak i den.
       </p>
       <a class="btn btn--cream btn--lg" href="venteliste.html">Sett meg på lista</a>
     </div>
-    <div class="mascot mascot--stack">
-      <p class="bubble">De på lista får vite det først.</p>
-      <svg class="figure figure--lg" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-flekser"></use></svg>
+    <div class="launch__aside">
+      <p><strong>Ingen nyhetsbrev, ingen mas.</strong> Vi sender én e-post når vi lanserer. Det er alt adressen brukes til.</p>
+      <p>Lurer du på noe først? <a class="link" href="faq.html">Se spørsmål og svar</a>.</p>
     </div>
   </div>
 </section>
@@ -262,28 +273,28 @@
 
     <div class="foot__cols">
       <nav class="foot__nav" aria-label="Bunnmeny">
-        <h2 class="foot__h">Nettsiden</h2>
+        <p class="foot__h">Nettsiden</p>
         <a href="index.html">Forside</a>
         <a href="smakene.html">Smakene</a>
-        <a href="hvorfor.html">Hvorfor Bare?</a>
+        <a href="hvorfor.html">Hvorfor kylling?</a>
         <a href="om-oss.html">Om oss</a>
-        <a href="faq.html">FAQ</a>
+        <a href="faq.html">Spørsmål og svar</a>
         <a href="venteliste.html">Venteliste</a>
       </nav>
-      <nav class="foot__nav" aria-label="Kontakt og sosialt">
-        <h2 class="foot__h">Kontakt</h2>
-        <span data-link="instagram">Instagram</span>
-        <span data-link="kontakt">Kontakt</span>
-      </nav>
       <div class="foot__nav">
-        <h2 class="foot__h">Merket</h2>
+        <p class="foot__h">Om Bare Kylling</p>
+        <p>Ferdigstekt, ferdig krydret kyllingbryst i porsjonspakke. Laget av en ungdomsbedrift i Bergen.</p>
         <p>Ren mat. Enkelt. Godt.</p>
+      </div>
+      <div class="foot__nav" data-kontakt>
+        <p class="foot__h">Kontakt</p>
+        <p>E-post og Instagram legges ut her når vi lanserer. Fram til da er <a class="link" href="venteliste.html">ventelista</a> den sikreste måten å høre fra oss på.</p>
       </div>
     </div>
 
     <div class="foot__base">
-      <p>Bare Kylling UB &middot; Bergen, Norge</p>
-      <p class="foot__joke">Ja. Vi er ganske glad i kylling.</p>
+      <p>Bare Kylling UB &middot; Bergen</p>
+      <p>Produktet er ikke i salg ennå.</p>
     </div>
   </div>
 </footer>

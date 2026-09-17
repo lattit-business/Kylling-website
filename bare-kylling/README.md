@@ -7,16 +7,18 @@ eller avhengigheter. Åpne `index.html` i en nettleser, så kjører den.
 
 ```
 bare-kylling/
-├── index.html          Forside (kanonisk kilde for felles topp/bunn)
+├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn)
 ├── smakene.html        De tre smakene (ankere: #brown-sugar-paprika osv.)
-├── hvorfor.html        Problemet, fordelene, sammenligning, åpenhet
-├── om-oss.html         Historien, ungdomsbedriften, «Ja. Vi er ganske glad i kylling.»
+├── hvorfor.html        Problemet, fire fordeler, hva som er i pakken
+├── om-oss.html         Historien, hvem, slik jobber vi, status (#status)
 ├── faq.html            Spørsmål og svar
 ├── venteliste.html     Påmeldingsskjemaet
 ├── 404.html            Feilside (GitHub Pages bruker den automatisk)
+├── robots.txt          Peker på sitemap.xml
+├── sitemap.xml         Alle sidene (oppdater hvis du legger til en side)
 ├── css/style.css       Design tokens og all styling
 ├── js/content.js       ← ALT innhold som skal kunne endres
-├── js/main.js          Interaksjon (meny, FAQ, skjema, animasjon)
+├── js/main.js          Interaksjon (meny, skjema, sticky CTA, innhold fra content.js)
 ├── images/             Bildefiler — se images/README.md
 └── images/figurer.svg  Tegnede figurer (maskot, doodles, ikoner) — se under
 ```
@@ -29,7 +31,7 @@ merket med kommentarer:
 
 ```
 <!-- BK:FELLES hode START --> … <!-- BK:FELLES hode END -->   (head: fonter, css, og:-tagger)
-<!-- BK:FELLES topp START --> … <!-- BK:FELLES topp END -->   (skip-lenke, announce, meny)
+<!-- BK:FELLES topp START --> … <!-- BK:FELLES topp END -->   (skip-lenke, meny)
 <!-- BK:FELLES cta START -->  … <!-- BK:FELLES cta END -->    (grønt «Vil du smake først?»-bånd)
 <!-- BK:FELLES bunn START --> … <!-- BK:FELLES bunn END -->   (footer)
 ```
@@ -70,8 +72,9 @@ Brukes slik, hvor som helst i HTML-en:
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
   (`mascot--rev` speilvendt, `mascot--stack` boble over figur). Boblen er ekte
   tekst; figuren er `aria-hidden`.
-- Roterende stempler (`.sticker`) ligger inline i HTML-en og skriver teksten
-  langs `#sirkel`, som er definert i toppblokken. Ny tekst bør være 26–32 tegn.
+- Det roterende stempelet i heroen (`.sticker`) ligger inline i HTML-en og
+  skriver teksten langs `#sirkel`, som er definert i toppblokken. Det er
+  bevisst det eneste stempelet på nettstedet.
 
 Ny figur: legg til et `<symbol id="…" viewBox="0 0 120 120" …>` i spriten
 med samme strek-attributter som naboene, og referer til den med `<use>`.
@@ -85,21 +88,28 @@ Chrome. Bruk `python3 -m http.server` (se rot-README).
 
 Alt styres fra `js/content.js`.
 
-1. **Legg inn produktbildet.** Se `images/README.md`.
-2. **Koble påmeldingsskjemaet.** Sett `config.ventelisteEndepunkt` til en URL
-   (Formspree, Supabase, Mailchimp), eller `config.kontaktEpost` til en ekte
-   adresse. Uten én av delene lagres ingenting, og siden sier det rett ut
-   framfor å late som.
-3. **Fyll inn lenker.** `config.lenker.instagram` og `config.lenker.kontakt`.
-   Så lenge de er `null`, vises de som «kommer» i footeren — aldri som en
-   lenke som ikke går noe sted.
-4. **Verifiser påstandene.** Se avsnittet under.
-5. **Legg inn domenet.** `og:url` og `og:image` peker i dag på GitHub Pages-
+1. **Koble påmeldingsskjemaet.** Sett `config.ventelisteEndepunkt` til en URL
+   (Formspree, Supabase, Mailchimp). Så lenge den er `null`, skjules
+   e-postfeltet, og venteliste-siden sier at påmeldingen åpner snart og peker
+   til statuslista på Om oss. Setter du `config.kontaktEpost`, vises i stedet
+   en oppfordring om å sende e-post.
+2. **Fyll inn kontakt.** `config.kontaktEpost` og `config.lenker.instagram`.
+   Så lenge de er `null`, står det en setning i footeren om at de kommer.
+   Når de er satt, byttes setningen ut med ekte lenker.
+3. **Legg inn teamet.** I `om-oss.html` ligger en kommentert `.team`-blokk med
+   kort per person. Fyll inn navn, rolle og bilde, og fjern kommentartegnene.
+   Dette er det viktigste dere kan gjøre for å skille dere fra et hvilket som
+   helst annet merke.
+4. **Oppdater statuslista** på Om oss (`#status`) etter hvert som resept,
+   næringsanalyse, produksjon og lansering faller på plass.
+5. **Verifiser påstandene.** Se avsnittet under.
+6. **Legg inn domenet.** `og:url` og `og:image` peker i dag på GitHub Pages-
    adressen. Får dere eget domene: bytt adressen i alle sidene (søk etter
    `lattit-business.github.io/Kylling-website/`) og legg inn `canonical`
-   (kommentert linje øverst i `index.html`). Canonical er bevisst utelatt til
-   da — en canonical mot feil domene skader synligheten i søk.
-6. **Slå av dev-modus.** Sett `config.devModus = false`. Da forsvinner alle
+   (kommentert linje øverst i `index.html`), og oppdater `robots.txt` og
+   `sitemap.xml`. Canonical er bevisst utelatt til da — en canonical mot feil
+   domene skader synligheten i søk.
+7. **Slå av dev-modus.** Sett `config.devModus = false`. Da forsvinner alle
    de stiplede «må verifiseres»-boksene.
 
 ## Påstander som ikke er dokumentert
@@ -136,8 +146,11 @@ Sett `config.butikkAktiv = true` i `content.js`. Alle hoved-CTA-er bytter fra
 - Alle klikkmål er minst 44 px.
 - Tastaturnavigasjon, synlig fokusmarkering, `aria`-merking på meny og skjema.
 - All animasjon respekterer `prefers-reduced-motion`.
-- Fungerer uten JavaScript: alt innhold unntatt ingredienslistene er i HTML-en,
+- Fungerer uten JavaScript: alt innhold unntatt smaksnotene er i HTML-en,
   og navigasjonen mellom sidene er vanlige lenker.
+- Ingen scroll-animasjoner eller parallax. Det eneste som beveger seg, er
+  stempelet i heroen og menyen som toner inn.
+- Bilder har `srcset` med en 720/900 px-variant for mobil (se images/README.md).
 - `404.html` setter `<base>` med et lite script fordi GitHub Pages serverer den
   på den etterspurte (dype) adressen. Uten script vises siden ustylet, men med
   en absolutt lenke til forsiden.

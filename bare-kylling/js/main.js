@@ -13,22 +13,7 @@
   var lite = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------------------------------------------------------------------------
-     1. BILDER SOM MANGLER → NAVNGITT PLASSHOLDER
-     Legger du inn filen på riktig sti, forsvinner plassholderen av seg selv.
-     --------------------------------------------------------------------------- */
-  function markMissing(img) {
-    var fig = img.closest('.media');
-    if (!fig) { return; }
-
-    fig.classList.add('is-missing');
-  }
-  $$('.media__img').forEach(function (img) {
-    img.addEventListener('error', function () { markMissing(img); });
-    if (img.complete && img.naturalWidth === 0) { markMissing(img); }
-  });
-
-  /* ---------------------------------------------------------------------------
-     2. NAVIGASJON
+     1. NAVIGASJON
      --------------------------------------------------------------------------- */
   var nav = $('#nav');
   var burger = $('#burger');
@@ -54,7 +39,7 @@
       if (first) { first.focus(); }
     } else {
       menu.classList.remove('is-open');
-      window.setTimeout(function () { if (!menuOpen) { menu.hidden = true; } }, lite ? 0 : 280);
+      window.setTimeout(function () { if (!menuOpen) { menu.hidden = true; } }, lite ? 0 : 250);
     }
   }
 
@@ -86,68 +71,24 @@
   }
 
   /* ---------------------------------------------------------------------------
-     3. SCROLL-AVSLØRING + PARALLAX + STICKY CTA
+     2. STICKY CTA (mobil) – vises etter heroen, skjules ved skjemaet og bunnen
      --------------------------------------------------------------------------- */
-  if (!lite && 'IntersectionObserver' in window) {
-    var targets = [];
-    [
-      '.hero__copy > *', '.hero__stage',
-      '.subhero__copy > *', '.subhero__stage',
-      '.problem__h2', '.problem__intro > *', '.versus__col', '.perk', '.problem__more',
-      '.lei__h2', '.lei__lead', '.lei__item', '.lei__turn', '.lei .mascot',
-      '.ben__inner > *',
-      '.flavors__h2', '.flavor__inner > *', '.card',
-      '.how__h2', '.step', '.how__end', '.how__link',
-      '.uses__h2', '.tile',
-      '.compare__h2', '.compare__scroll',
-      '.trans__h2', '.ing', '.trans__stamp',
-      '.story__grid > *', '.about__head > *', '.about__body > *', '.value', '.fun li', '.about__foot > *',
-      '.launch__h2', '.launch__lead', '.form', '.launch .mascot', '.launch .btn--lg',
-      '.faq__h2', '.faq__group', '.qa',
-      '.oops__grid > *',
-      '.foot__mark'
-    ].forEach(function (sel) { targets = targets.concat($$(sel)); });
-
-    var groups = new Map();
-    targets.forEach(function (el) {
-      el.setAttribute('data-reveal', '');
-      var key = el.parentElement;
-      var i = groups.get(key) || 0;
-      groups.set(key, i + 1);
-      el.style.setProperty('--d', Math.min(i, 5) * 70 + 'ms');
-    });
-
-    var reveal = new IntersectionObserver(function (entries, obs) {
-      entries.forEach(function (en) {
-        if (en.isIntersecting) { en.target.classList.add('is-in'); obs.unobserve(en.target); }
-      });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-    targets.forEach(function (el) { reveal.observe(el); });
-  }
-
-  var stage = $('[data-parallax]');
   var sticky = $('.sticky-cta');
   var hero = $('.hero, .subhero, .launch--page, .oops');
-
-  /* Knappen skal ikke ligge over skjemaet den peker til */
-  var iLansering = false;
   var lansering = $('#lansering');
+  var iLansering = false;
+  var ticking = false;
+
   if (lansering && 'IntersectionObserver' in window) {
     new IntersectionObserver(function (e) {
       iLansering = e[0].isIntersecting;
       if (!ticking) { ticking = true; requestAnimationFrame(frame); }
     }, { threshold: 0 }).observe(lansering);
   }
-  var canParallax = !lite && stage && window.matchMedia('(min-width: 900px) and (pointer: fine)').matches;
-  var ticking = false;
 
   function frame() {
     ticking = false;
     var y = window.scrollY;
-    if (canParallax) {
-      var shift = Math.max(-40, Math.min(40, (y - (hero ? hero.offsetTop : 0)) * 0.055));
-      stage.style.transform = 'translate3d(0,' + shift.toFixed(2) + 'px,0)';
-    }
     if (sticky && hero) {
       var past = y > hero.offsetTop + hero.offsetHeight * 0.85;
       var atEnd = y + window.innerHeight > document.body.scrollHeight - 320;
@@ -162,7 +103,7 @@
   frame();
 
   /* ---------------------------------------------------------------------------
-     4. INNHOLD FRA content.js
+     3. INNHOLD FRA content.js
      --------------------------------------------------------------------------- */
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -179,14 +120,21 @@
     return box;
   }
 
-  /* 4a. Smaksnoter som chips */
+  function chips(liste) {
+    var ul = el('ul', 'chips');
+    (liste || []).forEach(function (note) { ul.appendChild(el('li', null, note)); });
+    return ul;
+  }
+
+  /* 3a. Smaksnoter på smakene.html */
   $$('[data-chips]').forEach(function (ul) {
     var smak = (BK.smaker || {})[ul.getAttribute('data-chips')];
     if (!smak) { return; }
     (smak.smaksnoter || []).forEach(function (note) { ul.appendChild(el('li', null, note)); });
   });
 
-  /* 4b. Ingredienslister */
+  /* 3b. Hva er i pakken (hvorfor.html). Bekreftet deklarasjon vises som tekst;
+         ellers vises smaksnotene, som er det vi faktisk kan si noe om.        */
   var listeMal = $('[data-ingredienser]');
   if (listeMal) {
     Object.keys(BK.smaker || {}).forEach(function (key) {
@@ -198,14 +146,14 @@
       if (ing.bekreftet) {
         art.appendChild(el('p', 'ing__tekst', ing.tekst));
       } else {
-        art.appendChild(el('p', 'ing__tekst', ing.base + ', krydderblanding. Full deklarasjon publiseres når resepten er låst.'));
+        art.appendChild(chips([ing.base || 'Kyllingfilet'].concat(s.smaksnoter || [])));
         if (DEV) { art.appendChild(unverifiedBox('Foreslått deklarasjon: ' + ing.tekst, ing.notat)); }
       }
       listeMal.appendChild(art);
     });
   }
 
-  /* 4c. Innholdsstempel */
+  /* 3c. Innholdsstempel */
   var claim = $('[data-claim="rentKjott"]');
   if (claim && BK.rentKjott) {
     var rk = BK.rentKjott;
@@ -217,7 +165,7 @@
     }
   }
 
-  /* 4d. Næringstall og merker — vises kun når de er bekreftet */
+  /* 3d. Næringstall og merker — vises kun når de er bekreftet */
   var facts = $('[data-naering]');
   if (facts) {
     var n = BK.naering || {};
@@ -242,18 +190,25 @@
     }
   }
 
-  /* 4d2. Footer-lenker: ekte URL om den finnes, ellers «kommer» — aldri en falsk lenke */
+  /* 3e. Kontakt i footer: ekte lenker når de finnes i content.js, ellers
+         beholdes setningen som står i HTML-en.                             */
+  var kontakt = $('[data-kontakt]');
   var lenker = CFG.lenker || {};
-  $$('[data-link]').forEach(function (node) {
-    var url = lenker[node.getAttribute('data-link')];
-    if (!url) { node.className = 'foot__pending'; return; }
-    var a = el('a', null, node.textContent);
-    a.href = url;
-    if (/^https?:/.test(url)) { a.rel = 'noopener'; a.target = '_blank'; }
-    node.replaceWith(a);
-  });
+  if (kontakt && (CFG.kontaktEpost || lenker.instagram)) {
+    $$('p:not(.foot__h)', kontakt).forEach(function (p) { p.remove(); });
+    if (CFG.kontaktEpost) {
+      var m = el('a', null, CFG.kontaktEpost);
+      m.href = 'mailto:' + CFG.kontaktEpost;
+      kontakt.appendChild(m);
+    }
+    if (lenker.instagram) {
+      var ig = el('a', null, 'Instagram');
+      ig.href = lenker.instagram; ig.rel = 'noopener'; ig.target = '_blank';
+      kontakt.appendChild(ig);
+    }
+  }
 
-  /* 4e. CTA-er bytter tekst når butikken åpner */
+  /* 3f. CTA-er bytter tekst når butikken åpner */
   if (CFG.cta) {
     var c = CFG.butikkAktiv ? CFG.cta.medButikk : CFG.cta.utenButikk;
     if (c) {
@@ -265,14 +220,17 @@
   }
 
   /* ---------------------------------------------------------------------------
-     5. VENTELISTE
-     Uten konfigurert endepunkt lagres INGENTING, og siden sier det rett ut.
+     4. VENTELISTE
+     Uten konfigurert endepunkt lagres ingenting. Da sier siden det før folk
+     rekker å skrive inn adressen – ikke etterpå.
      --------------------------------------------------------------------------- */
   var form = $('#venteliste');
   if (form) {
     var input = $('#epost', form);
     var status = $('#form-status', form);
+    var knapp = $('button[type="submit"]', form);
     var gyldig = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    var koblet = !!CFG.ventelisteEndepunkt;
 
     function si(tekst, type, html) {
       status.className = 'form__status is-' + type;
@@ -283,17 +241,34 @@
       form.classList.add('is-done');
       status.className = 'form__status is-ok';
       status.textContent = '';
-      var d = el('p', 'form__done', tekst);
-      status.appendChild(d);
+      status.appendChild(el('p', 'form__done', tekst));
     }
 
-    /* Uten både endepunkt og e-post er skjemaet en blindvei. Si fra i dev-modus
-       slik at det ikke rekker å gå i produksjon i den tilstanden.              */
-    if (DEV && !CFG.ventelisteEndepunkt && !CFG.kontaktEpost) {
-      form.appendChild(unverifiedBox(
-        'Skjemaet er ikke koblet til noe. Ingen påmeldinger blir tatt vare på.',
-        'Sett config.ventelisteEndepunkt (Formspree, Supabase, Mailchimp) eller config.kontaktEpost i js/content.js før lansering.'
-      ));
+    if (!koblet) {
+      var lead = $('.launch__lead');
+      var notice = el('div', 'form__notice');
+      if (CFG.kontaktEpost) {
+        notice.innerHTML = 'Skjemaet er ikke koblet til ennå. Send en e-post til <a href="mailto:' + CFG.kontaktEpost +
+          '?subject=Sett%20meg%20p%C3%A5%20lista">' + CFG.kontaktEpost + '</a>, så legger vi deg på lista manuelt.';
+      } else {
+        if (lead) {
+          lead.textContent = 'Første batch er under arbeid. Påmeldingen åpner om kort tid – da kan du legge igjen ' +
+            'e-posten din her og få beskjed først når kyllingen er klar.';
+        }
+        notice.appendChild(el('p', null, 'Fram til da kan du se hvor langt vi er kommet med resept, produksjon og lansering.'));
+        var lenke = el('a', 'btn btn--cream', 'Se status på Om oss');
+        lenke.href = 'om-oss.html#status';
+        notice.appendChild(lenke);
+      }
+      $('.form__row', form).hidden = true;
+      $('.form__fine', form).hidden = true;
+      form.appendChild(notice);
+      if (DEV) {
+        form.appendChild(unverifiedBox(
+          'Skjemaet er ikke koblet til noe. Ingen påmeldinger blir tatt vare på.',
+          'Sett config.ventelisteEndepunkt (Formspree, Supabase, Mailchimp) i js/content.js før lansering.'
+        ));
+      }
     }
 
     input.addEventListener('input', function () {
@@ -303,6 +278,7 @@
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      if (!koblet) { return; }
       var verdi = input.value.trim();
 
       if (!gyldig.test(verdi)) {
@@ -312,27 +288,13 @@
         return;
       }
 
-      if (!CFG.ventelisteEndepunkt) {
-        /* Ingen backend konfigurert. Vi later ikke som at adressen er lagret. */
-        if (CFG.kontaktEpost) {
-          si('Påmeldingen er ikke koblet til noe system ennå, så adressen ble ikke lagret. ' +
-             'Send den til <a href="mailto:' + CFG.kontaktEpost + '?subject=Sett%20meg%20p%C3%A5%20lista">' +
-             CFG.kontaktEpost + '</a>, så legger vi deg på lista manuelt.', 'info', true);
-        } else {
-          si('Påmeldingen er ikke åpen ennå, så adressen ble ikke lagret. ' +
-             'Vi åpner lista så snart påmeldingen er på plass.', 'info');
-        }
-        return;
-      }
-
-      var knapp = $('button[type="submit"]', form);
       knapp.disabled = true;
       si('Sender …', 'info');
 
       fetch(CFG.ventelisteEndepunkt, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ epost: verdi })
+        body: JSON.stringify({ email: verdi, kilde: 'venteliste' })
       })
         .then(function (r) {
           if (!r.ok) { throw new Error('HTTP ' + r.status); }
@@ -340,20 +302,10 @@
         })
         .catch(function () {
           knapp.disabled = false;
-          si('Noe gikk galt. Prøv igjen, eller send e-post til <a href="mailto:' +
-             CFG.kontaktEpost + '">' + CFG.kontaktEpost + '</a>.', 'error', true);
+          si('Noe gikk galt. Prøv igjen om litt.' + (CFG.kontaktEpost
+            ? ' Eller send e-post til <a href="mailto:' + CFG.kontaktEpost + '">' + CFG.kontaktEpost + '</a>.'
+            : ''), 'error', true);
         });
     });
   }
-
-  /* ---------------------------------------------------------------------------
-     6. FAQ — kun én åpen om gangen
-     --------------------------------------------------------------------------- */
-  var qas = $$('.qa');
-  qas.forEach(function (d) {
-    d.addEventListener('toggle', function () {
-      if (!d.open) { return; }
-      qas.forEach(function (o) { if (o !== d) { o.open = false; } });
-    });
-  });
 })();
