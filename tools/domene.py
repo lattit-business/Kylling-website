@@ -29,17 +29,20 @@ GAMMEL = "lattit-business.github.io/Kylling-website/"
 VERTER = {
     "vercel": {
         "navn": "Vercel",
-        # Vercels felles apex-adresse (vercel.com/docs/projects/domains)
-        "apex": {"76.76.21.21"},
-        "www": "cname.vercel-dns.com",
+        # Vercel bytter apex-IP innimellom (76.76.21.21 → 216.198.79.1 …), så vi
+        # sjekker ikke adressen, men om domenet faktisk svarer fra Vercel.
+        "server": "vercel",
         "cname_fil": False,
+        "poster": [("A", "@", "se Vercel → Settings → Domains"),
+                   ("CNAME", "www", "se Vercel → Settings → Domains")],
     },
     "pages": {
         "navn": "GitHub Pages",
-        # GitHubs fire apex-adresser (docs.github.com – «Managing a custom domain»)
-        "apex": {"185.199.108.153", "185.199.109.153", "185.199.110.153", "185.199.111.153"},
-        "www": "lattit-business.github.io",
+        "server": "github.com",
         "cname_fil": True,
+        "poster": [("A", "@", "185.199.108.153"), ("A", "@", "185.199.109.153"),
+                   ("A", "@", "185.199.110.153"), ("A", "@", "185.199.111.153"),
+                   ("CNAME", "www", "lattit-business.github.io.")],
     },
 }
 
@@ -52,31 +55,54 @@ def dig(navn: str, typ: str) -> set:
         return set()
 
 
+def hent(url: str):
+    """(status, endelig url, server-header) – eller None hvis den ikke svarer."""
+    try:
+        ut = subprocess.run(
+            ["curl", "-sIL", "--max-time", "15", "-o", "/dev/null",
+             "-w", "%{http_code}\t%{url_effective}", url],
+            capture_output=True, text=True, timeout=20)
+        if ut.returncode != 0 or not ut.stdout.strip():
+            return None
+        kode, _, sluttadresse = ut.stdout.strip().partition("\t")
+        hoder = subprocess.run(["curl", "-sIL", "--max-time", "15", url],
+                               capture_output=True, text=True, timeout=20).stdout.lower()
+        server = ""
+        for linje in hoder.split("\n"):
+            if linje.startswith("server:"):
+                server = linje.split(":", 1)[1].strip()
+        return kode, sluttadresse, server
+    except Exception:
+        return None
+
+
 def sjekk_dns(domene: str, vert: dict) -> bool:
-    """True hvis DNS ser riktig ut. Skriver en forklaring uansett."""
-    if not dig(domene, "A") and not dig(domene, "NS") and not dig(domene, "SOA"):
-        print(f"  FEIL   {domene} finnes ikke i DNS (domenet er ikke registrert eller delegert).")
+    """True hvis domenet faktisk serveres av den valgte verten."""
+    if not dig(domene, "NS") and not dig(domene, "A"):
+        print(f"  FEIL   {domene} finnes ikke i DNS (ikke registrert eller ikke delegert).")
+        return False
+    print(f"  OK     delegert til {', '.join(sorted(dig(domene, 'NS'))) or 'ukjent navnetjener'}")
+
+    svar = hent("https://" + domene)
+    if svar is None:
+        print(f"  FEIL   https://{domene} svarer ikke ennå (DNS eller sertifikat er ikke klart).")
         return False
 
-    ok = True
-    apex = dig(domene, "A")
-    if apex >= vert["apex"]:
-        print(f"  OK     {domene} → {vert['navn']}")
-    else:
-        mangler = ", ".join(sorted(vert["apex"] - apex))
-        fant = ", ".join(sorted(apex)) or "ingenting"
-        print(f"  FEIL   {domene} mangler A-post(er): {mangler}  (fant: {fant})")
-        ok = False
+    kode, slutt, server = svar
+    if vert["server"] not in server:
+        print(f"  FEIL   {domene} svarer, men fra «{server or 'ukjent'}» – ikke {vert['navn']}.")
+        return False
 
-    www = dig("www." + domene, "CNAME")
-    if any(w == vert["www"] or w.endswith("." + vert["www"]) for w in www):
-        print(f"  OK     www.{domene} → {vert['www']}")
-    else:
-        fant = ", ".join(sorted(www)) or "ingenting"
-        print(f"  FEIL   www.{domene} mangler CNAME → {vert['www']}  (fant: {fant})")
-        ok = False
+    if kode != "200":
+        print(f"  FEIL   {domene} endte på HTTP {kode} ({slutt}).")
+        return False
 
-    return ok
+    print(f"  OK     https://{domene} → {vert['navn']}, HTTP 200")
+    if slutt.rstrip("/") != "https://" + domene:
+        print(f"  MERK   videresender til {slutt}")
+        print(f"         Adressene i koden settes til {domene}. Skal den andre være")
+        print(f"         hovedadressen, kjør skriptet med den i stedet.")
+    return True
 
 
 def main() -> int:
@@ -86,8 +112,10 @@ def main() -> int:
         return 1
 
     domene = argv[0].strip().lower()
-    for p in ("https://", "http://", "www."):
+    for p in ("https://", "http://"):
         domene = domene.removeprefix(p)
+    # www. beholdes: begge varianter er gyldige hovedadresser, og valget
+    # avgjør hva og:url, canonical og sitemap skal peke på.
     domene = domene.rstrip("/")
 
     skriv = "--skriv" in argv
@@ -103,9 +131,8 @@ def main() -> int:
     if not dns_ok and skriv:
         print("Avbryter: DNS er ikke klar. Endrer vi adressene nå, peker siden et sted som ikke svarer.")
         print("Legg inn postene under, vent til «dig» viser dem, og kjør på nytt:\n")
-        for a in sorted(vert["apex"]):
-            print(f"  A      @      {a}")
-        print(f"  CNAME  www    {vert['www']}.")
+        for typ, navn, verdi in vert["poster"]:
+            print(f"  {typ:<6} {navn:<6} {verdi}")
         return 1
 
     endret = []
