@@ -7,6 +7,7 @@ Sjekker
   2. Alle relative lenker/ressurser peker på filer som finnes, og #ankere finnes
   3. Alle <use href="images/figurer.svg#id"> finnes i spriten (ubrukte = advarsel)
   4. Ingen udokumenterte påstander i HTML; devModus/bekreftet er ikke slått på
+     og ingen utgåtte smaker (produktutvalget er Salt & Pepper og Paprika & Honning)
   5. Per side: én <h1>, <main id="hovedinnhold">, skip-lenke, unik title/description, og:url
 
 Avslutter med kode 1 hvis noe feiler.
@@ -21,10 +22,14 @@ from pathlib import Path
 ROT = Path(__file__).resolve().parent.parent / "bare-kylling"
 KANONISK = "index.html"
 BLOKKER = ("hode", "topp", "cta", "bunn")
+# Tallene og merkene som står på pakkedesignet, men ikke er dokumentert.
+# «kalorier» og «kcal» er lov som etiketter (plassholdere); selve tallene er det ikke.
 FORBUDT = [
     r"36\s?g", r"\b185\b", r"100\s?%", r"tilsetningsstoff", r"nyt norge",
-    r"tilsatt vann", r"\bkcal\b", r"kalori",
+    r"tilsatt vann",
 ]
+# Smaker som er tatt ut av sortimentet. Skal ikke stå noe sted på nettstedet.
+UTGATT = [r"brown sugar", r"smoky", r"chili", r"\blime\b", r"sitron"]
 LIVE = "https://lattit-business.github.io/Kylling-website/"
 
 feil, advarsler = [], []
@@ -99,6 +104,7 @@ def main() -> int:
     sprite_ids = set(re.findall(r'<symbol[^>]*\bid="([^"]+)"', les(sprite))) if sprite.exists() else set()
     brukte_ids = set()
     attr = re.compile(r'<(a|img|link|script|use|source)\b[^>]*?\b(?:href|src)="([^"]+)"', re.I)
+    srcsets = re.compile(r'\b(?:srcset|imagesrcset)="([^"]+)"', re.I)
     for fil, s in html.items():
         s = re.sub(r"<!--.*?-->", "", s, flags=re.S)  # maler i kommentarer sjekkes ikke
         ids = set(re.findall(r'\bid="([^"]+)"', s))
@@ -129,6 +135,11 @@ def main() -> int:
                 mål_ids = ids
             if frag and frag not in mål_ids:
                 feil.append(f"{fil}: ankeret «{ref}» finnes ikke")
+        for liste in srcsets.findall(s):
+            for kandidat in liste.split(","):
+                sti = kandidat.strip().split()[0]
+                if not (ROT / sti).exists():
+                    feil.append(f"{fil}: srcset peker på manglende fil «{sti}»")
 
     # 3. Ubrukte symboler
     for ubrukt in sorted(sprite_ids - brukte_ids):
@@ -141,6 +152,15 @@ def main() -> int:
             for m in re.finditer(mønster, tekst, re.I):
                 linje = tekst.count("\n", 0, m.start()) + 1
                 feil.append(f"{fil}:{linje}: forbudt påstand «{m.group(0)}»")
+        for mønster in UTGATT:
+            for m in re.finditer(mønster, tekst, re.I):
+                linje = tekst.count("\n", 0, m.start()) + 1
+                feil.append(f"{fil}:{linje}: utgått smak «{m.group(0)}»")
+    for js in ("content.js", "main.js"):
+        tekst = les(ROT / "js" / js)
+        for mønster in UTGATT:
+            if re.search(mønster, tekst, re.I):
+                feil.append(f"js/{js}: utgått smak «{mønster}»")
     innhold = re.sub(r"/\*.*?\*/", "", les(ROT / "js" / "content.js"), flags=re.S)
     innhold = re.sub(r"^\s*//.*$", "", innhold, flags=re.M)
     if re.search(r"devModus:\s*true", innhold):

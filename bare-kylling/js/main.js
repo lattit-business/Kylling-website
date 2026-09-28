@@ -126,14 +126,91 @@
     return ul;
   }
 
-  /* 3a. Smaksnoter på smakene.html */
-  $$('[data-chips]').forEach(function (ul) {
-    var smak = (BK.smaker || {})[ul.getAttribute('data-chips')];
+  function fmt(n, des) {
+    return Number(n).toFixed(des).replace('.', ',');
+  }
+
+  /* 3a. Nøkkeltall i heroen og i sammenligningstabellen. HTML-en viser
+         plassholdere; de byttes ut først når tallene er bekreftet.          */
+  var nk = BK.nokkeltall || {};
+  $$('[data-nokkeltall]').forEach(function (stat) {
+    var tall = nk[stat.getAttribute('data-nokkeltall')];
+    if (!tall) { return; }
+    var v = $('.stat__v', stat);
+    if (nk.bekreftet) {
+      v.classList.remove('is-pending');
+      $$('[aria-hidden]', v).forEach(function (n) { n.removeAttribute('aria-hidden'); });
+      $('.stat__num', v).textContent = tall.verdi;
+      $('.stat__unit', v).textContent = tall.enhet;
+      var merknad = $('.stat__note', stat);
+      if (merknad) { merknad.remove(); }
+    } else if (DEV) {
+      stat.appendChild(unverifiedBox('Skjult: ' + tall.verdi + ' ' + tall.enhet, 'Kilde: ' + (nk.kilde || 'ukjent')));
+    }
+  });
+  if (nk.bekreftet) {
+    $$('[data-nokkeltall-tekst]').forEach(function (n) {
+      var tall = nk[n.getAttribute('data-nokkeltall-tekst')];
+      if (!tall) { return; }
+      n.textContent = tall.verdi + ' ' + tall.enhet;
+      n.classList.remove('pending');
+    });
+  }
+
+  /* 3b. Næringsdeklarasjon, ingredienser og allergener per smak. Per pakke
+         regnes ut fra pakkevekten, så det holder å fylle inn per 100 g.     */
+  var vekt = BK.pakkevekt || 200;
+  $$('details.decl[data-smak]').forEach(function (decl) {
+    var smak = (BK.smaker || {})[decl.getAttribute('data-smak')];
     if (!smak) { return; }
-    (smak.smaksnoter || []).forEach(function (note) { ul.appendChild(el('li', null, note)); });
+    var n = smak.naering || {};
+    if (n.bekreftet && n.per100) {
+      $$('td[data-n]', decl).forEach(function (td) {
+        var key = td.getAttribute('data-n');
+        var faktor = td.getAttribute('data-per') === 'pakke' ? vekt / 100 : 1;
+        var p = n.per100;
+        if (key === 'energi') {
+          if (p.energiKj == null || p.energiKcal == null) { return; }
+          td.textContent = Math.round(p.energiKj * faktor) + ' kJ / ' + Math.round(p.energiKcal * faktor) + ' kcal';
+        } else if (p[key] != null) {
+          td.textContent = fmt(p[key] * faktor, key === 'salt' ? 2 : 1) + ' g';
+        }
+      });
+      var vent = $('[data-decl-pending]', decl);
+      if (vent) { vent.remove(); }
+    }
+  });
+  $$('[data-ingredienser-for]').forEach(function (p) {
+    var smak = (BK.smaker || {})[p.getAttribute('data-ingredienser-for')];
+    var ing = smak && smak.ingredienser;
+    if (!ing) { return; }
+    if (ing.bekreftet && ing.tekst) { p.textContent = ing.tekst; }
+    else if (DEV) { p.parentNode.insertBefore(unverifiedBox('Ingrediensliste mangler', ing.notat), p.nextSibling); }
+  });
+  $$('[data-allergener-for]').forEach(function (p) {
+    var smak = (BK.smaker || {})[p.getAttribute('data-allergener-for')];
+    var al = smak && smak.allergener;
+    if (!al) { return; }
+    if (al.bekreftet && al.tekst) { p.textContent = al.tekst; }
+    else if (DEV) { p.parentNode.insertBefore(unverifiedBox('Allergener mangler', al.notat), p.nextSibling); }
   });
 
-  /* 3b. Hva er i pakken (hvorfor.html). Bekreftet deklarasjon vises som tekst;
+  /* 3c. Opprinnelse, kvalitetskontroll, holdbarhet og oppbevaring */
+  $$('[data-info]').forEach(function (p) {
+    var info = BK[p.getAttribute('data-info')];
+    if (!info) { return; }
+    if (info.bekreftet && info.tekst) {
+      p.textContent = info.tekst;
+    } else if (DEV) {
+      p.parentNode.appendChild(unverifiedBox(null, 'Krever: ' + info.krever));
+    }
+  });
+  $$('[data-info-tag]').forEach(function (tag) {
+    var info = BK[tag.getAttribute('data-info-tag')];
+    if (info && info.bekreftet && info.tekst) { tag.remove(); }
+  });
+
+  /* 3d. Hva er i pakken (hvorfor.html). Bekreftet deklarasjon vises som tekst;
          ellers vises smaksnotene, som er det vi faktisk kan si noe om.        */
   var listeMal = $('[data-ingredienser]');
   if (listeMal) {
@@ -141,19 +218,22 @@
       var s = BK.smaker[key];
       var ing = s.ingredienser || {};
       var art = el('article', 'ing');
-      art.appendChild(el('h3', 'ing__navn', s.navn));
+      var h = el('h3', 'ing__navn');
+      h.appendChild(el('span', 'dot dot--' + (key === 'salt-pepper' ? 'salt' : 'paprika')));
+      h.appendChild(document.createTextNode(s.navn));
+      art.appendChild(h);
 
-      if (ing.bekreftet) {
+      if (ing.bekreftet && ing.tekst) {
         art.appendChild(el('p', 'ing__tekst', ing.tekst));
       } else {
         art.appendChild(chips([ing.base || 'Kyllingfilet'].concat(s.smaksnoter || [])));
-        if (DEV) { art.appendChild(unverifiedBox('Foreslått deklarasjon: ' + ing.tekst, ing.notat)); }
+        if (DEV) { art.appendChild(unverifiedBox('Ingrediensliste mangler', ing.notat)); }
       }
       listeMal.appendChild(art);
     });
   }
 
-  /* 3c. Innholdsstempel */
+  /* 3e. Innholdsstempel (hvorfor.html) */
   var claim = $('[data-claim="rentKjott"]');
   if (claim && BK.rentKjott) {
     var rk = BK.rentKjott;
@@ -161,36 +241,12 @@
     claim.textContent = rk.bekreftet ? rk.tekst : rk.reserve;
     if (note) { note.textContent = rk.bekreftet ? rk.note : rk.reserveNote; }
     if (!rk.bekreftet && DEV) {
-      claim.parentNode.appendChild(unverifiedBox('Ønsket tekst: ' + rk.tekst, 'Krever dokumentert kjøttinnhold før den kan brukes offentlig.'));
+      var merker = (BK.merker || []).filter(function (m) { return !m.bekreftet; }).map(function (m) { return m.navn; }).join(' · ');
+      claim.parentNode.appendChild(unverifiedBox('Ønsket tekst: ' + rk.tekst, 'Ubekreftede merker på pakken: ' + merker));
     }
   }
 
-  /* 3d. Næringstall og merker — vises kun når de er bekreftet */
-  var facts = $('[data-naering]');
-  if (facts) {
-    var n = BK.naering || {};
-    var ubekreftedeMerker = (BK.merker || []).filter(function (m) { return !m.bekreftet; });
-
-    if (n.bekreftet) {
-      var rad = el('div', 'trans__facts-row');
-      (n.verdier || []).forEach(function (v) {
-        var b = el('div', 'fact');
-        b.appendChild(el('span', 'fact__v', v.verdi));
-        b.appendChild(el('span', 'fact__k', v.navn + ' ' + v.per));
-        rad.appendChild(b);
-      });
-      facts.appendChild(rad);
-    } else if (DEV) {
-      var tall = (n.verdier || []).map(function (v) { return v.navn + ': ' + v.verdi + ' ' + v.per; }).join(' · ');
-      var merker = ubekreftedeMerker.map(function (m) { return m.navn; }).join(' · ');
-      facts.appendChild(unverifiedBox(
-        'Skjult på siden: ' + tall + (merker ? ' · ' + merker : ''),
-        'Kilde: ' + (n.kilde || 'ukjent') + ' Sett bekreftet: true i js/content.js når dokumentasjonen foreligger.'
-      ));
-    }
-  }
-
-  /* 3e. Kontakt i footer: ekte lenker når de finnes i content.js, ellers
+  /* 3f. Kontakt i footer: ekte lenker når de finnes i content.js, ellers
          beholdes setningen som står i HTML-en.                             */
   var kontakt = $('[data-kontakt]');
   var lenker = CFG.lenker || {};
@@ -208,7 +264,7 @@
     }
   }
 
-  /* 3f. CTA-er bytter tekst når butikken åpner */
+  /* 3g. CTA-er bytter tekst når butikken åpner */
   if (CFG.cta) {
     var c = CFG.butikkAktiv ? CFG.cta.medButikk : CFG.cta.utenButikk;
     if (c) {
@@ -256,7 +312,7 @@
             'e-posten din her og få beskjed først når kyllingen er klar.';
         }
         notice.appendChild(el('p', null, 'Fram til da kan du se hvor langt vi er kommet med resept, produksjon og lansering.'));
-        var lenke = el('a', 'btn btn--cream', 'Se status på Om oss');
+        var lenke = el('a', 'btn btn--ink', 'Se status på Om oss');
         lenke.href = 'om-oss.html#status';
         notice.appendChild(lenke);
       }

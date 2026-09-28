@@ -2,16 +2,17 @@
    BARE KYLLING — INNHOLDSDATA
    -----------------------------------------------------------------------------
    Dette er den ENESTE filen du trenger å redigere for å endre ingredienser,
-   næringstall, påstander og CTA-tekster.
+   næringstall, allergener, opprinnelse og CTA-tekster.
 
    VIKTIG OM PÅSTANDER
    Alt som har "bekreftet: false" er IKKE verifisert og vises derfor ikke på den
-   publiserte siden. Det vises kun som en tydelig merket boks når
-   config.devModus = true, slik at dere ser hva som gjenstår.
+   publiserte siden. I stedet står det en tydelig plassholder («Oppgis etter
+   næringsanalyse» o.l.). Når config.devModus = true vises i tillegg den
+   ubekreftede verdien i en stiplet boks, slik at dere ser hva som gjenstår.
 
-   Slik gjør du et tall/en påstand offentlig:
-     1. Skaff dokumentasjon (næringsanalyse, sertifiseringsbevis, resept).
-     2. Sett "bekreftet: true" på den aktuelle oppføringen.
+   Slik gjør du et tall/en opplysning offentlig:
+     1. Skaff dokumentasjon (næringsanalyse, resept, leverandøravtale).
+     2. Fyll inn verdien og sett "bekreftet: true" på den aktuelle oppføringen.
      3. Sett config.devModus = false før publisering.
    ============================================================================= */
 
@@ -39,43 +40,46 @@ window.BK = {
       kontakt: null
     },
 
-    /* Sett til true når nettbutikken er live. Da bytter alle hoved-CTA-er.      */
+    /* Sett til true når produktet er i salg. Da bytter alle hoved-CTA-er til
+       teksten i cta.medButikk. Nettsiden har ingen handlekurv – lenken bør gå
+       til en side som forteller hvor produktet selges.                        */
     butikkAktiv: false,
     cta: {
-      medButikk: { tekst: 'Bestill nå',                 href: 'smakene.html'    },
-      utenButikk: { tekst: 'Få beskjed ved lansering',  href: 'venteliste.html' }
+      medButikk: { tekst: 'Se hvor du får kjøpt den', href: 'faq.html#kjop' },
+      utenButikk: { tekst: 'Få beskjed ved lansering', href: 'venteliste.html' }
     }
   },
 
   /* ---------------------------------------------------------------------------
-     2. NÆRINGSINNHOLD  — IKKE BEKREFTET
-     Tallene under står på produktmockupen, men er ikke dokumentert gjennom
-     næringsanalyse. De vises derfor ikke offentlig.
+     2. NØKKELTALL I HEROEN — IKKE BEKREFTET
+     Tallene under står på pakkedesignet, men er ikke dokumentert gjennom
+     næringsanalyse. Heroen viser derfor plassholdere til bekreftet: true.
+     Tallene gjelder én hel pakke (200 g). Avviker smakene, skriv et spenn,
+     f.eks. '36–38'.
+     «0 min tilberedning» og «200 g» står fast i HTML-en, fordi det følger av
+     at kyllingen er ferdigstekt og av pakkestørrelsen.
      --------------------------------------------------------------------------- */
-  naering: {
+  nokkeltall: {
     bekreftet: false,
     kilde: 'Trykket på pakkedesignet. Mangler dokumentert næringsanalyse fra laboratorium.',
-    porsjon: '200 g',
-    verdier: [
-      { navn: 'Protein',   verdi: '36 g',   per: 'per 200 g' },
-      { navn: 'Kalorier',  verdi: '185',    per: 'per 200 g' }
-    ]
+    protein: { verdi: '36',  enhet: 'g'    },
+    energi:  { verdi: '185', enhet: 'kcal' }
   },
 
   /* ---------------------------------------------------------------------------
      3. MERKER OG PÅSTANDER — IKKE BEKREFTET
-     "Nyt Norge" krever avtale med Matmerk. De øvrige krever dokumentert resept
-     og produksjonsprosess. Ingen av dem vises offentlig før bekreftet: true.
+     Står på pakkedesignet. "Nyt Norge" krever avtale med Matmerk. De øvrige
+     krever dokumentert resept og produksjonsprosess.
      --------------------------------------------------------------------------- */
   merker: [
-    { navn: '100 % kylling',          bekreftet: false, krever: 'Dokumentert resept og kjøttinnhold' },
-    { navn: 'Ingen tilsatt vann',     bekreftet: false, krever: 'Dokumentert produksjonsprosess'     },
-    { navn: 'Uten tilsetningsstoffer', bekreftet: false, krever: 'Full ingrediensdeklarasjon'        },
-    { navn: 'Nyt Norge',              bekreftet: false, krever: 'Godkjent avtale med Stiftelsen Matmerk' }
+    { navn: '100 % kylling',           bekreftet: false, krever: 'Dokumentert resept og kjøttinnhold' },
+    { navn: 'Ingen tilsatt vann',      bekreftet: false, krever: 'Dokumentert produksjonsprosess'     },
+    { navn: 'Uten tilsetningsstoffer', bekreftet: false, krever: 'Full ingrediensdeklarasjon'         },
+    { navn: 'Nyt Norge',               bekreftet: false, krever: 'Godkjent avtale med Stiftelsen Matmerk' }
   ],
 
-  /* Teksten i det store innholdsstempelet. Settes automatisk til en nøytral
-     variant så lenge "100 % kylling" ikke er bekreftet.                        */
+  /* Teksten i innholdsstempelet (hvorfor.html). Settes automatisk til en
+     nøytral variant så lenge "100 % kylling" ikke er bekreftet.               */
   rentKjott: {
     bekreftet: false,
     tekst: '100 % kylling*',
@@ -85,41 +89,77 @@ window.BK = {
   },
 
   /* ---------------------------------------------------------------------------
-     4. SMAKENE
-     smaksnoter  = smakskomponenter fra briefen. Vises på siden.
-     ingredienser = juridisk ingrediensdeklarasjon. IKKE bekreftet ennå.
+     4. OPPRINNELSE, KVALITET, HOLDBARHET OG OPPBEVARING — IKKE BEKREFTET
+     tekst = det som skal stå på siden når opplysningen er bekreftet.
      --------------------------------------------------------------------------- */
+  opprinnelse: {
+    bekreftet: false,
+    tekst: null,            /* f.eks. 'Kyllingen kommer fra … i …' */
+    krever: 'Avtale med kyllingleverandør, med opprinnelsesland'
+  },
+  kvalitetskontroll: {
+    bekreftet: false,
+    tekst: null,
+    krever: 'Beskrivelse av produksjonssted, internkontroll og eventuelle sertifiseringer'
+  },
+  holdbarhet: {
+    bekreftet: false,
+    tekst: null,            /* f.eks. 'Uåpnet: … dager. Åpnet: spises innen …' */
+    krever: 'Holdbarhetstest fra produksjonen'
+  },
+  oppbevaring: {
+    bekreftet: false,
+    tekst: null,            /* f.eks. 'Oppbevares kjølig, 0–4 °C.' */
+    krever: 'Fastsatt oppbevaringsanvisning fra produksjonen'
+  },
+
+  /* ---------------------------------------------------------------------------
+     5. SMAKENE
+     smaksnoter   = smakskomponenter. Vises på siden.
+     ingredienser = juridisk ingrediensdeklarasjon. IKKE bekreftet ennå.
+     allergener   = allergener som skal uthevet. IKKE bekreftet ennå.
+     naering      = næringsdeklarasjon per 100 g. IKKE bekreftet ennå.
+                    Per pakke regnes ut automatisk fra pakkevekten (200 g).
+     --------------------------------------------------------------------------- */
+  pakkevekt: 200,
+
   smaker: {
-    'brown-sugar-paprika': {
-      navn: 'Brown Sugar Paprika',
-      smaksnoter: ['Brunt sukker', 'Paprika', 'Oregano', 'Hvitløk', 'Sort pepper'],
+    'salt-pepper': {
+      navn: 'Salt & Pepper',
+      smaksnoter: ['Salt', 'Pepper'],
       ingredienser: {
-        /* Hentet fra teksten på pakkedesignet. Selve deklarasjonen med mengder,
-           allergener og saltinnhold må bekreftes mot endelig resept.            */
         bekreftet: false,
         base: 'Kyllingfilet',
-        tekst: 'Kyllingfilet, brunt sukker, paprika, tørket oregano, hvitløkspulver, salt, sort pepper.',
-        notat: 'Står slik på pakkedesignet. Mangler mengdeangivelser, allergenmerking og saltinnhold fra endelig resept.'
+        tekst: null,
+        notat: 'Pakkedesignet på bildene heter «Original – Salt, Pepper & Urter». Endelig navn, urter og ingrediensliste med mengder må fastsettes.'
+      },
+      allergener: {
+        bekreftet: false,
+        tekst: null,
+        notat: 'Allergener fastsettes ut fra endelig resept og krydderleverandørens spesifikasjon.'
+      },
+      naering: {
+        bekreftet: false,
+        per100: { energiKj: null, energiKcal: null, fett: null, mettet: null, karbohydrat: null, sukkerarter: null, protein: null, salt: null }
       }
     },
-    'smoky-chili-lime': {
-      navn: 'Smoky Chili Lime',
-      smaksnoter: ['Røkt chili', 'Lime'],
+    'paprika-honning': {
+      navn: 'Paprika & Honning',
+      smaksnoter: ['Paprika', 'Honning'],
       ingredienser: {
         bekreftet: false,
         base: 'Kyllingfilet',
-        tekst: 'Kyllingfilet, røkt chili, lime.',
-        notat: 'Står slik på pakkedesignet. Mangler mengdeangivelser, allergenmerking og saltinnhold fra endelig resept.'
-      }
-    },
-    'sitron-og-urter': {
-      navn: 'Sitron & Urter',
-      smaksnoter: ['Sitron', 'Urter'],
-      ingredienser: {
+        tekst: null,
+        notat: 'Pakkedesignet på bildene heter bare «Paprika». Honning må med i navn og ingrediensliste på pakken hvis den er i produktet.'
+      },
+      allergener: {
         bekreftet: false,
-        base: 'Kyllingfilet',
-        tekst: 'Kyllingfilet, sitron, urter.',
-        notat: 'Denne pakken har ingen ingrediensliste trykket på seg, i motsetning til de to andre. Hvilke urter som inngår må fastsettes og skrives ut før publisering.'
+        tekst: null,
+        notat: 'Allergener fastsettes ut fra endelig resept og krydderleverandørens spesifikasjon.'
+      },
+      naering: {
+        bekreftet: false,
+        per100: { energiKj: null, energiKcal: null, fett: null, mettet: null, karbohydrat: null, sukkerarter: null, protein: null, salt: null }
       }
     }
   }

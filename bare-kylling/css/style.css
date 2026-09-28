@@ -1,8 +1,8 @@
 /* =============================================================================
    BARE KYLLING — STILARK
    1. Tokens          5. Hero og undersider
-   2. Reset/base      6. Seksjoner
-   3. Typografi       7. Skjema / FAQ / Footer
+   2. Reset/base      6. Seksjoner (forsiden)
+   3. Typografi       7. Undersider, skjema, FAQ, footer
    4. Komponenter     8. Responsivt og bevegelse
    ============================================================================= */
 
@@ -16,11 +16,16 @@
   --beige:        #E8E1D5;
   --ink:          #11110F;
   --ink-soft:     #3A3A34;
-  --forest:       #334D29;
+  --forest:       #334D29;   /* Salt & Pepper */
   --forest-deep:  #24371D;
-  --paprika:      #B5502C;
+  --paprika:      #B5502C;   /* Paprika & Honning */
   --paprika-deep: #8E3D20;
   --sage:         #AAB39D;
+
+  /* Varm merkefarge for hero, infostripe og CTA. Tekst på honning er alltid
+     --ink (ca. 10:1 kontrast). Aldri cream-tekst på honning. */
+  --honey:        #F1B240;
+  --honey-deep:   #D99A26;
 
   /* Paprika som bakgrunn for brødtekst. Den originale (#B5502C) gir 4,45:1
      mot cream og underkjenner WCAG AA (4,5:1). Denne gir 5,05:1. */
@@ -31,25 +36,33 @@
   --bg: var(--cream);
   --fg: var(--ink);
 
-  /* Typografi */
-  --display: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Typografi. Archivo lastes med bredde-akse (75–100 %), så overskriftene
+     kan være kondenserte uten en ekstra font. */
+  --display: 'Archivo', 'Arial Narrow', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --condensed: 82%;
 
-  --fs-hero:  clamp(3rem, 9.5vw, 7.5rem);
-  --fs-h2:    clamp(2.2rem, 6vw, 4.5rem);
+  /* Hero-tittelen skalerer med bredden på tekstkolonnen: «proteinbar.» er
+     ca. 4,4 × skriftstørrelsen bred i kondensert Archivo 900. */
+  --fs-hero:  clamp(3.1rem, 17vw, 8.4rem);
+  --fs-h2:    clamp(2.3rem, 6vw, 4.6rem);
   --fs-h3:    clamp(1.5rem, 3.2vw, 2.5rem);
-  --fs-lead:  clamp(1.075rem, 1.5vw, 1.35rem);
-  --fs-body:  clamp(1rem, 1.05vw, 1.1rem);
+  --fs-lead:  clamp(1.075rem, 1.5vw, 1.3rem);
+  --fs-body:  clamp(1rem, 1.05vw, 1.08rem);
   --fs-label: clamp(.72rem, .85vw, .8rem);
 
   /* Rom – én seksjonsrytme for hele nettstedet */
-  --gut:   clamp(1.25rem, 5vw, 4rem);
+  --gut:   clamp(1rem, 5vw, 4rem);
   --sec:   clamp(4rem, 9vw, 7.5rem);
   --shell: 1340px;
+  /* Avstand fra innholdskanten til skjermkanten – for bilder som skal ut i kanten */
+  --bleed: max(var(--gut), calc((100vw - var(--shell)) / 2 + var(--gut)));
 
   /* Detaljer */
   --edge: 2px solid var(--ink);
-  --r: 4px;
+  --r: 18px;         /* kort og bilder */
+  --r-sm: 10px;      /* felt, merkelapper */
+  --pill: 999px;     /* knapper */
   --ease: cubic-bezier(.22, .61, .36, 1);
 }
 
@@ -78,6 +91,7 @@ body {
 
 img, svg { display: block; max-width: 100%; }
 img { height: auto; }
+picture { display: contents; }
 [hidden] { display: none !important; }
 
 h1, h2, h3, p, ul, ol, dl, dd, figure { margin: 0; }
@@ -88,14 +102,14 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 input { font: inherit; }
 
 :focus-visible {
-  outline: 3px solid var(--paprika);
+  outline: 3px solid var(--ink);
   outline-offset: 3px;
   border-radius: 2px;
 }
-.on-dark :focus-visible, .launch :focus-visible, .trans :focus-visible,
-.menu :focus-visible, .ben--forest :focus-visible, .ben--paprika :focus-visible,
-.flavor :focus-visible, .foot :focus-visible {
-  outline-color: var(--cream);
+.sec--forest :focus-visible, .sec--ink :focus-visible, .trans :focus-visible,
+.menu :focus-visible, .ben--forest :focus-visible,
+.flavor :focus-visible, .foot :focus-visible, .duo__card :focus-visible, .topbar:focus-visible {
+  outline-color: var(--honey);
 }
 
 .sr-only {
@@ -108,7 +122,7 @@ input { font: inherit; }
   position: absolute; left: 50%; top: 0; z-index: 200;
   transform: translate(-50%, -120%);
   background: var(--ink); color: var(--cream);
-  padding: .9rem 1.4rem; font-weight: 700;
+  padding: .9rem 1.4rem; font-weight: 700; border-radius: 0 0 var(--r-sm) var(--r-sm);
 }
 .skip:focus { transform: translate(-50%, 0); }
 
@@ -126,48 +140,43 @@ input { font: inherit; }
    --------------------------------------------------------------------------- */
 .display {
   font-family: var(--display);
-  font-weight: 800;
+  font-weight: 900;
+  font-stretch: var(--condensed);
   font-size: var(--fs-h2);
   line-height: .95;
-  letter-spacing: -.03em;
+  letter-spacing: -.02em;
   text-wrap: balance;
 }
 
-.lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 36ch; }
+.lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 40ch; }
 
 /* Seksjonsetikett: liten, upper-case, med strek foran */
-.marker {
-  display: flex; align-items: center; gap: .85rem;
+.marker, .kicker {
+  display: flex; align-items: center; gap: .8rem;
   font-size: var(--fs-label);
   text-transform: uppercase;
-  letter-spacing: .22em;
-  font-weight: 700;
-  color: var(--paprika);
-  margin-bottom: clamp(1.1rem, 2.4vw, 1.6rem);
+  letter-spacing: .2em;
+  font-weight: 800;
+  color: var(--paprika-deep);
+  margin-bottom: clamp(1rem, 2.2vw, 1.5rem);
 }
-.marker::before { content: ''; display: block; width: 36px; height: 2px; background: currentColor; }
-.marker--light { color: var(--sage); }
+.marker::before, .kicker::before { content: ''; display: block; width: 32px; height: 2px; background: currentColor; flex: none; }
+.marker--light { color: var(--honey); }
+.kicker { color: var(--ink); }
 
-.eyebrow {
-  display: flex; align-items: center; gap: .85rem;
-  font-size: var(--fs-label);
-  text-transform: uppercase; letter-spacing: .22em; font-weight: 700;
-  color: var(--paprika);
-  margin-bottom: clamp(1.1rem, 2.4vw, 1.8rem);
-}
-.eyebrow__rule { display: block; width: 36px; height: 2px; background: currentColor; }
-
-/* Kort setning med understrek – brukes som «vending» i historien */
+/* Uthevet setning med understrek i honning */
 .turn {
-  font-family: var(--display); font-weight: 800;
-  font-size: var(--fs-h3); line-height: 1.05; letter-spacing: -.03em;
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: var(--fs-h3); line-height: 1.02; letter-spacing: -.02em;
 }
 .turn span {
-  background-image: linear-gradient(var(--paprika), var(--paprika));
-  background-size: 100% .22em; background-repeat: no-repeat;
-  background-position: 0 92%;
+  background-image: linear-gradient(var(--honey), var(--honey));
+  background-size: 100% .28em; background-repeat: no-repeat;
+  background-position: 0 90%;
   padding-inline: .05em;
 }
+
+.note { margin-top: 1.1rem; font-size: .9rem; line-height: 1.5; color: var(--ink-soft); max-width: 70ch; }
 
 /* ---------------------------------------------------------------------------
    4. KOMPONENTER
@@ -176,64 +185,107 @@ input { font: inherit; }
   --btn-bg: var(--ink);
   --btn-fg: var(--cream);
   --btn-hover: var(--ink-soft);
-  display: inline-flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   min-height: 48px;
-  padding: .85rem 1.5rem;
+  padding: .8rem 1.5rem;
   background: var(--btn-bg); color: var(--btn-fg);
-  font-family: var(--sans); font-weight: 700;
-  font-size: clamp(.85rem, 1vw, .95rem);
-  letter-spacing: .03em;
-  border-radius: var(--r);
-  transition: background-color .2s var(--ease);
+  font-family: var(--sans); font-weight: 800;
+  font-size: clamp(.9rem, 1vw, .95rem);
+  letter-spacing: .01em;
+  border-radius: var(--pill);
+  transition: background-color .2s var(--ease), color .2s var(--ease), transform .2s var(--ease);
   text-align: center;
 }
 .btn:hover { background: var(--btn-hover); }
+.btn:active { transform: translateY(1px); }
 
 .btn--ink     { --btn-bg: var(--ink);     --btn-fg: var(--cream); --btn-hover: var(--ink-soft); }
-.btn--paprika { --btn-bg: var(--paprika); --btn-fg: var(--cream); --btn-hover: var(--paprika-deep); }
-.btn--forest  { --btn-bg: var(--forest);  --btn-fg: var(--cream); --btn-hover: var(--forest-deep); }
-.btn--cream   { --btn-bg: var(--cream);   --btn-fg: var(--ink);   --btn-hover: var(--cream-hi); }
-.btn--lg      { min-height: 56px; padding: 1rem 1.9rem; font-size: clamp(.9rem, 1.1vw, 1rem); }
+.btn--honey   { --btn-bg: var(--honey);   --btn-fg: var(--ink);   --btn-hover: #F5C466; }
+.btn--lg      { min-height: 56px; padding: 1rem 1.8rem; font-size: clamp(.95rem, 1.1vw, 1.02rem); }
 
 /* Sekundær CTA: tekst med understrek */
 .btn--ghost {
-  --btn-bg: transparent; --btn-fg: var(--ink);
-  padding-inline: .1rem;
+  --btn-bg: transparent; --btn-fg: currentColor;
+  padding-inline: .15rem;
   border-radius: 0;
-  box-shadow: inset 0 -2px 0 var(--ink);
-  transition: color .2s var(--ease), box-shadow .2s var(--ease);
+  box-shadow: inset 0 -2px 0 currentColor;
 }
-.btn--ghost:hover { background: transparent; color: var(--paprika); box-shadow: inset 0 -2px 0 var(--paprika); }
+.btn--ghost:hover { background: transparent; box-shadow: inset 0 -4px 0 currentColor; }
 
 /* Bilder */
+.pic { position: relative; margin: 0; border-radius: var(--r); overflow: hidden; background: var(--beige); }
+.pic img { width: 100%; height: 100%; object-fit: cover; }
+.pic--4x3  { aspect-ratio: 4 / 3; }
+.pic--3x2  { aspect-ratio: 3 / 2; }
+.pic--16x9 { aspect-ratio: 16 / 9; }
 .media { position: relative; margin: 0; }
-.media__img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Smaksnoter */
+.chips { display: flex; flex-wrap: wrap; gap: .45rem; }
+.chips li {
+  font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em;
+  border: 1.5px solid currentColor; border-radius: var(--pill);
+  padding: .4rem .85rem;
+}
+
+/* Fargeprikk for smakene */
+.dot { display: inline-block; flex: none; width: .8em; height: .8em; border-radius: 50%; }
+.dot--salt    { background: var(--forest); }
+.dot--paprika { background: var(--paprika); }
+
+/* Merkelapp for opplysninger som ikke er klare ennå */
+.tag {
+  display: inline-flex; align-items: center; gap: .45rem;
+  font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em;
+  padding: .32rem .7rem; border-radius: var(--pill);
+}
+.tag--pending { border: 1.5px dashed currentColor; opacity: .9; }
+.tag--pending::before { content: ''; width: .45rem; height: .45rem; border-radius: 50%; background: var(--honey); }
+.pending { font-style: italic; opacity: .85; }
 
 /* Ubekreftet innhold (kun i dev-modus, se js/content.js) */
 .unverified {
   border: 2px dashed var(--paprika);
-  border-radius: var(--r);
-  padding: clamp(1rem, 2.4vw, 1.6rem);
+  border-radius: var(--r-sm);
+  padding: clamp(.9rem, 2vw, 1.3rem);
   background: rgba(181, 80, 44, .07);
+  margin-top: .8rem;
+  font-size: .9rem;
 }
 .unverified__tag {
   display: inline-flex; align-items: center; gap: .5rem;
-  font-size: .68rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase;
+  font-size: .66rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
   background: var(--paprika); color: var(--cream);
-  padding: .35rem .75rem; border-radius: var(--r); margin-bottom: .8rem;
+  padding: .3rem .7rem; border-radius: var(--pill); margin-bottom: .6rem;
 }
-.unverified__note { font-size: .85rem; line-height: 1.5; opacity: .85; margin-top: .7rem; }
+.unverified__note { font-size: .82rem; line-height: 1.5; opacity: .85; margin-top: .5rem; }
 
 /* Tekstlenker i løpende tekst */
 .link {
   text-decoration: underline; text-underline-offset: 4px;
-  text-decoration-thickness: 2px; text-decoration-color: var(--paprika);
+  text-decoration-thickness: 2px; text-decoration-color: var(--honey-deep);
 }
-.link:hover { color: var(--paprika); }
+.link:hover { text-decoration-color: currentColor; }
 
 /* ---------------------------------------------------------------------------
-   A. NAVBAR
+   A. INFOSTRIPE OG NAVBAR
    --------------------------------------------------------------------------- */
+.topbar {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: .3rem .75rem;
+  min-height: 44px; padding: .45rem var(--gut);
+  background: var(--ink); color: var(--cream);
+  font-size: .85rem; font-weight: 600; text-align: center;
+}
+.topbar__tag {
+  background: var(--honey); color: var(--ink);
+  font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .16em;
+  padding: .22rem .65rem; border-radius: var(--pill);
+}
+.topbar__text { display: none; }
+.topbar__link { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--honey); text-decoration-thickness: 2px; }
+.topbar:hover .topbar__link { text-decoration-color: currentColor; }
+
 .nav {
   position: sticky; top: 0; z-index: 100;
   background: var(--cream);
@@ -264,12 +316,12 @@ input { font: inherit; }
 
 .nav__links { display: none; gap: clamp(1rem, 2.2vw, 2.1rem); }
 .nav__links a {
-  font-size: .9rem; font-weight: 600; padding: .4rem 0;
+  font-size: .92rem; font-weight: 700; padding: .4rem 0;
   position: relative;
 }
 .nav__links a::after {
   content: ''; position: absolute; left: 0; right: 0; bottom: 0;
-  height: 2px; background: var(--paprika);
+  height: 3px; border-radius: 2px; background: var(--honey-deep);
   transform: scaleX(0); transform-origin: left;
   transition: transform .25s var(--ease);
 }
@@ -301,7 +353,7 @@ body.meny-apen .sticky-cta { display: none; }
   position: fixed; inset: 0; z-index: 95;
   background: var(--forest); color: var(--cream);
   overflow-y: auto;
-  padding: calc(68px + 2.5rem) var(--gut) 3rem;
+  padding: calc(68px + 44px + 1.5rem) var(--gut) 3rem;
   opacity: 0; transition: opacity .25s var(--ease);
 }
 .menu[hidden] { display: none; }
@@ -309,358 +361,552 @@ body.meny-apen .sticky-cta { display: none; }
 .menu__inner { display: flex; flex-direction: column; gap: .35rem; max-width: var(--shell); margin-inline: auto; }
 .menu__inner > a:not(.btn) {
   display: block;
-  font-family: var(--display); font-weight: 700;
-  font-size: clamp(2rem, 9vw, 3rem); letter-spacing: -.03em;
+  font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
+  font-size: clamp(2rem, 9vw, 3rem); letter-spacing: -.02em;
   padding: .55rem 0;
   border-bottom: 1px solid rgba(243, 240, 233, .22);
 }
-.menu__inner > a[aria-current="page"] { color: var(--sage); }
+.menu__inner > a[aria-current="page"] { color: var(--honey); }
 .menu__cta { margin-top: 1.8rem; }
 .menu__foot {
   margin-top: 1.4rem; font-size: .78rem;
-  text-transform: uppercase; letter-spacing: .24em; opacity: .6;
+  text-transform: uppercase; letter-spacing: .24em; opacity: .7;
 }
 
 /* ---------------------------------------------------------------------------
    B. HERO (forsiden)
+   Mobil: tekst → bilde → nøkkeltall → knapper.
+   Desktop: tekst, nøkkeltall og knapper til venstre, bildet til høyre og ut
+   i kanten av skjermen (hånden kommer inn fra høyre).
    --------------------------------------------------------------------------- */
 .hero {
-  position: relative;
-  padding-block: clamp(2rem, 4.5vw, 3.5rem) clamp(3rem, 6vw, 5rem);
+  background: var(--honey); color: var(--ink);
+  overflow: clip;
+  padding-block: clamp(1.8rem, 4vw, 3.2rem) clamp(2.4rem, 5vw, 4rem);
 }
-.hero__grid { display: grid; gap: clamp(2rem, 5vw, 3rem); }
+.hero__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "copy" "media" "stats" "cta";
+  column-gap: clamp(1.5rem, 4vw, 3.5rem);
+}
+.hero__copy  { grid-area: copy; }
+.hero__media { grid-area: media; position: relative; margin: clamp(.6rem, 2vw, 1.2rem) calc(-1 * var(--gut)) 0; }
+.hero__stats { grid-area: stats; }
+.hero__cta   { grid-area: cta; }
 
+.hero .kicker { margin-bottom: clamp(.9rem, 2vw, 1.3rem); letter-spacing: .14em; }
 .hero__h1 {
-  font-family: var(--display); font-weight: 900;
-  font-size: var(--fs-hero); line-height: .9;
-  letter-spacing: -.035em;
-  margin-bottom: clamp(1.3rem, 2.8vw, 2rem);
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: var(--fs-hero); line-height: .86;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(1rem, 2.4vw, 1.6rem);
 }
 .hero__h1 .r { display: block; }
-.hero__h1 .r:nth-child(2) { color: var(--paprika); }
-
 .hero__lead {
-  font-size: var(--fs-lead); line-height: 1.45;
-  max-width: 38ch; color: var(--ink-soft);
-  margin-bottom: clamp(1.6rem, 3vw, 2.2rem);
+  font-size: var(--fs-lead); line-height: 1.45; font-weight: 600;
+  max-width: 34ch;
 }
-.hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.6rem; }
+.hero__img { width: 100%; height: auto; }
 
-.proof {
-  display: flex; flex-wrap: wrap; gap: .5rem 1.4rem;
-  margin-top: clamp(1.8rem, 4vw, 2.6rem);
-  padding-top: clamp(1.1rem, 2.4vw, 1.5rem);
-  border-top: 1px solid rgba(17, 17, 15, .2);
-  font-size: var(--fs-label);
-  text-transform: uppercase; letter-spacing: .14em; font-weight: 700;
-}
-.proof li { display: flex; align-items: center; gap: .55rem; }
-.proof li::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--forest); flex: none;
-}
-.proof li:nth-child(2n)::before { background: var(--paprika); }
+.hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.6rem; margin-top: clamp(1.4rem, 3vw, 2rem); }
 
-.hero__stage { position: relative; }
-.media--hero { aspect-ratio: 16 / 9; }
-.media--hero .media__img { object-fit: contain; }
-
-/* Ett roterende stempel – i heroen. Tekstringen ligger i HTML og peker på
+/* Stempelet i heroen: «2 smaker» med navnene rundt. Tekstringen peker på
    #sirkel, som er definert i den felles toppblokken. */
 .sticker {
   position: relative; flex: none;
   width: var(--sticker, clamp(84px, 12vw, 120px)); aspect-ratio: 1;
   display: grid; place-items: center;
-  color: var(--sticker-fg, var(--forest));
+  color: var(--ink);
 }
-.sticker > svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 32s linear infinite; }
-.sticker > svg text { font-family: var(--sans); font-size: 8px; font-weight: 800; fill: currentColor; }
+.sticker > svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: spin 36s linear infinite; }
+.sticker > svg text { font-family: var(--sans); font-size: 7.6px; font-weight: 800; fill: currentColor; letter-spacing: .02em; }
 .sticker b {
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(.8rem, 1.9vw, 1.15rem); letter-spacing: -.03em; line-height: 1; white-space: nowrap;
-  display: grid; place-items: center;
-  width: 58%; aspect-ratio: 1; border-radius: 50%;
-  background: var(--sticker-bg, var(--cream)); box-shadow: 0 0 0 1.5px currentColor inset;
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.4rem, 3vw, 2.2rem); letter-spacing: -.03em; line-height: .8;
+  display: grid; place-items: center; align-content: center;
+  width: 60%; aspect-ratio: 1; border-radius: 50%;
+  background: var(--cream-hi); box-shadow: 0 0 0 2px var(--ink) inset;
 }
-.sticker b small { font-size: .7em; font-weight: 700; margin-left: .08em; }
+.sticker b small {
+  display: block; font-family: var(--sans); font-stretch: 100%;
+  font-size: .32em; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-top: .25em;
+}
 .stamp {
-  position: absolute; z-index: 4;
-  right: 2%; bottom: 2%;
-  --sticker: clamp(76px, 17vw, 124px);
+  position: absolute; z-index: 2;
+  left: var(--gut); top: 0;
+  --sticker: clamp(84px, 20vw, 136px);
 }
 
 @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 
-/* Kyllingen som kikker over hero-bildet (kun desktop) */
-.hero__peek { display: none; }
+/* Nøkkeltall */
+.stats {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: var(--edge);
+  margin-top: clamp(.4rem, 1.5vw, 1rem);
+}
+.stat {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: .9rem .9rem .9rem 0;
+  border-bottom: 1px solid rgba(17, 17, 15, .28);
+}
+.stat:nth-child(odd) { border-right: 1px solid rgba(17, 17, 15, .28); }
+.stat:nth-child(even) { padding-left: .9rem; }
+.stat__v { order: 1; display: flex; align-items: baseline; gap: .3rem; white-space: nowrap; }
+.stat__k { order: 2; }
+.stat__note { order: 3; }
+.stat__num {
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(2.6rem, 6vw, 3.6rem); line-height: .9; letter-spacing: -.02em;
+}
+.stat__unit { font-family: var(--display); font-weight: 800; font-stretch: var(--condensed); font-size: clamp(1.1rem, 2vw, 1.45rem); }
+.stat__k {
+  margin-top: .4rem;
+  font-size: var(--fs-label); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; line-height: 1.3;
+}
+/* Plassholder: tallet er ikke dokumentert ennå */
+.stat__v.is-pending .stat__num,
+.stat__v.is-pending .stat__unit { opacity: .38; }
+.stat__note {
+  width: fit-content; margin-top: .45rem;
+  font-size: .7rem; font-weight: 700; line-height: 1.3;
+  padding: .18rem .55rem; border: 1.5px dashed var(--ink); border-radius: var(--pill);
+}
 
 /* ---------------------------------------------------------------------------
-   C. UNDERSIDER – topp
+   C. SEKSJONER – felles
    --------------------------------------------------------------------------- */
-.subhero { padding-block: clamp(1.6rem, 3.5vw, 2.8rem) clamp(2.4rem, 5vw, 3.5rem); }
+.sec { padding-block: var(--sec); }
+.sec--beige  { background: var(--beige); }
+.sec--light  { background: var(--cream-hi); }
+.sec--forest { background: var(--forest); color: var(--cream); }
+.sec--ink    { background: var(--ink); color: var(--cream); }
+
+.sec__head { margin-bottom: clamp(2rem, 4.5vw, 3.2rem); }
+.sec__head .display + .lead { margin-top: clamp(.9rem, 2vw, 1.3rem); }
+.sec--forest .lead, .sec--ink .lead { color: rgba(243, 240, 233, .88); }
+
+/* To kolonner: bilde og tekst */
+.split { display: grid; gap: clamp(1.8rem, 4.5vw, 4rem); align-items: center; }
+.split__body .display { margin-bottom: clamp(1rem, 2.2vw, 1.4rem); }
+.split__body .lead { margin-bottom: clamp(1.4rem, 3vw, 2rem); }
+.split__text { margin-top: clamp(1rem, 2.4vw, 1.4rem); max-width: 44ch; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------------------
+   D. SAMMENLIGNING
+   --------------------------------------------------------------------------- */
+.compare__scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border-radius: var(--r);
+  background: var(--cream-hi);
+  box-shadow: 0 1px 0 rgba(17, 17, 15, .06), 0 20px 40px -30px rgba(17, 17, 15, .35);
+}
+.compare__scroll:focus-visible { outline-offset: 4px; }
+.compare__table {
+  width: 100%; min-width: 680px;
+  border-collapse: separate; border-spacing: 0;
+  font-size: .95rem; line-height: 1.4;
+}
+.compare__table th, .compare__table td {
+  padding: 1rem 1.1rem; text-align: left; vertical-align: top;
+  border-bottom: 1px solid rgba(17, 17, 15, .1);
+}
+.compare__table tbody tr:last-child > * { border-bottom: 0; }
+.compare__table thead th {
+  font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem); letter-spacing: -.01em; line-height: 1.1;
+  vertical-align: bottom; padding-top: 1.3rem;
+}
+.compare__table tbody th {
+  position: sticky; left: 0; z-index: 1;
+  background: var(--cream-hi);
+  font-weight: 800; width: 11rem; min-width: 9.5rem;
+}
+.compare__table td { color: var(--ink-soft); }
+.compare__table .is-us { background: var(--forest); color: var(--cream); width: 22%; }
+.compare__table thead .is-us { font-size: clamp(1.15rem, 1.9vw, 1.5rem); }
+.compare__table .is-us strong { color: var(--honey); }
+.compare__table .is-us .pending { font-style: normal; }
+.compare__table .is-us .pending::before {
+  content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: .45rem;
+  border-radius: 50%; background: var(--honey); vertical-align: .08em;
+}
+.compare__hint { margin-top: .8rem; font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------------------
+   E. FORDELER
+   --------------------------------------------------------------------------- */
+.benefits__grid { display: grid; gap: clamp(.75rem, 1.6vw, 1.1rem); }
+.benefit {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 1rem; row-gap: .25rem;
+  align-items: start;
+  padding: clamp(1.1rem, 2.4vw, 1.7rem);
+  background: var(--cream-hi);
+  border: 1px solid rgba(17, 17, 15, .08);
+  border-radius: var(--r);
+}
+.benefit__icon {
+  grid-row: span 2;
+  display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--honey); color: var(--ink);
+}
+.benefit__icon .icon { width: 28px; height: 28px; }
+.benefit__h3 {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.3rem, 2vw, 1.6rem); line-height: 1.05; letter-spacing: -.01em;
+  align-self: end;
+}
+.benefit p { color: var(--ink-soft); line-height: 1.45; max-width: 34ch; }
+
+/* ---------------------------------------------------------------------------
+   F. PÅ FARTEN
+   --------------------------------------------------------------------------- */
+.onthego__grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(.6rem, 1.4vw, 1rem);
+}
+.moment {
+  position: relative; margin: 0; overflow: hidden;
+  border-radius: var(--r); background: var(--forest-deep);
+  aspect-ratio: 4 / 5;
+}
+.moment img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.moment--big { grid-column: span 2; aspect-ratio: 1 / 1; }
+.moment--big img { object-position: 50% 30%; }
+.moment__label {
+  position: absolute; left: .75rem; bottom: .75rem; z-index: 2;
+  padding: .45rem .85rem;
+  background: var(--cream); color: var(--ink);
+  border-radius: var(--pill);
+  font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
+  font-size: clamp(.9rem, 1.6vw, 1.1rem); letter-spacing: 0; line-height: 1.1;
+}
+.moment--text {
+  display: flex; flex-direction: column; justify-content: space-between; gap: .8rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: var(--honey); color: var(--ink);
+}
+.moment--text .figure { --fig: clamp(64px, 8vw, 96px); }
+.moment__h {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.15rem, 2.4vw, 1.9rem); line-height: 1.02; letter-spacing: -.01em;
+  text-wrap: balance;
+}
+
+/* ---------------------------------------------------------------------------
+   G. SMAKENE – to kort (forsiden)
+   --------------------------------------------------------------------------- */
+.duo { display: grid; gap: clamp(.9rem, 2vw, 1.4rem); }
+.duo__card {
+  display: flex; flex-direction: column;
+  border-radius: var(--r); overflow: hidden;
+  color: var(--cream);
+}
+.duo__card--salt    { background: var(--forest); }
+.duo__card--paprika { background: var(--paprika-surface); }
+.duo__media { position: relative; margin: 0; aspect-ratio: 16 / 10; overflow: hidden; }
+.duo__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
+/* Pakken ligger til venstre i salt-bildet og til høyre i paprika-bildet.
+   Beskjæringen ankres mot pakken, så det er krydderet i kanten som kuttes. */
+.duo__card--salt .duo__media img    { object-position: 20% 50%; }
+.duo__card--paprika .duo__media img { object-position: 85% 50%; }
+.duo__card:hover .duo__media img { transform: scale(1.03); }
+.duo__body {
+  flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: .8rem;
+  padding: clamp(1.3rem, 3vw, 2.2rem);
+}
+.duo__num {
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: .95rem; letter-spacing: .1em;
+  padding: .25rem .6rem; border: 1.5px solid currentColor; border-radius: var(--pill);
+}
+.duo__name {
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(2.4rem, 5vw, 3.8rem); line-height: .9; letter-spacing: -.02em;
+}
+.duo__desc { font-size: var(--fs-lead); line-height: 1.45; max-width: 34ch; }
+.duo__more {
+  margin-top: auto; padding-top: .6rem;
+  display: inline-flex; align-items: center; min-height: 44px;
+  font-weight: 800; text-decoration: underline; text-underline-offset: 5px;
+  text-decoration-thickness: 2px; text-decoration-color: var(--honey);
+}
+.duo__more::after { content: '→'; margin-left: .45rem; text-decoration: none; transition: transform .2s var(--ease); }
+.duo__more:hover::after { transform: translateX(3px); }
+
+/* ---------------------------------------------------------------------------
+   H. KVALITET
+   --------------------------------------------------------------------------- */
+.quality .pic { background: var(--cream); }
+.quality__list { display: grid; gap: 1.3rem; }
+.qitem {
+  display: grid; grid-template-columns: auto 1fr; gap: 1rem;
+  padding-top: 1.2rem; border-top: 1px solid rgba(243, 240, 233, .22);
+}
+.qitem__icon { width: 34px; height: 34px; color: var(--honey); }
+.qitem__h3 {
+  font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem); letter-spacing: -.01em; margin-bottom: .3rem;
+}
+.qitem p { color: rgba(243, 240, 233, .86); line-height: 1.5; max-width: 46ch; }
+.qitem .tag { margin-top: .6rem; }
+
+/* ---------------------------------------------------------------------------
+   I. NÆRINGSDEKLARASJON (forsiden og smakene.html)
+   --------------------------------------------------------------------------- */
+.nutri__grid { display: grid; gap: clamp(.8rem, 1.6vw, 1.2rem); align-items: start; }
+.decl {
+  background: var(--cream-hi); color: var(--ink);
+  border: 1px solid rgba(17, 17, 15, .1);
+  border-radius: var(--r);
+}
+.decl summary {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .75rem;
+  min-height: 64px; padding: 1.1rem 3.4rem 1.1rem 1.3rem;
+  position: relative; cursor: pointer; list-style: none;
+}
+.decl summary::-webkit-details-marker { display: none; }
+.decl summary::after {
+  content: ''; position: absolute; right: 1.3rem; top: 50%;
+  width: 16px; height: 16px; margin-top: -8px;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center/100% 2.5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center/2.5px 100% no-repeat;
+  transition: transform .25s var(--ease);
+}
+.decl[open] summary::after { transform: rotate(135deg); }
+.decl__name {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.25rem, 2vw, 1.55rem); letter-spacing: -.01em; line-height: 1.1;
+}
+.decl__hint { flex-basis: 100%; font-size: .85rem; color: var(--ink-soft); padding-left: 1.55rem; }
+.decl__body { padding: 0 1.3rem 1.5rem; }
+.decl__table { width: 100%; border-collapse: collapse; font-size: .92rem; border-top: var(--edge); }
+.decl__table th, .decl__table td { padding: .55rem 0; border-bottom: 1px solid rgba(17, 17, 15, .14); text-align: left; vertical-align: top; }
+.decl__table thead th { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; line-height: 1.3; padding-block: .7rem; vertical-align: bottom; }
+.decl__table td, .decl__table thead th:not(:first-child) { text-align: right; padding-left: .7rem; width: 28%; }
+.decl__table tbody th { font-weight: 700; }
+.decl__table .sub th { font-weight: 400; padding-left: 1rem; color: var(--ink-soft); }
+.decl__pending {
+  margin-top: .9rem; padding: .7rem .9rem;
+  border: 1.5px dashed rgba(17, 17, 15, .4); border-radius: var(--r-sm);
+  font-size: .88rem; line-height: 1.45; color: var(--ink-soft);
+}
+.decl__h3 {
+  margin: 1.3rem 0 .35rem;
+  font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em;
+}
+.decl__body p:not(.decl__pending) { line-height: 1.55; max-width: 60ch; }
+
+/* ---------------------------------------------------------------------------
+   J. FAQ
+   --------------------------------------------------------------------------- */
+.faq__list { border-top: var(--edge); max-width: 900px; }
+.qa { border-bottom: 1px solid rgba(17, 17, 15, .18); }
+.qa summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 1.2rem;
+  min-height: 56px; padding: 1.1rem 0; cursor: pointer; list-style: none;
+  font-family: var(--display); font-weight: 800; font-stretch: 90%;
+  font-size: clamp(1.05rem, 2vw, 1.35rem); letter-spacing: -.01em; line-height: 1.2;
+}
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary::after {
+  content: ''; flex: none; width: 15px; height: 15px;
+  background:
+    linear-gradient(var(--ink), var(--ink)) center/100% 2.5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center/2.5px 100% no-repeat;
+  transition: transform .25s var(--ease);
+}
+.qa[open] summary::after { transform: rotate(135deg); }
+.qa summary:hover span { text-decoration: underline; text-decoration-color: var(--honey-deep); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.qa__body { padding-bottom: 1.4rem; }
+.qa__body p { max-width: 62ch; color: var(--ink-soft); }
+.qa__body a { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; text-decoration-color: var(--honey-deep); }
+.qa__body a:hover { text-decoration-color: currentColor; }
+.faq__more { margin-top: clamp(1.6rem, 3.5vw, 2.4rem); }
+
+.faq { padding-block: clamp(1rem, 3vw, 2rem) var(--sec); }
+.faq--home { padding-block: var(--sec); }
+.faq__group {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.3rem, 2vw, 1.7rem); letter-spacing: -.01em;
+  color: var(--paprika-deep);
+  margin: clamp(2.2rem, 4.5vw, 3.2rem) 0 .7rem;
+  max-width: 900px;
+}
+.faq__group:first-child { margin-top: 0; }
+
+/* ---------------------------------------------------------------------------
+   K. LANSERING – CTA-bånd med skjema, og venteliste-siden
+   --------------------------------------------------------------------------- */
+.launch {
+  background: var(--honey); color: var(--ink);
+  padding-block: var(--sec);
+}
+.launch__inner { display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); align-items: center; }
+.launch__h2 { margin-bottom: 1rem; }
+.launch__lead { font-size: var(--fs-lead); line-height: 1.5; max-width: 44ch; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
+.launch--band { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
+.launch__mascot { display: none; }
+.launch--page { overflow: clip; padding-block: clamp(2rem, 5vw, 4rem) clamp(3rem, 6vw, 5rem); }
+.launch__cutout { margin: 0 calc(-1 * var(--gut)); }
+.launch__cutout img { width: 100%; height: auto; }
+
+.form { max-width: 36rem; }
+.form__row { display: grid; gap: .7rem; }
+.form__input {
+  min-height: 56px; width: 100%;
+  padding: .9rem 1.3rem;
+  background: var(--cream-hi);
+  border: 2px solid var(--ink);
+  border-radius: var(--pill);
+  color: var(--ink);
+  transition: box-shadow .2s var(--ease);
+}
+.form__input::placeholder { color: #6B6B63; }
+.form__input:focus { outline: none; box-shadow: 0 0 0 4px rgba(17, 17, 15, .25); }
+.form__input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.form__input[aria-invalid="true"] { border-color: var(--paprika-deep); box-shadow: 0 0 0 3px rgba(142, 61, 32, .25); }
+.form__fine { margin-top: .9rem; font-size: .88rem; color: var(--ink-soft); }
+.form__status { margin-top: .9rem; font-size: .95rem; line-height: 1.5; font-weight: 700; }
+.form__status:empty { margin: 0; }
+.form__status.is-error { color: #7A3218; }
+.form__status.is-ok { color: var(--ink); }
+.form__status.is-info { color: var(--ink-soft); font-weight: 600; }
+.form__status a { text-decoration: underline; text-underline-offset: 3px; }
+.form.is-done .form__row, .form.is-done .form__fine { display: none; }
+.form__done {
+  display: flex; align-items: center; gap: .9rem;
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.4rem, 3vw, 2.1rem); letter-spacing: -.01em;
+}
+.form__done::before {
+  content: '✓'; display: grid; place-items: center; flex: none;
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  background: var(--ink); color: var(--honey); font-size: 1.1rem;
+}
+/* Beskjed som vises før innsending når skjemaet ikke er koblet til noe */
+.form__notice {
+  margin-top: 1.2rem; padding: 1rem 1.2rem;
+  border: 1.5px dashed var(--ink); border-radius: var(--r-sm);
+  font-size: .92rem; line-height: 1.5;
+}
+.form__notice a:not(.btn) { text-decoration: underline; text-underline-offset: 3px; }
+.form__notice .btn { margin-top: .9rem; }
+
+/* ---------------------------------------------------------------------------
+   L. UNDERSIDER – topp
+   --------------------------------------------------------------------------- */
+.subhero { padding-block: clamp(1.8rem, 4vw, 3rem) clamp(2.4rem, 5vw, 3.5rem); }
+.subhero__grid { display: grid; gap: clamp(1.6rem, 4vw, 3rem); align-items: center; }
 .subhero__copy { max-width: 60rem; }
-.subhero__h1 { margin-bottom: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; letter-spacing: -.04em; }
+.subhero__h1 { margin-bottom: clamp(1rem, 2.5vw, 1.5rem); font-size: clamp(2.8rem, 8vw, 6rem); line-height: .9; }
 .subhero__lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 44ch; color: var(--ink-soft); }
 .subhero .turn { margin-top: clamp(1rem, 2.5vw, 1.6rem); }
+.subhero--honey { background: var(--honey); }
+.subhero--honey .subhero__lead { color: var(--ink); }
+.subhero--honey .turn span { background-image: linear-gradient(var(--cream-hi), var(--cream-hi)); }
 
 /* Hopp til smak */
 .jump { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: clamp(1.4rem, 3vw, 2rem); }
 .jump a {
-  display: inline-flex; align-items: center; min-height: 44px;
-  padding: .55rem 1.05rem;
-  border: var(--edge); border-radius: var(--r);
-  font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em;
+  display: inline-flex; align-items: center; gap: .55rem; min-height: 48px;
+  padding: .6rem 1.15rem;
+  border: var(--edge); border-radius: var(--pill);
+  font-weight: 800;
   transition: background-color .2s var(--ease), color .2s var(--ease);
 }
 .jump a:hover { background: var(--ink); color: var(--cream); }
 
 /* ---------------------------------------------------------------------------
-   D. «VI ER LEI» – forsiden
+   M. SMAKENE – bånd (smakene.html)
    --------------------------------------------------------------------------- */
-.lei { padding-block: var(--sec); }
-.lei__h2 { margin-bottom: .6rem; }
-.lei__lead { margin-bottom: clamp(2rem, 4.5vw, 3rem); color: var(--ink-soft); }
-.lei__grid { display: grid; gap: clamp(.8rem, 1.6vw, 1.25rem); }
-.lei__item {
-  display: flex; flex-direction: column;
-  border-radius: var(--r); overflow: hidden;
-  color: var(--cream);
-}
-.lei__item--paprika { background: var(--paprika-surface); }
-.lei__item--forest  { background: var(--forest); }
-.lei__item--ink     { background: var(--ink); }
-.media--lei { aspect-ratio: 4 / 3; }
-.lei__body {
-  flex: 1;
-  display: grid; gap: .6rem; align-content: start;
-  padding: clamp(1.2rem, 2.4vw, 1.8rem) clamp(1.2rem, 2.4vw, 1.8rem) clamp(1.5rem, 2.8vw, 2.2rem);
-}
-.lei__h3 { font-family: var(--display); font-weight: 800; font-size: clamp(1.4rem, 2.2vw, 1.9rem); letter-spacing: -.03em; line-height: 1.02; text-wrap: balance; }
-.lei__body p { line-height: 1.5; max-width: 32ch; }
-.lei__turn { margin-top: clamp(2.2rem, 5vw, 3.5rem); }
-.lei__after {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: 1.5rem 3rem; margin-top: clamp(2rem, 4.5vw, 3rem);
-}
-
-/* ---------------------------------------------------------------------------
-   E. SMAKENE – kort (forsiden) og bånd (smakene.html)
-   --------------------------------------------------------------------------- */
-.flavors--teaser { padding-block: 0 var(--sec); }
-.flavors__h2 { margin-bottom: clamp(2rem, 5vw, 3.2rem); }
-.cards { display: grid; gap: clamp(.8rem, 1.6vw, 1.25rem); }
-.card {
-  display: flex; flex-direction: column;
-  border-radius: var(--r); overflow: hidden;
-  color: var(--cream);
-}
-.card:focus-visible { outline-offset: 4px; }
-.card--paprika { background: var(--paprika-surface); }
-.card--forest  { background: var(--forest); }
-.card--sage    { background: var(--sage); color: var(--ink); }
-.media--card { aspect-ratio: 16 / 10; }
-.card--paprika .media__img, .card--sage .media__img { object-position: 85% 50%; }
-.card--forest .media__img { object-position: 12% 50%; }
-.card__body {
-  flex: 1; display: grid; gap: .4rem; align-content: start;
-  padding: clamp(1.1rem, 2.2vw, 1.6rem) clamp(1.1rem, 2.2vw, 1.6rem) clamp(1.3rem, 2.4vw, 1.8rem);
-}
-.card__name { font-family: var(--display); font-weight: 900; font-size: clamp(1.5rem, 2.5vw, 2.1rem); letter-spacing: -.03em; line-height: .98; }
-.card__desc { line-height: 1.5; max-width: 30ch; }
-.card__more {
-  margin-top: .6rem; font-size: var(--fs-label); font-weight: 700; text-transform: uppercase; letter-spacing: .14em;
-  text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; text-decoration-color: transparent;
-  transition: text-decoration-color .2s var(--ease);
-}
-.card:hover .card__more { text-decoration-color: currentColor; }
-
 .flavors--page { padding: 0; }
 .flavors__stack { display: grid; }
 
 .flavor { display: grid; color: var(--cream); }
+.flavor--salt    { background: var(--forest); }
 .flavor--paprika { background: var(--paprika-surface); }
-.flavor--forest  { background: var(--forest); }
-.flavor--sage    { background: var(--sage); color: var(--ink); }
-.flavor--sage :focus-visible { outline-color: var(--ink); }
-.flavor--sage .flavor__kicker { border-top-color: rgba(17, 17, 15, .28); }
 
 .flavor__inner {
   padding: clamp(2.25rem, 6vw, 4rem) var(--gut);
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; align-items: flex-start;
 }
-.media--flavor { aspect-ratio: 16 / 10; }
-/* Pakken ligger til høyre i paprika- og sitronbildet, til venstre i chili-lime-bildet.
-   Ankre beskjæringen mot pakken, så det er ingrediensene som kuttes – ikke emballasjen. */
-.flavor--paprika .media__img, .flavor--sage .media__img { object-position: 85% 50%; }
-.flavor--forest .media__img { object-position: 12% 50%; }
+.media--flavor { aspect-ratio: 16 / 10; overflow: hidden; }
+.media--flavor img { width: 100%; height: 100%; object-fit: cover; }
+.flavor--salt .media--flavor img    { object-position: 20% 50%; }
+.flavor--paprika .media--flavor img { object-position: 85% 50%; }
 
 .flavor__name {
-  font-family: var(--display); font-weight: 900;
-  font-size: clamp(2.2rem, 5.5vw, 3.6rem); line-height: .95;
-  letter-spacing: -.035em; margin-bottom: 1rem;
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(2.8rem, 6.5vw, 4.8rem); line-height: .9;
+  letter-spacing: -.02em; margin-bottom: 1rem;
 }
-.flavor__desc { font-size: var(--fs-lead); line-height: 1.45; max-width: 40ch; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
-
-.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
-.chips li {
-  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em;
-  border: 1.5px solid currentColor; border-radius: 999px;
-  padding: .45rem .85rem;
-}
-
+.flavor__desc { font-size: var(--fs-lead); line-height: 1.45; max-width: 40ch; margin-bottom: clamp(1.2rem, 2.6vw, 1.6rem); }
+.flavor .chips { margin-bottom: clamp(1.2rem, 2.6vw, 1.6rem); }
 .flavor__kicker {
-  margin-top: auto; padding-top: 1.2rem;
+  padding-top: 1.1rem; margin-bottom: clamp(1.4rem, 3vw, 2rem);
   border-top: 1px solid rgba(243, 240, 233, .3);
-  font-size: .95rem; max-width: 40ch;
+  font-size: .98rem; max-width: 40ch; width: 100%;
 }
+.flavor .decl { width: 100%; max-width: 40rem; }
 
 .doodles { display: flex; flex-wrap: wrap; gap: .8rem; margin-bottom: 1.2rem; }
-.doodles .figure { --fig: 40px; }
+.doodles .figure { --fig: 44px; color: var(--honey); }
 
 /* ---------------------------------------------------------------------------
-   F. SLIK FUNKER DET
+   N. HVORFOR – bånd og «hva er i pakken»
    --------------------------------------------------------------------------- */
-.how { background: var(--beige); padding-block: var(--sec); }
-.how__h2 { margin-bottom: clamp(2.2rem, 5vw, 3.5rem); }
-
-.steps { display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); }
-.step { position: relative; padding-top: 1.4rem; border-top: var(--edge); }
-.step__num {
-  display: block;
-  font-family: var(--display); font-weight: 900;
-  font-size: clamp(2.6rem, 7vw, 4.5rem); line-height: .85;
-  letter-spacing: -.05em; color: var(--paprika);
-  margin-bottom: .7rem;
-}
-.step:nth-child(2) .step__num { color: var(--forest); }
-.step:nth-child(3) .step__num { color: var(--ink); }
-.step__h3 {
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(1.35rem, 2.8vw, 1.9rem); line-height: 1.05;
-  letter-spacing: -.03em; margin-bottom: .6rem;
-}
-.step p { color: var(--ink-soft); max-width: 32ch; }
-.step__icon { position: absolute; right: 0; top: 1.5rem; width: 36px; height: 36px; color: var(--ink); }
-.how__link { margin-top: clamp(2rem, 4vw, 3rem); font-size: var(--fs-lead); }
-.how--after { background: var(--cream); }
-
-/* ---------------------------------------------------------------------------
-   G. BRUKSOMRÅDER – fliser
-   --------------------------------------------------------------------------- */
-.uses { padding-block: var(--sec); background: var(--cream-hi); }
-.uses__h2 { margin-bottom: clamp(2rem, 4.5vw, 3rem); }
-
-.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(.6rem, 1.4vw, 1rem); }
-.tile {
-  position: relative; display: block; overflow: hidden;
-  border-radius: var(--r); background: var(--beige);
-  aspect-ratio: 4 / 5; min-height: 150px;
-}
-.tile--wide { grid-column: span 2; aspect-ratio: 8 / 5; }
-.media--tile { position: absolute; inset: 0; }
-
-.tile__label {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
-  padding: 2.5rem 1rem .9rem;
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(.85rem, 2vw, 1.15rem);
-  text-transform: uppercase; letter-spacing: .04em; color: var(--cream);
-  background: linear-gradient(transparent, rgba(17, 17, 15, .82));
-}
-
-/* Tekstflisen med den løpende kyllingen */
-.tile--text {
-  grid-column: span 2; aspect-ratio: auto; min-height: 0;
-  background: var(--forest); color: var(--cream);
-  display: flex; align-items: center; gap: clamp(1rem, 2.5vw, 2rem);
-  padding: clamp(1.4rem, 3vw, 2.2rem);
-}
-.tile--text .figure { --fig: clamp(64px, 9vw, 96px); flex: none; }
-.tile__h { font-family: var(--display); font-weight: 800; font-size: clamp(1.25rem, 2.4vw, 1.8rem); letter-spacing: -.03em; line-height: 1.05; margin-bottom: .4rem; }
-.tile--text p { max-width: 34ch; line-height: 1.5; }
-
-/* ---------------------------------------------------------------------------
-   H. HVORFOR – problem, fordeler, åpenhet
-   --------------------------------------------------------------------------- */
-.problem { padding-block: clamp(1.5rem, 4vw, 3rem) var(--sec); }
-.problem__h2 { margin-bottom: clamp(1.8rem, 4vw, 2.8rem); }
-
-.versus { display: grid; gap: 1rem; align-items: stretch; }
-.versus__col { padding: clamp(1.5rem, 3.5vw, 2.4rem); border-radius: var(--r); }
-.versus__col--bad {
-  background: var(--beige); color: var(--ink-soft);
-  border: 1px solid rgba(17, 17, 15, .14);
-}
-.versus__col--good { background: var(--forest); color: var(--cream); }
-.versus__h3 {
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(1.15rem, 2.2vw, 1.5rem); letter-spacing: -.02em;
-  padding-bottom: .9rem; margin-bottom: 1.1rem;
-  border-bottom: 1px solid currentColor;
-}
-.versus__col ul { display: grid; gap: .7rem; }
-.versus__col li { display: flex; gap: .7rem; font-size: .98rem; line-height: 1.45; }
-.versus__col li::before { content: '—'; flex: none; opacity: .6; }
-.versus__col--good li::before { content: '✓'; color: var(--sage); opacity: 1; font-weight: 700; }
-.versus__vs {
-  display: none;
-  font-family: var(--display); font-weight: 800; font-size: 1rem;
-  text-transform: uppercase; letter-spacing: .1em;
-  align-self: center; text-align: center; color: var(--ink-soft);
-}
-.problem__note { margin-top: 1.2rem; font-size: .9rem; color: var(--ink-soft); max-width: 60ch; }
-
 .ben { padding-block: clamp(3rem, 6vw, 5rem); }
 .ben--cream   { background: var(--cream-hi); }
 .ben--beige   { background: var(--beige); }
 .ben--forest  { background: var(--forest);  color: var(--cream); }
-.ben--paprika { background: var(--paprika-surface); color: var(--cream); }
 .ben__inner { display: grid; gap: clamp(1.4rem, 3.5vw, 2.5rem); align-items: center; }
 .ben__h3 { margin-bottom: .8rem; font-size: var(--fs-h3); }
 .ben__body p { max-width: 42ch; font-size: var(--fs-lead); line-height: 1.5; }
 .ben__body p + p { margin-top: .8rem; }
 .ben__fig { display: block; --fig: 56px; margin-bottom: .8rem; }
 .media--ben { aspect-ratio: 3 / 4; border-radius: var(--r); overflow: hidden; }
+.media--ben img { width: 100%; height: 100%; object-fit: cover; }
 
 .trans {
   background: var(--ink); color: var(--cream);
   padding-block: var(--sec);
 }
 .trans__h2 { margin-bottom: clamp(1.4rem, 3vw, 2rem); }
-.trans__intro { font-size: var(--fs-lead); line-height: 1.5; max-width: 46ch; margin-bottom: clamp(2rem, 4.5vw, 3rem); }
+.trans__intro { font-size: var(--fs-lead); line-height: 1.5; max-width: 46ch; margin-bottom: clamp(2rem, 4.5vw, 3rem); color: rgba(243, 240, 233, .88); }
 .trans__grid { display: grid; gap: clamp(2rem, 5vw, 3.5rem); align-items: start; }
 .trans__lists { display: grid; gap: clamp(1.4rem, 3vw, 2rem); }
 
 .ing { padding-top: 1.2rem; border-top: 1px solid rgba(243, 240, 233, .28); }
 .ing__navn {
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(1.2rem, 2.4vw, 1.6rem); letter-spacing: -.025em;
+  display: flex; align-items: center; gap: .6rem;
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem); letter-spacing: -.01em;
   margin-bottom: .7rem;
 }
 .ing__tekst { line-height: 1.5; max-width: 44ch; }
-.ing .chips { margin: 0; }
-.trans .unverified { border-color: var(--sage); background: rgba(170, 179, 157, .1); margin-top: 1rem; }
+.trans .unverified { border-color: var(--sage); background: rgba(170, 179, 157, .1); }
 .trans .unverified__tag { background: var(--sage); color: var(--ink); }
 
+.trans__more { margin-top: clamp(2rem, 4vw, 3rem); }
+
 .trans__stamp {
-  border: 2px solid var(--cream); border-radius: var(--r);
+  border: 2px solid var(--honey); border-radius: var(--r);
   padding: clamp(1.4rem, 3vw, 2rem);
 }
-.trans__stamp-k { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .26em; font-weight: 700; color: var(--sage); }
+.trans__stamp-k { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .24em; font-weight: 800; color: var(--honey); }
 .trans__stamp-v {
-  font-family: var(--display); font-weight: 900;
-  font-size: clamp(1.8rem, 4.5vw, 2.8rem); line-height: 1;
-  letter-spacing: -.035em; margin-block: .6rem .8rem;
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1;
+  letter-spacing: -.02em; margin-block: .6rem .8rem;
 }
-.trans__stamp-note { font-size: .9rem; line-height: 1.5; }
-.trans__facts:not(:empty) { margin-top: clamp(2rem, 4vw, 3rem); }
-.trans__facts-row { display: flex; flex-wrap: wrap; gap: clamp(1.5rem, 4vw, 3.5rem); }
-.fact { display: grid; gap: .2rem; }
-.fact__v { font-family: var(--display); font-weight: 900; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1; letter-spacing: -.04em; }
-.fact__k { font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .18em; font-weight: 700; color: var(--sage); }
+.trans__stamp-note { font-size: .92rem; line-height: 1.5; color: rgba(243, 240, 233, .88); }
 
 /* ---------------------------------------------------------------------------
-   I. OM OSS
+   O. OM OSS
    --------------------------------------------------------------------------- */
 .about { padding-block: var(--sec); }
 .about--beige { background: var(--beige); }
@@ -668,13 +914,16 @@ body.meny-apen .sticky-cta { display: none; }
 .about__body { display: grid; gap: 1.1rem; font-size: var(--fs-lead); line-height: 1.55; max-width: 48ch; }
 .about__body .turn { margin-top: .6rem; }
 .media--about { aspect-ratio: 3 / 2; border-radius: var(--r); overflow: hidden; }
+.media--about img { width: 100%; height: 100%; object-fit: cover; }
 .about__h2 { margin-bottom: clamp(1.4rem, 3vw, 2rem); }
+.about__figure { margin-top: clamp(1.6rem, 3.5vw, 2.4rem); max-width: 52rem; }
+.about__figure figcaption { margin-top: .6rem; font-size: .88rem; color: var(--ink-soft); }
 
 .values { display: grid; gap: clamp(1.4rem, 3vw, 2.2rem); margin-top: clamp(2rem, 4vw, 3rem); }
 .value { padding-top: 1rem; border-top: var(--edge); }
 .value .icon { display: block; width: 36px; height: 36px; color: var(--forest); margin-bottom: .7rem; }
 .value:nth-child(2n) .icon { color: var(--paprika); }
-.value h3 { font-family: var(--display); font-weight: 800; font-size: clamp(1.2rem, 1.9vw, 1.6rem); letter-spacing: -.025em; line-height: 1.05; margin-bottom: .45rem; }
+.value h3 { font-family: var(--display); font-weight: 900; font-stretch: var(--condensed); font-size: clamp(1.3rem, 1.9vw, 1.7rem); letter-spacing: -.01em; line-height: 1.05; margin-bottom: .45rem; }
 .value p { color: var(--ink-soft); line-height: 1.5; max-width: 36ch; }
 
 /* Teamet – kortene ligger som kommentert mal i om-oss.html */
@@ -694,112 +943,42 @@ body.meny-apen .sticky-cta { display: none; }
 .status__row dd { color: var(--ink-soft); max-width: 56ch; line-height: 1.5; }
 .status__tag {
   font-family: var(--sans); font-size: .7rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
-  padding: .35rem .7rem; border-radius: var(--r); white-space: nowrap;
+  padding: .35rem .75rem; border-radius: var(--pill); white-space: nowrap;
   background: var(--cream); color: var(--ink-soft);
 }
 .status__tag--done { background: var(--forest); color: var(--cream); }
-.status__tag--now  { background: var(--paprika); color: var(--cream); }
+.status__tag--now  { background: var(--honey); color: var(--ink); }
 .about__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: clamp(2rem, 4vw, 3rem); }
 
-/* ---------------------------------------------------------------------------
-   J. LANSERING – CTA-bånd og venteliste-siden
-   --------------------------------------------------------------------------- */
-.launch {
-  background: var(--forest); color: var(--cream);
-  padding-block: var(--sec);
+/* Slik fungerer lista (venteliste.html) */
+.how { background: var(--cream); padding-block: var(--sec); }
+.how__h2 { margin-bottom: clamp(2.2rem, 5vw, 3.5rem); }
+.steps { display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); }
+.step { position: relative; padding-top: 1.4rem; border-top: var(--edge); }
+.step__num {
+  display: block;
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(2.8rem, 7vw, 4.5rem); line-height: .85;
+  letter-spacing: -.03em; color: var(--paprika);
+  margin-bottom: .7rem;
 }
-.launch__inner { display: grid; gap: clamp(1.8rem, 4vw, 2.5rem); align-items: center; }
-.launch__h2 { margin-bottom: 1rem; }
-.launch__lead { font-size: var(--fs-lead); line-height: 1.5; max-width: 44ch; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
-.launch--band { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
-.launch__aside { max-width: 30rem; }
-.launch__aside p { line-height: 1.55; }
-.launch__aside p + p { margin-top: .8rem; }
-.launch__aside strong { font-family: var(--display); font-weight: 800; letter-spacing: -.01em; }
-.launch .mascot { color: var(--cream); }
-
-.form__row { display: grid; gap: .8rem; }
-.form__input {
-  min-height: 56px; width: 100%;
-  padding: .9rem 1.2rem;
-  background: rgba(243, 240, 233, .08);
-  border: 2px solid rgba(243, 240, 233, .45);
-  border-radius: var(--r);
-  color: var(--cream);
-  transition: border-color .2s var(--ease), background-color .2s var(--ease);
+.step:nth-child(2) .step__num { color: var(--forest); }
+.step:nth-child(3) .step__num { color: var(--ink); }
+.step__h3 {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.35rem, 2.8vw, 1.9rem); line-height: 1.05;
+  letter-spacing: -.01em; margin-bottom: .6rem;
 }
-.form__input::placeholder { color: rgba(243, 240, 233, .6); }
-.form__input:hover { border-color: rgba(243, 240, 233, .7); }
-.form__input:focus { background: rgba(243, 240, 233, .14); }
-.form__input[aria-invalid="true"] { border-color: #E9A88E; }
-.form__fine { margin-top: .9rem; font-size: .85rem; color: rgba(243, 240, 233, .78); }
-.form__status { margin-top: .9rem; font-size: .95rem; line-height: 1.5; font-weight: 600; }
-.form__status:empty { margin: 0; }
-.form__status.is-error { color: #F0BCA6; }
-.form__status.is-ok { color: var(--cream); }
-.form__status.is-info { color: rgba(243, 240, 233, .9); font-weight: 500; }
-.form__status a { text-decoration: underline; text-underline-offset: 3px; }
-.form.is-done .form__row, .form.is-done .form__fine { display: none; }
-.form__done {
-  display: flex; align-items: center; gap: .9rem;
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(1.3rem, 3vw, 2rem); letter-spacing: -.03em;
-}
-.form__done::before {
-  content: '✓'; display: grid; place-items: center; flex: none;
-  width: 2rem; height: 2rem; border-radius: 50%;
-  background: var(--cream); color: var(--forest); font-size: 1.1rem;
-}
-/* Beskjed som vises før innsending når skjemaet ikke er koblet til noe */
-.form__notice {
-  margin-top: 1.2rem; padding: 1rem 1.2rem;
-  border: 1.5px solid rgba(243, 240, 233, .35); border-radius: var(--r);
-  font-size: .92rem; line-height: 1.5;
-}
-.form__notice a:not(.btn) { text-decoration: underline; text-underline-offset: 3px; }
-.form__notice .btn { margin-top: .9rem; }
+.step p { color: var(--ink-soft); max-width: 32ch; }
+.step__icon { position: absolute; right: 0; top: 1.5rem; width: 36px; height: 36px; color: var(--ink); }
+.how__link { margin-top: clamp(2rem, 4vw, 3rem); font-size: var(--fs-lead); }
 
 /* ---------------------------------------------------------------------------
-   K. FAQ
-   --------------------------------------------------------------------------- */
-.faq { padding-block: clamp(1rem, 3vw, 2rem) var(--sec); }
-.faq__group {
-  font-family: var(--display); font-weight: 800;
-  font-size: clamp(1.2rem, 1.9vw, 1.6rem); letter-spacing: -.025em;
-  color: var(--paprika);
-  margin: clamp(2.2rem, 4.5vw, 3.2rem) 0 .7rem;
-  max-width: 900px;
-}
-.faq__group:first-child { margin-top: 0; }
-.faq__list { border-top: var(--edge); max-width: 900px; }
-.qa { border-bottom: 1px solid rgba(17, 17, 15, .18); }
-.qa summary {
-  display: flex; align-items: center; justify-content: space-between; gap: 1.2rem;
-  min-height: 56px; padding: 1.1rem 0; cursor: pointer; list-style: none;
-  font-family: var(--display); font-weight: 700;
-  font-size: clamp(1.02rem, 2vw, 1.35rem); letter-spacing: -.015em; line-height: 1.2;
-}
-.qa summary::-webkit-details-marker { display: none; }
-.qa summary::after {
-  content: ''; flex: none; width: 15px; height: 15px;
-  background:
-    linear-gradient(var(--paprika), var(--paprika)) center/100% 2.5px no-repeat,
-    linear-gradient(var(--paprika), var(--paprika)) center/2.5px 100% no-repeat;
-  transition: transform .25s var(--ease);
-}
-.qa[open] summary::after { transform: rotate(135deg); }
-.qa summary:hover { color: var(--paprika); }
-.qa__body { padding-bottom: 1.4rem; }
-.qa__body p { max-width: 62ch; color: var(--ink-soft); }
-.qa__body a { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; text-decoration-color: var(--paprika); }
-.qa__body a:hover { color: var(--paprika); }
-
-/* ---------------------------------------------------------------------------
-   L. FOOTER
+   P. FOOTER
    --------------------------------------------------------------------------- */
 .foot { background: var(--ink); color: var(--cream); padding-block: clamp(3rem, 7vw, 5rem) 2rem; }
 .foot__mark { line-height: .8; margin-bottom: clamp(2.5rem, 6vw, 4rem); }
-.foot__icon { display: block; width: clamp(46px, 9vw, 80px); color: var(--sage); margin-bottom: .6rem; }
+.foot__icon { display: block; width: clamp(46px, 9vw, 80px); color: var(--honey); margin-bottom: .6rem; }
 .foot__bare {
   display: block; font-family: var(--display); font-weight: 900;
   font-size: clamp(4rem, 15vw, 9rem); letter-spacing: -.05em;
@@ -807,17 +986,17 @@ body.meny-apen .sticky-cta { display: none; }
 .foot__kylling {
   display: block; font-family: var(--display); font-weight: 600;
   font-size: clamp(.9rem, 3vw, 1.9rem); text-transform: uppercase;
-  letter-spacing: .3em; margin-top: .35em; color: var(--sage);
+  letter-spacing: .3em; margin-top: .35em; color: var(--honey);
 }
 .foot__cols { display: grid; gap: 2rem; padding-bottom: clamp(2rem, 4vw, 3rem); }
 .foot__h {
   font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .22em;
-  font-weight: 700; color: var(--sage); margin-bottom: .9rem;
+  font-weight: 800; color: var(--honey); margin-bottom: .9rem;
 }
 .foot__nav { display: grid; gap: .15rem; align-content: start; }
 .foot__nav a { min-height: 44px; display: inline-flex; align-items: center; width: fit-content; }
-.foot__nav a:hover { color: var(--sage); }
-.foot__nav p { max-width: 30ch; line-height: 1.55; color: rgba(243, 240, 233, .85); }
+.foot__nav a:hover { color: var(--honey); }
+.foot__nav p { max-width: 32ch; line-height: 1.55; color: rgba(243, 240, 233, .85); }
 .foot__nav p + p { margin-top: .6rem; }
 .foot__base {
   display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; justify-content: space-between;
@@ -829,18 +1008,18 @@ body.meny-apen .sticky-cta { display: none; }
 .sticky-cta {
   position: fixed; z-index: 80;
   left: 50%; bottom: max(1rem, env(safe-area-inset-bottom));
-  transform: translate(-50%, 160%);
-  display: inline-flex; align-items: center; min-height: 48px;
-  padding: .8rem 1.5rem;
+  transform: translate(-50%, 180%);
+  display: inline-flex; align-items: center; min-height: 52px;
+  padding: .8rem 1.6rem;
   background: var(--ink); color: var(--cream);
-  font-weight: 700; font-size: .9rem; border-radius: var(--r); white-space: nowrap;
-  box-shadow: 0 10px 30px -10px rgba(17, 17, 15, .6);
+  font-weight: 800; font-size: .95rem; border-radius: var(--pill); white-space: nowrap;
+  box-shadow: 0 10px 30px -10px rgba(17, 17, 15, .6), 0 0 0 3px var(--honey);
   transition: transform .3s var(--ease);
 }
 .sticky-cta.is-on { transform: translate(-50%, 0); }
 
 /* ---------------------------------------------------------------------------
-   M. FIGURER
+   Q. FIGURER
    Tegnede SVG-figurer fra images/figurer.svg. Farge arves fra currentColor.
    --------------------------------------------------------------------------- */
 .figure {
@@ -861,16 +1040,16 @@ body.meny-apen .sticky-cta { display: none; }
 .bubble {
   position: relative; margin: 0 0 1.4rem;
   padding: .8rem 1.05rem;
-  background: var(--cream); color: var(--ink);
-  border: var(--edge); border-radius: 14px;
-  font-family: var(--display); font-weight: 700;
+  background: var(--cream-hi); color: var(--ink);
+  border: var(--edge); border-radius: 16px;
+  font-family: var(--display); font-weight: 800;
   font-size: clamp(.98rem, 1.25vw, 1.12rem); line-height: 1.3; letter-spacing: -.01em;
   text-wrap: balance;
 }
 .bubble::before {
   content: ''; position: absolute;
   width: 13px; height: 13px;
-  background: var(--cream);
+  background: var(--cream-hi);
   border: var(--edge); border-top: 0; border-left: 0;
   left: -8px; bottom: 1.1rem; transform: rotate(135deg);
 }
@@ -878,12 +1057,12 @@ body.meny-apen .sticky-cta { display: none; }
 .mascot--stack .bubble { margin-bottom: .4rem; }
 
 /* ---------------------------------------------------------------------------
-   N. 404
+   R. 404
    --------------------------------------------------------------------------- */
 .oops { padding-block: clamp(3rem, 8vw, 6rem) var(--sec); }
 .oops__num {
-  font-family: var(--display); font-weight: 900;
-  font-size: clamp(5rem, 20vw, 12rem); line-height: .85; letter-spacing: -.05em;
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(5rem, 20vw, 12rem); line-height: .85; letter-spacing: -.03em;
   color: var(--paprika);
   margin-bottom: clamp(.8rem, 2.5vw, 1.5rem);
 }
@@ -895,23 +1074,30 @@ body.meny-apen .sticky-cta { display: none; }
 /* ---------------------------------------------------------------------------
    RESPONSIVT — mobil er utgangspunktet, herfra bygges det opp
    --------------------------------------------------------------------------- */
+@media (min-width: 480px) {
+  .topbar__text { display: inline; }
+}
+
 @media (min-width: 560px) {
   .form__row { grid-template-columns: minmax(0, 1fr) auto; }
   .values { grid-template-columns: repeat(3, 1fr); }
-  .tiles { grid-template-columns: repeat(3, 1fr); }
-  .tile--wide { grid-column: span 3; aspect-ratio: 16 / 9; }
-  .tile--text { grid-column: span 2; }
+  .benefits__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .benefit { grid-template-columns: 1fr; row-gap: .6rem; }
+  .benefit__icon { grid-row: auto; margin-bottom: .4rem; }
 }
 
 @media (min-width: 768px) {
-  .versus { grid-template-columns: 1fr auto 1fr; gap: 1.5rem; }
-  .versus__vs { display: block; }
   .steps { grid-template-columns: repeat(3, 1fr); gap: clamp(1.2rem, 2.5vw, 2rem); }
   .trans__grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
-  .lei__grid { grid-template-columns: repeat(3, 1fr); }
-  .cards { grid-template-columns: repeat(3, 1fr); }
+  .duo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nutri__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .foot__cols { grid-template-columns: repeat(3, 1fr); }
   .about__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+  .compare__hint { display: none; }
+  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stat, .stat:nth-child(odd), .stat:nth-child(even) { padding: 1rem .9rem 1rem 0; border-right: 1px solid rgba(17, 17, 15, .28); border-bottom: 0; }
+  .stat + .stat { padding-left: .9rem; }
+  .stat:last-child { border-right: 0; }
 }
 
 @media (min-width: 900px) {
@@ -920,36 +1106,65 @@ body.meny-apen .sticky-cta { display: none; }
   .burger { display: none; }
   .nav__inner { min-height: 78px; }
 
+  .hero { padding-bottom: clamp(3rem, 5vw, 4.5rem); }
   .hero__grid {
-    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
-    align-items: center;
-    gap: clamp(2rem, 4vw, 4rem);
+    grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+    grid-template-areas:
+      "copy  media"
+      "stats media"
+      "cta   media";
+    grid-template-rows: auto auto 1fr;
+    align-items: start;
   }
-  .hero__h1 .r:nth-child(2) { margin-left: .06em; }
-  .media--hero { aspect-ratio: 16 / 11; }
-  .hero__peek {
-    display: block; position: absolute; z-index: 3;
-    left: 17%; top: 9.1%;
-    --fig: clamp(72px, 7vw, 104px);
-    transform: translateY(-65%);
+  .hero__copy { padding-top: clamp(1rem, 3vw, 2.5rem); }
+  .hero__h1 { font-size: min(8.4rem, 8.6vw); }
+  .hero__media {
+    align-self: center;
+    margin: 0 calc(-1 * var(--bleed)) 0 0;
   }
+  .hero__stats { margin-top: clamp(1.6rem, 3vw, 2.4rem); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero__stats .stat:nth-child(2) { border-right: 0; }
+  .hero__stats .stat:nth-child(-n+2) { border-bottom: 1px solid rgba(17, 17, 15, .28); }
+  .hero__stats .stat:nth-child(3) { padding-left: 0; }
+  .stamp { left: 0; top: 4%; }
 
-  .launch__inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); }
-  .launch--page .launch__inner { align-items: end; }
+  .split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .split--flip > .split__media { order: 2; }
+
+  .benefits__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .onthego__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .moment--big { grid-column: 1 / 3; grid-row: 1 / 3; aspect-ratio: auto; }
+
+  .launch__inner { grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); }
+  .launch__mascot { display: flex; justify-self: end; }
+  .launch--page .launch__inner { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  .launch__cutout { margin: 0 calc(-1 * var(--bleed)) 0 0; }
   .oops__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
+
+  .subhero__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 
   .ben__inner { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(2rem, 4vw, 4.5rem); }
   .ben__inner--flip > .media { order: -1; }
 
   .flavor { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: stretch; }
   .flavor:nth-child(even) > .media { order: 2; }
-  .media--flavor { aspect-ratio: auto; min-height: clamp(420px, 44vw, 600px); }
-  .flavor__inner { justify-content: center; padding-inline: clamp(2.5rem, 5vw, 5rem); max-width: 44rem; }
+  .media--flavor { aspect-ratio: auto; min-height: clamp(460px, 46vw, 640px); }
+  .flavor__inner { justify-content: center; padding-inline: clamp(2.5rem, 5vw, 5rem); max-width: 46rem; }
 
-  .tiles { grid-template-columns: repeat(4, 1fr); }
-  .tile--wide { grid-column: span 2; aspect-ratio: 8 / 5; }
-  .tile--text { grid-column: span 2; }
   .sticky-cta { display: none; }
+}
+
+@media (min-width: 1100px) {
+  .topbar { font-size: .9rem; }
+}
+
+@media (min-width: 1200px) {
+  .hero__stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .hero__stats .stat:nth-child(2) { border-right: 1px solid rgba(17, 17, 15, .28); }
+  .hero__stats .stat:nth-child(-n+2) { border-bottom: 0; }
+  .hero__stats .stat:nth-child(3) { padding-left: .9rem; }
+  .hero__stats .stat__num { font-size: clamp(2.6rem, 3.6vw, 3.4rem); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -963,4 +1178,5 @@ body.meny-apen .sticky-cta { display: none; }
     transition-duration: .01ms !important;
   }
   .sticker > svg { animation: none !important; }
+  .duo__card:hover .duo__media img { transform: none; }
 }

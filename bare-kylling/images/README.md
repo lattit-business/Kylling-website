@@ -1,61 +1,78 @@
 # Bildefiler
 
 Filnavnene under er hardkodet i HTML-filene, så de må stemme nøyaktig.
-`python3 tools/sjekk.py` (fra repo-rota) sier fra om referanser som ikke finnes.
-Mangler en fil, viser nettleseren `alt`-teksten.
+`python3 tools/sjekk.py` (fra repo-rota) sier fra om referanser som ikke finnes –
+også i `srcset`.
 
-Alle filene er JPEG, maks 1800 px brede og under 300 kB. Hvert bilde har i
-tillegg en mindre variant (`-720.jpg` for stående/4:3, `-900.jpg` for liggende)
-som brukes via `srcset` på mobil. Lag den slik når du bytter et bilde:
+## Format
 
-```bash
-sips --resampleWidth 720 -s format jpeg -s formatOptions 76 navn.jpg --out navn-720.jpg
+Hvert motiv finnes i tre WebP-bredder og én JPEG-reserve:
+
+```
+navn-720.webp   navn-1100.webp   navn-<full>.webp   navn.jpg
+```
+
+(Stående bilder bruker 540/800/full. `spis-ute` brukes bare i en liten flis og har derfor kun 540 og 800.) HTML-en bruker `<picture>` med WebP i
+`srcset`, og JPEG-en som `src` for nettlesere uten WebP-støtte. WebP er
+kvalitet 74 (80 for utklippet), JPEG er kvalitet 78, progressiv.
+
+Originalene (PNG, 2–4 MB) ligger i [`/bilder-originaler/`](../../bilder-originaler/)
+i repo-rota. De publiseres ikke. Slik lager du variantene på nytt når et bilde
+byttes (krever Pillow: `pip install pillow`):
+
+```python
+from PIL import Image
+im = Image.open('bilder-originaler/smak-salt-pepper.png').convert('RGB')
+for b in (720, 1100, im.width):
+    r = im if b == im.width else im.resize((b, round(im.height * b / im.width)), Image.LANCZOS)
+    r.save(f'bare-kylling/images/smak-salt-pepper-{b}.webp', 'WEBP', quality=74, method=6)
+im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
+  .save('bare-kylling/images/smak-salt-pepper.jpg', 'JPEG', quality=78, optimize=True, progressive=True)
 ```
 
 ## I bruk
 
 | Filnavn | Motiv | Brukes |
 |---|---|---|
-| `bare-kylling-pakker.jpg` | Tre pakker på rad, kremhvit bakgrunn (16:9) | Hero på forsiden + `og:image` |
-| `smak-brown-sugar-paprika.jpg` | Brown Sugar Paprika med paprikapulver, hvitløk og brunt sukker. Pakken til høyre | Smakskort (forside) + bånd (smakene.html) |
-| `smak-smoky-chili-lime.jpg` | Smoky Chili Lime med lime og chili på mørk grønn bakgrunn. Pakken til venstre | Smakskort + bånd |
-| `smak-sitron-og-urter.jpg` | Sitron & Urter med sitron, timian og basilikum. Pakken til høyre | Smakskort + bånd |
-| `pakke-apnet.jpg` | Sitron & Urter, enkeltpakke (3:4) | «Allerede ferdig» (hvorfor.html) |
-| `bruk-ris.jpg` | Bolle med ris, skivet stekt kylling, agurk og lime (4:5) | «Faktisk mat» (hvorfor.html) + flis «Over ris» (forside) |
-| `pakke-i-sekk.jpg` | Treningsbag med håndkle, flaske og en pakke oppi (3:4) | «Ta den med» (hvorfor.html) |
-| `bruk-wrap.jpg` | Sitron & Urter ved siden av en ferdig wrap (4:5) | «Kald eller varm» (hvorfor.html) + flis «I wrap» (forside) |
-| `bruk-etter-trening.jpg` | To pakker på treningsbenk med håndkle og drikkeflaske (4:5) | Flis «Etter trening» (forside) |
-| `bruk-skole.jpg` | Åpen skolesekk på pult med bøker, flaske og pakke (4:5) | Flis «På skolen» (forside) |
-| `bruk-jobb.jpg` | Tre pakker i et lyst kjøkkenmiljø (16:9) | Bred flis «På jobb» (forside) + «Historien» (om-oss.html) |
-| `lei-ultraprosessert.jpg` | Proteinbarer i folie, proteinpulver og shaker (4:3) | «Vi er lei»-kort 1 (forside) |
-| `lei-ingrediensliste.jpg` | Kvinne studerer en lang ingrediensliste (4:3) | «Vi er lei»-kort 2 (forside) |
-| `lei-mikroplast.jpg` | Innpakkede snacks og ferdigrett på kjøkkenbenk (4:3) | «Vi er lei»-kort 3 «matbokser» (forside) |
+| `hero-to-pakker-i-hand` | Hånd holder begge pakkene, **gjennomsiktig bakgrunn** (3:2) | Hero på forsiden, venteliste.html. JPEG-reserven har honningfarget bakgrunn (#F1B240) |
+| `smak-salt-pepper` | Salt & Pepper-pakken på mørk grønn bakgrunn med salt, pepper og urter. Pakken til venstre (16:10) | Smakskort (forside) + bånd (smakene.html) |
+| `smak-paprika-honning` | Paprika & Honning-pakken med paprikapulver, pepper og hvitløk. Pakken til høyre (16:10) | Smakskort (forside) + bånd (smakene.html) |
+| `to-smaker-kjokken` | Begge pakkene på lys kjøkkenbenk med krydder (16:9) | Toppen av smakene.html |
+| `to-smaker-benk` | Begge pakkene på solfylt kjøkkenbenk (16:9) | «Historien» (om-oss.html) |
+| `to-pakker-forfra` | Begge pakkene forfra, lys bakgrunn (3:2) | «Kvalitet» (forside) |
+| `to-pakker-hand-lys` | Hånd løfter Paprika & Honning, lys bakgrunn (4:3) | Toppen av hvorfor.html |
+| `pakke-paprika-honning` | Paprika & Honning, enkeltpakke forfra (3:4) | «Allerede ferdig» (hvorfor.html) |
+| `farten-treningsbag` | Paprika & Honning i en treningsbag i garderoben (3:4) | «Etter trening» (forside) + «Ta den med» (hvorfor.html) |
+| `farten-skolesekk` | Salt & Pepper i en skolesekk ved pulten (4:5) | «På skolen» (forside) + «Når det passer deg» (hvorfor.html) |
+| `spis-rett-fra-pakken` | Ung mann biter i en kyllingfilet, oransje bakgrunn (3:4) | Stor flis «Rett fra pakken» (forside) |
+| `spis-ute` | Kvinne biter i en kyllingfilet ute på gresset. Beskåret: stempel og rå kjøttpakke nederst er fjernet | Flis «Mellom måltider» (forside) |
+| `proteinbar-ingrediensliste` | Baksiden av en proteinbar med lang ingrediensliste (4:3) | «Problemet» (forside + hvorfor.html) |
+| `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |
+| `og-bare-kylling.jpg` | Beskåret `to-smaker-kjokken`, 1200 × 630 | `og:image` ved deling i sosiale medier |
 | `figurer.svg` | Tegnede figurer: maskot, doodles og ikoner (SVG-sprite) | Alle sider – se `../README.md` |
 
 Smaksbildene beskjæres med `object-fit: cover`. Beskjæringen er ankret mot
-pakken (`object-position` i `css/style.css`), slik at det er ingrediensene i
+pakken (`object-position` i `css/style.css`), slik at det er krydderet i
 kanten som kuttes – ikke emballasjen.
 
-## Bilder som bør byttes ut
+## Bevisst ikke brukt
 
-Alle produktbildene er generert, og emballasjen på dem viser merker og tall
-(«36g protein», «185 kalorier», «Nyt Norge», «Uten tilsetningsstoffer») som
-ikke er dokumentert og som nettsiden derfor ikke skriver. Fileten ser også
-rå ut, mens produktet er ferdigstekt. Når dere har ekte pakker og stekt
-kylling: ta nye bilder i samme lys og format, behold filnavnene, og lag
-`-720`/`-900`-variantene på nytt.
-
-## `ubrukt/`
-
-| Filnavn | Hva |
+| Original | Hvorfor |
 |---|---|
-| `kylling-naerbilde.jpg` | Brown Sugar Paprika, enkeltpakke (3:4). Var stand-in for et nærbilde av kjøttet |
-| `kylling-i-wrap.jpg` | Smoky Chili Lime, enkeltpakke (3:4). Var stand-in for kylling i wrap |
-| `to-pakker-side-om-side.jpg` | Brown Sugar Paprika og Smoky Chili Lime side om side (3:4) |
-| `pakke-sitron-og-urter-alternativ.png` | Alternativt bilde av Sitron & Urter-pakken (original, ukomprimert) |
-| `kyllingikon.png` | Kyllingikonet. Trengs ikke – logoen ligger som inline-SVG |
+| `ubrukt-risbolle.png` | Viser kyllingen over ris. Nettsiden posisjonerer produktet som et mellommåltid rett fra pakken, ikke som middagsingrediens |
+| `ubrukt-wrap.png` | Samme grunn – kylling i wrap |
+| `kyllingikon.png` | Logoen ligger som inline-SVG i toppen av hver side og trenger ingen fil |
 
-## Logoen
+## Må ses på før lansering
 
-Kyllingikonet ligger som inline-SVG i toppen av hver side, tegnet etter logoen deres.
-Det er skarpt i alle størrelser og arver farge fra CSS, så det trenger ingen fil.
+Alle produktbildene er generert. Emballasjen på dem viser:
+
+- **Andre navn enn nettsiden bruker:** «Original – Salt, Pepper & Urter» og
+  «Paprika». Nettsiden bruker «Salt & Pepper» og «Paprika & Honning».
+  Navnene må samkjøres før ekte pakker trykkes og fotograferes.
+- **Udokumenterte tall og merker:** «36 g protein», «185 kalorier»,
+  «Uten tilsetningsstoffer», «Nyt Norge» og «100 % kylling – ingen tilsatt vann».
+  Nettsiden skriver ikke disse i tekst (se `../README.md`).
+
+Når dere har ekte pakker: ta nye bilder i samme lys og format, behold
+filnavnene og lag variantene på nytt.

@@ -1,7 +1,8 @@
 # Bare Kylling – nettside
 
-Statisk landingsside for matvaremerket Bare Kylling. Ren HTML, CSS og
-JavaScript – ingen rammeverk, ingen byggesteg.
+Statisk produktside for matvaremerket Bare Kylling – ferdigstekt kyllingfilet
+i to smaker (Salt & Pepper og Paprika & Honning), «naturens proteinbar».
+Ren HTML, CSS og JavaScript – ingen rammeverk, ingen byggesteg.
 
 **Live:** https://lattit-business.github.io/Kylling-website/
 
@@ -10,8 +11,8 @@ Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju side
 | Fil | Side |
 |---|---|
 | `index.html` | Forside |
-| `smakene.html` | Smakene |
-| `hvorfor.html` | Hvorfor Bare? |
+| `smakene.html` | Smakene (Salt & Pepper, Paprika & Honning) |
+| `hvorfor.html` | Hvorfor kylling? – naturens proteinbar |
 | `om-oss.html` | Om oss |
 | `faq.html` | Spørsmål og svar |
 | `venteliste.html` | Venteliste |
@@ -54,8 +55,9 @@ Førstegangsoppsett:
 Etterpå bygger og publiserer Vercel automatisk ved hver push til `main`, og
 lager en egen forhåndsvisning for hver pull request.
 
-[`.vercelignore`](.vercelignore) holder interne README-filer og
-`images/ubrukt/` utenfor det som legges ut.
+[`.vercelignore`](.vercelignore) holder interne README-filer utenfor det som
+legges ut. Originalbildene ligger i `bilder-originaler/` i repo-rota, utenfor
+`bare-kylling/`, og publiseres dermed verken på Vercel eller GitHub Pages.
 
 ### GitHub Pages
 

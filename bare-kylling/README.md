@@ -1,15 +1,21 @@
 # Bare Kylling — nettside
 
-Statisk landingsside. Ren HTML, CSS og JavaScript uten rammeverk, byggesteg
-eller avhengigheter. Åpne `index.html` i en nettleser, så kjører den.
+Statisk produktside for Bare Kylling – ferdigstekt kyllingfilet i to smaker,
+Salt & Pepper og Paprika & Honning, posisjonert som «naturens proteinbar»: et
+proteinrikt mellommåltid du tar med og spiser rett fra pakken.
+
+Ren HTML, CSS og JavaScript uten rammeverk, byggesteg eller avhengigheter.
+Informasjonsside, ikke nettbutikk: ingen handlekurv, ingen bestilling.
 
 ## Filstruktur
 
 ```
 bare-kylling/
-├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn)
-├── smakene.html        De tre smakene (ankere: #brown-sugar-paprika osv.)
-├── hvorfor.html        Problemet, fire fordeler, hva som er i pakken
+├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn):
+│                       hero med nøkkeltall, problemet, sammenligning, fordeler,
+│                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
+├── smakene.html        De to smakene (ankere: #salt-pepper, #paprika-honning)
+├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
 ├── om-oss.html         Historien, hvem, slik jobber vi, status (#status)
 ├── faq.html            Spørsmål og svar
 ├── venteliste.html     Påmeldingsskjemaet
@@ -31,8 +37,8 @@ merket med kommentarer:
 
 ```
 <!-- BK:FELLES hode START --> … <!-- BK:FELLES hode END -->   (head: fonter, css, og:-tagger)
-<!-- BK:FELLES topp START --> … <!-- BK:FELLES topp END -->   (skip-lenke, meny)
-<!-- BK:FELLES cta START -->  … <!-- BK:FELLES cta END -->    (grønt «Vil du smake først?»-bånd)
+<!-- BK:FELLES topp START --> … <!-- BK:FELLES topp END -->   (skip-lenke, infostripe «Kommer snart», meny)
+<!-- BK:FELLES cta START -->  … <!-- BK:FELLES cta END -->    (honningfarget «Vil du smake først?»-bånd med påmeldingsskjema)
 <!-- BK:FELLES bunn START --> … <!-- BK:FELLES bunn END -->   (footer)
 ```
 
@@ -65,16 +71,16 @@ Brukes slik, hvor som helst i HTML-en:
   ikoner bruker `class="icon"` (32 px). Fargen arves fra `color` i CSS.
 - Maskot: `kylling-loper`, `kylling-titter`, `kylling-i-sekk`, `kylling-snakker`,
   `kylling-flekser`, `kylling-sover`
-- Doodles: `doodle-chili`, `doodle-lime`, `doodle-sitron`, `doodle-hvitlok`,
-  `doodle-urt`, `doodle-pepper`, `doodle-paprika`, `doodle-sukker`
+- Doodles: `doodle-salt`, `doodle-pepper` (Salt & Pepper),
+  `doodle-paprika`, `doodle-honning` (Paprika & Honning)
 - Ikoner: `ikon-riv-opp`, `ikon-kald-varm`, `ikon-hake`, `ikon-sekk`,
-  `ikon-kylling`, `ikon-epost`, `ikon-bjelle`, `ikon-panne`
+  `ikon-kylling`, `ikon-epost`, `ikon-bjelle`, `ikon-panne`, `ikon-oye`, `ikon-sted`
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
   (`mascot--rev` speilvendt, `mascot--stack` boble over figur). Boblen er ekte
   tekst; figuren er `aria-hidden`.
-- Det roterende stempelet i heroen (`.sticker`) ligger inline i HTML-en og
-  skriver teksten langs `#sirkel`, som er definert i toppblokken. Det er
-  bevisst det eneste stempelet på nettstedet.
+- Det roterende stempelet i heroen (`.sticker`, «2 smaker» med navnene rundt)
+  ligger inline i HTML-en og skriver teksten langs `#sirkel`, som er definert
+  i toppblokken. Det er bevisst det eneste stempelet på nettstedet.
 
 Ny figur: legg til et `<symbol id="…" viewBox="0 0 120 120" …>` i spriten
 med samme strek-attributter som naboene, og referer til den med `<use>`.
@@ -88,73 +94,80 @@ Chrome. Bruk `python3 -m http.server` (se rot-README).
 
 Alt styres fra `js/content.js`.
 
-1. **Koble påmeldingsskjemaet.** Sett `config.ventelisteEndepunkt` til en URL
-   (Formspree, Supabase, Mailchimp). Så lenge den er `null`, skjules
-   e-postfeltet, og venteliste-siden sier at påmeldingen åpner snart og peker
-   til statuslista på Om oss. Setter du `config.kontaktEpost`, vises i stedet
-   en oppfordring om å sende e-post.
-2. **Fyll inn kontakt.** `config.kontaktEpost` og `config.lenker.instagram`.
+1. **Fyll inn produktdata.** Nøkkeltallene i heroen, næringsdeklarasjonen,
+   ingredienser, allergener, opprinnelse, kvalitetskontroll, holdbarhet og
+   oppbevaring står som plassholdere til dere fyller dem inn og setter
+   `bekreftet: true`. Se tabellen under.
+2. **Samkjør navnene.** Pakkedesignet heter «Original – Salt, Pepper & Urter»
+   og «Paprika». Nettsiden bruker «Salt & Pepper» og «Paprika & Honning».
+3. **Koble påmeldingsskjemaet.** `config.ventelisteEndepunkt` er satt til
+   Formspree. Settes den til `null`, skjules e-postfeltet og siden sier ærlig
+   at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle sider)
+   og på venteliste.html.
+4. **Fyll inn kontakt.** `config.kontaktEpost` og `config.lenker.instagram`.
    Så lenge de er `null`, står det en setning i footeren om at de kommer.
-   Når de er satt, byttes setningen ut med ekte lenker.
-3. **Legg inn teamet.** I `om-oss.html` ligger en kommentert `.team`-blokk med
+5. **Legg inn teamet.** I `om-oss.html` ligger en kommentert `.team`-blokk med
    kort per person. Fyll inn navn, rolle og bilde, og fjern kommentartegnene.
-   Dette er det viktigste dere kan gjøre for å skille dere fra et hvilket som
-   helst annet merke.
-4. **Oppdater statuslista** på Om oss (`#status`) etter hvert som resept,
+6. **Oppdater statuslista** på Om oss (`#status`) etter hvert som resept,
    næringsanalyse, produksjon og lansering faller på plass.
-5. **Verifiser påstandene.** Se avsnittet under.
-6. **Legg inn domenet.** `og:url` og `og:image` peker i dag på GitHub Pages-
-   adressen. Får dere eget domene: bytt adressen i alle sidene (søk etter
-   `lattit-business.github.io/Kylling-website/`) og legg inn `canonical`
-   (kommentert linje øverst i `index.html`), og oppdater `robots.txt` og
-   `sitemap.xml`. Canonical er bevisst utelatt til da — en canonical mot feil
-   domene skader synligheten i søk.
-7. **Slå av dev-modus.** Sett `config.devModus = false`. Da forsvinner alle
+7. **Legg inn domenet.** Se rot-README og `tools/domene.py`.
+8. **Slå av dev-modus.** Sett `config.devModus = false`. Da forsvinner alle
    de stiplede «må verifiseres»-boksene.
 
-## Påstander som ikke er dokumentert
+## Plassholdere og påstander som ikke er dokumentert
 
-Disse står på pakkedesignet, men er ikke verifisert. De vises **ikke** på siden.
-I dev-modus vises de i stiplede bokser slik at dere ser hva som gjenstår.
+Nettsiden viser **tydelige plassholdere** («Venter på analyse», «Kommer før
+lansering», «–» i næringstabellen) der opplysningene mangler. Tallene og
+merkene som står trykket på pakkedesignet, vises ikke i tekst før de er
+dokumentert. I dev-modus vises de i stiplede bokser.
 
-| Påstand | Hva som kreves før den kan brukes |
-|---|---|
-| 36 g protein per 200 g | Næringsanalyse fra laboratorium |
-| 185 kalorier per 200 g | Næringsanalyse fra laboratorium |
-| 100 % kylling | Dokumentert resept og kjøttinnhold |
-| Ingen tilsatt vann | Dokumentert produksjonsprosess |
-| Uten tilsetningsstoffer | Full ingrediensdeklarasjon |
-| Nyt Norge | Godkjent avtale med Stiftelsen Matmerk |
-| Ingredienslister | Mengder, allergener og saltinnhold fra endelig resept |
-| Urteblandingen i Sitron & Urter | Pakken har ingen ingrediensliste trykket på seg |
+| Opplysning | Hvor i `content.js` | Hva som kreves |
+|---|---|---|
+| Protein og kalorier per pakke (hero og sammenligning) | `nokkeltall` | Næringsanalyse fra laboratorium |
+| Næringsdeklarasjon per 100 g (per pakke regnes ut) | `smaker.*.naering` | Næringsanalyse fra laboratorium |
+| Ingrediensliste | `smaker.*.ingredienser` | Endelig resept med mengder |
+| Allergener | `smaker.*.allergener` | Endelig resept + krydderleverandørens spesifikasjon |
+| Hvor kyllingen kommer fra | `opprinnelse` | Leverandøravtale med opprinnelsesland |
+| Kvalitetskontroll | `kvalitetskontroll` | Beskrivelse av produksjon og internkontroll |
+| Holdbarhet | `holdbarhet` | Holdbarhetstest |
+| Oppbevaring | `oppbevaring` | Fastsatt oppbevaringsanvisning |
+| 100 % kylling, ingen tilsatt vann, uten tilsetningsstoffer, Nyt Norge | `merker` | Resept, produksjonsprosess, Matmerk-avtale |
 
-Når noe er dokumentert: sett `bekreftet: true` på oppføringen i `content.js`.
-Da vises den automatisk på siden.
+Når noe er dokumentert: fyll inn verdien og sett `bekreftet: true`. Da byttes
+plassholderen ut automatisk på alle sider. Merk at `tools/sjekk.py` melder
+`bekreftet: true` som feil – det er en bevisst sperre, så noen må se over
+dokumentasjonen før publisering. Fjern den linjen i skriptet når dataene er
+kontrollert.
 
-Holdbarhet, oppbevaring og lanseringsdato er bevisst ikke oppgitt noe sted.
-Svarene i FAQ sier ærlig at de ikke er fastsatt ennå.
+Fast i HTML-en (ikke plassholdere): «0 min tilberedning» og «kan spises kald»
+følger av at kyllingen er ferdigstekt, og «200 g» er pakkestørrelsen.
 
-## Når nettbutikken åpner
+## Når produktet kommer i salg
 
-Sett `config.butikkAktiv = true` i `content.js`. Alle hoved-CTA-er bytter fra
-«Få beskjed ved lansering» til «Bestill nå». Teksten og lenken justeres i
-`config.cta`.
+1. Bytt teksten i infostripa øverst (felles `topp`-blokk i `index.html`) og
+   kjør `python3 tools/sjekk.py --fiks`.
+2. Sett `config.butikkAktiv = true` i `content.js`. Hoved-CTA-ene bytter da til
+   teksten i `config.cta.medButikk` («Se hvor du får kjøpt den»). Nettsiden
+   har ingen handlekurv – lenken bør gå til utsalgssteder.
 
 ## Teknisk
 
-- Mobile-first. Testet på 375, 390, 430, 768 og 1440 px uten horisontal scroll.
+- Mobile-first. Testet på 390 og 1440 px (pluss 768 i utvikling) uten
+  horisontal scroll.
 - Alle klikkmål er minst 44 px.
-- Tastaturnavigasjon, synlig fokusmarkering, `aria`-merking på meny og skjema.
+- Tastaturnavigasjon, synlig fokusmarkering, `aria`-merking på meny, skjema og
+  den sveipbare sammenligningstabellen.
 - All animasjon respekterer `prefers-reduced-motion`.
-- Fungerer uten JavaScript: alt innhold unntatt smaksnotene er i HTML-en,
-  og navigasjonen mellom sidene er vanlige lenker.
+- Fungerer uten JavaScript: alt innhold er i HTML-en; JavaScript fyller bare
+  inn bekreftede data fra `content.js` og styrer meny og skjema.
 - Ingen scroll-animasjoner eller parallax. Det eneste som beveger seg, er
   stempelet i heroen og menyen som toner inn.
-- Bilder har `srcset` med en 720/900 px-variant for mobil (se images/README.md).
+- Bilder: `<picture>` med WebP i tre bredder og JPEG-reserve. Hero-bildet
+  forhåndslastes; resten lastes lat (se images/README.md).
 - `404.html` setter `<base>` med et lite script fordi GitHub Pages serverer den
-  på den etterspurte (dype) adressen. Uten script vises siden ustylet, men med
-  en absolutt lenke til forsiden.
-- To webfonter fra Google Fonts (Archivo og Manrope). Ingen andre eksterne kall.
+  på den etterspurte (dype) adressen.
+- To webfonter fra Google Fonts: Archivo (variabel, med bredde-akse for de
+  kondenserte overskriftene) og Manrope. Ingen andre eksterne kall.
 
 ## Publisering
 
