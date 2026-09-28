@@ -19,6 +19,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="css/style.css" />
+<!-- Slår på animasjoner før første opptegning (ingen blinking). Står brukeren på
+     «redusert bevegelse», eller mangler nettleseren støtte, er alt i ro. -->
+<script>if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver'in window)document.documentElement.classList.add('anim')</script>
 <!-- BK:FELLES hode END -->
 
 <title>Smakene – Original og Sweet Paprika – Bare Kylling</title>

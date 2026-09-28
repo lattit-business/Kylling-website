@@ -169,8 +169,17 @@ aldri noe som ikke er bekreftet.
   innebygde forhåndsvisninger som husker scrollposisjonen fra forrige side.
   Tilbake-knappen beholder posisjonen som vanlig. Se «0. NY SIDE STARTER
   ØVERST» i `js/main.js`.
-- Ingen scroll-animasjoner eller parallax. Det eneste som beveger seg, er
-  stempelet i heroen og menyen som toner inn.
+- Animasjoner (se «T. ANIMASJONER» i `css/style.css` og «5. ANIMASJONER» i
+  `js/main.js`): heroen bygges opp ved lasting og pakkene svever rolig,
+  «200 g» teller opp, innhold toner inn når du scroller, kort og knapper
+  reagerer på hover, maskotene får litt liv, rullebåndet under heroen går av
+  seg selv, spørsmål åpner seg mykt og sidene glir over i hverandre
+  (View Transitions). Kun CSS og litt JavaScript, ingen biblioteker, og bare
+  `transform`/`opacity` animeres.
+- Alt er pynt: klassen `.anim` settes i `<head>` bare når nettleseren støtter
+  det og brukeren ikke har slått på «redusert bevegelse». Uten den står alt
+  i ro og er synlig. Innhold som allerede vises ved lasting, og ankermål
+  (elementer med id), animeres aldri inn fra scroll.
 - Bilder: `<picture>` med WebP i tre bredder og JPEG-reserve. Hero-bildet
   forhåndslastes; resten lastes lat (se images/README.md).
 - `404.html` setter `<base>` med et lite script fordi GitHub Pages serverer den

@@ -407,4 +407,86 @@
         });
     });
   }
+
+  /* ---------------------------------------------------------------------------
+     5. ANIMASJONER
+     Klassen .anim settes på <html> av et lite skript i <head> (felles
+     hode-blokk) når nettleseren støtter IntersectionObserver og brukeren ikke
+     har bedt om redusert bevegelse. Uten den er alt synlig og i ro.
+     Alle animasjoner er pynt: innholdet er komplett uten dem.
+     --------------------------------------------------------------------------- */
+  var html = document.documentElement;
+  if (!html.classList.contains('anim')) { return; }
+
+  /* 5a. Innhold som toner inn når det kommer til syne. Bare elementer som er
+         under skjermkanten ved lasting animeres – det som allerede vises, står
+         i ro. Elementer med id (ankermål) animeres aldri, så hopp til #anker
+         lander riktig. Etter animasjonen fjernes klassene, så hover-effekter
+         på de samme elementene virker som normalt.                          */
+  var utvalg = [
+    '.sec__head', '.split__media', '.split__body', '.compare__scroll', '.note',
+    '.benefit', '.moment', '.duo__card', '.qitem', '.decl', '.faq__list .qa', '.faq__more',
+    '.launch--band .launch__copy', '.launch__mascot',
+    '.media--flavor', '.flavor__inner > *',
+    '.ben__body', '.media--ben', '.trans__lists', '.trans__stamp', '.trans__more',
+    '.about__grid > *', '.about__body', '.about__h2', '.values .value', '.status__row', '.about__figure', '.about__foot',
+    '.step', '.how__link', '.faq__group', '.foot__mark', '.foot__cols > *'
+  ].join(',');
+
+  var skjerm = window.innerHeight;
+  var kandidater = $$(utvalg).filter(function (el) {
+    return !el.id && el.getBoundingClientRect().top > skjerm * 0.92;
+  });
+
+  function ferdig(el) {
+    el.classList.remove('reveal', 'is-in');
+    el.style.removeProperty('--i');
+  }
+
+  var vakt = new IntersectionObserver(function (oppf) {
+    oppf.forEach(function (o) {
+      if (!o.isIntersecting) { return; }
+      var el = o.target;
+      vakt.unobserve(el);
+      el.classList.add('is-in');
+      var ms = 1500 + (parseFloat(el.style.getPropertyValue('--i')) || 0) * 90;
+      window.setTimeout(function () { ferdig(el); }, ms);
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+
+  kandidater.forEach(function (el) {
+    /* Forsinkelse etter plass blant søsken i samme rutenett/liste */
+    var sosken = Array.prototype.filter.call(el.parentNode.children, function (s) { return kandidater.indexOf(s) > -1; });
+    var i = Math.min(sosken.indexOf(el), 5);
+    if (i > 0) { el.style.setProperty('--i', i); }
+    el.classList.add('reveal');
+    vakt.observe(el);
+  });
+
+  /* 5b. Tallene i heroen teller opp (bare hele tall, f.eks. «200»). Bredden
+         låses først, så enheten ved siden av ikke hopper.                    */
+  $$('.hero__stats .stat__v:not(.is-pending) .stat__num').forEach(function (n) {
+    var mal = parseInt(n.textContent, 10);
+    if (!(mal > 1)) { return; }
+    n.style.minWidth = n.getBoundingClientRect().width + 'px';
+    n.style.display = 'inline-block';
+    n.textContent = '0';
+    var start = null, varighet = 1100, forsinkelse = 550;
+    function steg(t) {
+      if (start === null) { start = t + forsinkelse; }
+      var p = Math.min(1, Math.max(0, (t - start) / varighet));
+      n.textContent = String(Math.round(mal * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) { requestAnimationFrame(steg); }
+    }
+    requestAnimationFrame(steg);
+  });
+
+  /* 5c. Bilder som lastes lat, toner inn i stedet for å dukke opp brått */
+  $$('img[loading="lazy"]').forEach(function (img) {
+    if (img.complete) { return; }
+    img.classList.add('laster');
+    function vis() { img.classList.remove('laster'); img.classList.add('lastet'); }
+    img.addEventListener('load', vis, { once: true });
+    img.addEventListener('error', vis, { once: true });
+  });
 })();
