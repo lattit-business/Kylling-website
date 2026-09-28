@@ -116,6 +116,7 @@ def main() -> int:
                 feil.append(f"{fil}: absolutt sti «{ref}» (Pages ligger under /Kylling-website/)")
                 continue
             sti, _, frag = ref.partition("#")
+            sti = sti.partition("?")[0]  # ?v=… er versjonsnummer mot gammel cache
             if tag.lower() == "use":
                 brukte_ids.add(frag)
                 if sti and not (ROT / sti).exists():

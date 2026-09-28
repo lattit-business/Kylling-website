@@ -341,6 +341,7 @@
       status.className = 'form__status is-ok';
       status.textContent = '';
       status.appendChild(el('p', 'form__done', tekst));
+      feir(status);
     }
 
     if (!koblet) {
@@ -409,6 +410,64 @@
   }
 
   /* ---------------------------------------------------------------------------
+     4b. KONFETTI – en liten feiring når noen står på lista. Bare pynt: hoppes
+         over ved redusert bevegelse eller i nettlesere uten Web Animations.
+     --------------------------------------------------------------------------- */
+  function feir(fra) {
+    var h = document.documentElement;
+    if (!h.classList.contains('anim') || h.classList.contains('anim--myk') || !Element.prototype.animate) { return; }
+    var r = fra.getBoundingClientRect();
+    var x0 = r.left + Math.min(r.width, 320) / 2, y0 = r.top + 16;
+    var farger = ['#F1B240', '#A8492A', '#334D29', '#FAF8F3', '#11110F', '#D99A26'];
+    var boks = el('div', 'konfetti');
+    boks.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(boks);
+    for (var i = 0; i < 40; i++) {
+      var bit = el('i');
+      bit.style.background = farger[i % farger.length];
+      if (i % 3 === 0) { bit.style.borderRadius = '50%'; }
+      if (i % 4 === 1) { bit.style.width = '6px'; bit.style.height = '14px'; }
+      boks.appendChild(bit);
+      var vinkel = -Math.PI * (0.1 + Math.random() * 0.8);      /* oppover, i vifte */
+      var fart = 160 + Math.random() * 260;
+      var dx = Math.cos(vinkel) * fart, dy = Math.sin(vinkel) * fart;
+      var snurr = (Math.random() < .5 ? -1 : 1) * (360 + Math.random() * 540);
+      bit.animate([
+        { transform: 'translate(' + x0 + 'px,' + y0 + 'px) rotate(0deg)', opacity: 1 },
+        { transform: 'translate(' + (x0 + dx) + 'px,' + (y0 + dy) + 'px) rotate(' + snurr / 2 + 'deg)', opacity: 1, offset: 0.5 },
+        { transform: 'translate(' + (x0 + dx * 1.25) + 'px,' + (y0 + dy + 340) + 'px) rotate(' + snurr + 'deg)', opacity: 0 }
+      ], { duration: 1500 + Math.random() * 700, easing: 'cubic-bezier(.2,.6,.35,1)', fill: 'forwards' });
+    }
+    window.setTimeout(function () { boks.remove(); }, 2500);
+  }
+
+  /* ---------------------------------------------------------------------------
+     4c. KYLLINGEN SOM SNAKKER – trykk på maskoten i CTA-båndet, så hopper den
+         og sier noe nytt. Boblen er aria-live, så skjermlesere får det med.
+     --------------------------------------------------------------------------- */
+  var replikker = [
+    'Vi maser ikke. Vi sier bare fra.',
+    'Pok pok!',
+    'Kyllingen kom først. Bare så det er sagt.',
+    'Åpne. Spis. Fortsett dagen.',
+    'Jeg er ikke en bar. Jeg er ekte mat.',
+    'Ferdigstekt og klar. Er du?',
+    'Psst … e-posten din går i feltet der borte.'
+  ];
+  $$('.mascot__knapp').forEach(function (knapp) {
+    var boble = $('[data-kakle]', knapp.parentNode);
+    var nr = 0;
+    knapp.addEventListener('click', function () {
+      nr = (nr + 1) % replikker.length;
+      if (boble) {
+        boble.textContent = replikker[nr];
+        boble.classList.remove('ny'); void boble.offsetWidth; boble.classList.add('ny');
+      }
+      knapp.classList.remove('hopp'); void knapp.offsetWidth; knapp.classList.add('hopp');
+    });
+  });
+
+  /* ---------------------------------------------------------------------------
      5. ANIMASJONER
      Klassen .anim settes på <html> av et lite skript i <head> (felles
      hode-blokk) når nettleseren støtter IntersectionObserver og brukeren ikke
@@ -417,6 +476,18 @@
      --------------------------------------------------------------------------- */
   var html = document.documentElement;
   if (!html.classList.contains('anim')) { return; }
+  var myk = html.classList.contains('anim--myk');
+
+  /* 5-0. Hero- og ventelistebildet animeres inn først når de er lastet
+          (onload i HTML-en setter .klar). Dette er en ekstra sikring, så
+          bildet aldri blir stående skjult.                                  */
+  $$('.hero__img, .launch__cutout img').forEach(function (img) {
+    function klar() { img.classList.add('klar'); }
+    if (img.complete) { klar(); return; }
+    img.addEventListener('load', klar, { once: true });
+    img.addEventListener('error', klar, { once: true });
+    window.setTimeout(klar, 2500);
+  });
 
   /* 5a. Innhold som toner inn når det kommer til syne. Bare elementer som er
          under skjermkanten ved lasting animeres – det som allerede vises, står
@@ -480,6 +551,25 @@
     }
     requestAnimationFrame(steg);
   });
+
+  /* 5d. Pakkene i heroen vipper litt mot musepekeren (bare mus, og ikke ved
+         redusert bevegelse)                                                  */
+  var vippe = $('.hero__tilt'), heroFlate = $('.hero');
+  if (vippe && heroFlate && !myk && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    var ramme = 0, mx = 0, my = 0;
+    heroFlate.addEventListener('pointermove', function (e) {
+      var r = heroFlate.getBoundingClientRect();
+      mx = (e.clientX - r.left) / r.width - 0.5;
+      my = (e.clientY - r.top) / r.height - 0.5;
+      if (ramme) { return; }
+      ramme = requestAnimationFrame(function () {
+        ramme = 0;
+        vippe.style.transform = 'perspective(1000px) rotateY(' + (mx * 9).toFixed(2) + 'deg) rotateX(' +
+          (-my * 6).toFixed(2) + 'deg) translate(' + (mx * 12).toFixed(1) + 'px,' + (my * 8).toFixed(1) + 'px)';
+      });
+    });
+    heroFlate.addEventListener('pointerleave', function () { vippe.style.transform = ''; });
+  }
 
   /* 5c. Bilder som lastes lat, toner inn i stedet for å dukke opp brått */
   $$('img[loading="lazy"]').forEach(function (img) {

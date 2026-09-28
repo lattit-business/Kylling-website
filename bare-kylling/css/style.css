@@ -754,7 +754,7 @@ body.meny-apen .sticky-cta { display: none; }
 .launch__h2 { margin-bottom: 1rem; }
 .launch__lead { font-size: var(--fs-lead); line-height: 1.5; max-width: 44ch; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
 .launch--band { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
-.launch__mascot { display: none; }
+.launch__mascot { display: flex; }
 .launch--page { overflow: clip; padding-block: clamp(2rem, 5vw, 4rem) clamp(3rem, 6vw, 5rem); }
 .launch__cutout { margin: 0 calc(-1 * var(--gut)); }
 .launch__cutout img { width: 100%; height: auto; }
@@ -1098,9 +1098,10 @@ body.meny-apen .sticky-cta { display: none; }
 /* ---------------------------------------------------------------------------
    T. ANIMASJONER
    Alt her er pynt – siden er komplett uten. Starttilstander som skjuler noe,
-   gjelder bare under .anim, som settes i <head> når nettleseren støtter det
-   og brukeren ikke har bedt om redusert bevegelse. Kun transform og opacity
-   animeres, så det er billig å tegne.
+   gjelder bare under .anim, som settes i <head> når nettleseren støtter det.
+   Har brukeren «redusert bevegelse» på, settes også .anim--myk: da blir alt
+   myke toninger uten forflytning (slik Apple anbefaler) – se «Myk modus».
+   Kun transform og opacity animeres, så det er billig å tegne.
    --------------------------------------------------------------------------- */
 @keyframes inn-opp    { from { opacity: 0; transform: translateY(24px); } }
 @keyframes inn        { from { opacity: 0; } }
@@ -1113,11 +1114,15 @@ body.meny-apen .sticky-cta { display: none; }
 @keyframes lop        { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-4deg); } }
 @keyframes nikk       { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-8deg); } 60% { transform: rotate(4deg); } }
 @keyframes titt       { 0%, 100% { transform: translateY(0); } 45%, 60% { transform: translateY(-10px); } }
+@keyframes hopp       { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-18px) rotate(-7deg); } 55% { transform: translateY(0) rotate(3deg); } 72% { transform: translateY(-6px) rotate(0); } }
+@keyframes boble      { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.06); } 100% { transform: scale(1); } }
+@keyframes puls       { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.7); opacity: .4; } }
+@keyframes skimmer    { to { background-position: -200% 0; } }
+@keyframes glans      { from { transform: translateX(-130%) skewX(-20deg); } to { transform: translateX(330%) skewX(-20deg); } }
+@keyframes fyll       { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 /* Myk overgang mellom sidene (Chrome, Edge, Safari 18+; andre bytter som før) */
-@media (prefers-reduced-motion: no-preference) {
-  @view-transition { navigation: auto; }
-}
+@view-transition { navigation: auto; }
 ::view-transition-old(root) { animation: .16s var(--ease) both reverse inn; }
 ::view-transition-new(root) { animation: .34s var(--ease-ut) both inn-opp; }
 
@@ -1127,20 +1132,52 @@ body.meny-apen .sticky-cta { display: none; }
   .ticker:hover .ticker__track { animation-play-state: paused; }
 }
 
+/* Fremdriftslinje nederst i menylinjen – følger scrollingen direkte
+   (Chrome, Edge og nyere Safari; andre nettlesere viser den ikke) */
+.nav__progress { display: none; }
+@supports (animation-timeline: scroll()) {
+  .nav__progress {
+    display: block; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
+    background: var(--honey-deep); transform-origin: 0 50%; transform: scaleX(0);
+    animation: fyll linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+/* «Kommer snart»: en liten prikk som pulserer */
+.topbar__tag { display: inline-flex; align-items: center; gap: .45em; }
+.topbar__tag::before { content: ''; flex: none; width: .5em; height: .5em; border-radius: 50%; background: var(--ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .topbar__tag::before { animation: puls 1.8s ease-in-out infinite; }
+}
+
 /* --- Forsiden: ett samlet øyeblikk ved lasting --------------------------- */
 .anim .hero .kicker        { animation: inn-opp .6s var(--ease-ut) both; }
 .anim .hero__h1 .r         { animation: linje-inn .9s var(--ease-ut) .06s both; }
 .anim .hero__h1 .r + .r    { animation-delay: .16s; }
 .anim .hero__lead          { animation: inn-opp .7s var(--ease-ut) .3s both; }
-.anim .hero__img           { animation: pakker-inn 1.1s var(--ease-ut) .12s both; }
+/* Pakkene rekkes fram først når bildet faktisk er lastet (klassen .klar
+   settes av onload på bildet), så animasjonen ikke er over før bildet vises */
+.anim .hero__img:not(.klar) { opacity: 0; }
+.anim .hero__img.klar      { animation: pakker-inn 1.1s var(--ease-ut) both; }
+.anim .hero__media:has(.hero__img:not(.klar)) .stamp { opacity: 0; }
 .anim .hero__media         { animation: svev 6s ease-in-out 1.4s infinite; }
-.anim .stamp               { animation: pop .8s var(--ease-sprett) .75s both; }
+.anim .stamp               { animation: pop .8s var(--ease-sprett) .55s both; }
 .anim .hero__stats .stat   { animation: inn-opp .6s var(--ease-ut) .42s both; }
 .anim .hero__stats .stat:nth-child(2) { animation-delay: .5s; }
 .anim .hero__stats .stat:nth-child(3) { animation-delay: .58s; }
 .anim .hero__stats .stat:nth-child(4) { animation-delay: .66s; }
 .anim .hero__cta           { animation: inn-opp .7s var(--ease-ut) .7s both; }
 .stat__num { font-variant-numeric: tabular-nums; }
+.hero__tilt { display: block; transition: transform .6s var(--ease-ut); }
+
+/* Plassholdertallene glimter, som om lab-en jobber med dem */
+.anim .stat__v.is-pending .stat__num {
+  background: linear-gradient(100deg, var(--ink) 0 38%, var(--cream-hi) 50%, var(--ink) 62% 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: skimmer 2.6s linear infinite;
+}
 
 /* --- Undersidene: toppen toner inn ---------------------------------------- */
 .anim .subhero__copy > *            { animation: inn-opp .7s var(--ease-ut) both; }
@@ -1151,7 +1188,8 @@ body.meny-apen .sticky-cta { display: none; }
 .anim .launch--page .launch__copy > * { animation: inn-opp .7s var(--ease-ut) both; }
 .anim .launch--page .launch__copy > :nth-child(2) { animation-delay: .07s; }
 .anim .launch--page .launch__copy > :nth-child(n+3) { animation-delay: .14s; }
-.anim .launch__cutout img           { animation: pakker-inn 1.1s var(--ease-ut) .1s both; }
+.anim .launch__cutout img:not(.klar) { opacity: 0; }
+.anim .launch__cutout img.klar      { animation: pakker-inn 1.1s var(--ease-ut) both; }
 .anim .launch__cutout               { animation: svev 6s ease-in-out 1.3s infinite; }
 .anim .oops .figure                 { animation: titt 3.2s ease-in-out .8s infinite; }
 
@@ -1164,8 +1202,17 @@ body.meny-apen .sticky-cta { display: none; }
 .anim .reveal.is-in { opacity: 1; transform: none; }
 .anim .media--flavor.reveal img, .anim .split__media.reveal img { transform: scale(1.08); transition: transform 1.4s var(--ease-ut); }
 .anim .media--flavor.is-in img, .anim .split__media.is-in img { transform: none; }
-.anim .moment--text.is-in .figure { animation: lop .45s ease-in-out 3; }
-.anim .launch__mascot.is-in .bubble { animation: pop .6s var(--ease-sprett) .25s both; }
+/* Små «pop» når ting kommer til syne – virker på mobil også */
+.anim .moment--text.is-in .figure            { animation: lop .45s ease-in-out 3; }
+.anim .launch__mascot.is-in .bubble          { animation: boble .6s var(--ease-sprett) .25s both; }
+.anim .benefit.is-in .benefit__icon .icon    { animation: vipp .7s var(--ease) .35s both; }
+.anim .qitem.is-in .qitem__icon              { animation: vipp .7s var(--ease) .3s both; }
+.anim .moment.is-in .moment__label           { animation: pop .6s var(--ease-sprett) .35s both; }
+.anim .duo__card.is-in .duo__num             { animation: pop .6s var(--ease-sprett) .3s both; }
+.anim .step.is-in .step__num                 { animation: pop .6s var(--ease-sprett) .15s both; }
+.anim .flavor__inner > .chips.is-in li       { animation: pop .5s var(--ease-sprett) .1s both; }
+.anim .flavor__inner > .chips.is-in li:nth-child(2) { animation-delay: .18s; }
+.anim .flavor__inner > .chips.is-in li:nth-child(3) { animation-delay: .26s; }
 .anim .doodles .figure { transition: transform .3s var(--ease-sprett); }
 .anim .flavor__inner > .doodles.is-in .figure { animation: pop .6s var(--ease-sprett) both; }
 .anim .flavor__inner > .doodles.is-in .figure:nth-child(2) { animation-delay: .08s; }
@@ -1198,11 +1245,33 @@ body.meny-apen .sticky-cta { display: none; }
 }
 .qa[open] .qa__body, .decl[open] .decl__body { animation: inn .45s var(--ease) both; }
 
+/* --- Kyllingen i CTA-båndet: trykk på den, så hopper den og sier noe ------ */
+.launch__mascot .figure { --fig: 96px; }
+.mascot__knapp {
+  display: block; padding: 0; border-radius: 50%;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.mascot__knapp:focus-visible { outline-offset: 6px; }
+.bubble.ny { animation: boble .45s var(--ease-sprett) both; }
+.anim .form__done { animation: boble .55s var(--ease-sprett) both; }
+
+/* Konfetti når noen melder seg på (bitene lages og animeres av main.js) */
+.konfetti { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 300; }
+.konfetti i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 2px; }
+
 /* --- Hover: små, fysiske reaksjoner (bare med mus/styreflate) ------------ */
 @media (hover: hover) {
   .btn:not(.btn--ghost):hover { transform: translateY(-2px); box-shadow: 0 10px 22px -12px rgba(17, 17, 15, .55); }
   .btn:not(.btn--ghost):active { transform: translateY(0); box-shadow: none; }
   .btn--ghost { transition: box-shadow .25s var(--ease-ut), color .2s var(--ease); }
+  /* Et lysglimt som sveiper over de fylte knappene */
+  .btn--ink, .btn--honey { position: relative; overflow: hidden; isolation: isolate; }
+  .btn--ink::after, .btn--honey::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%; z-index: -1;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .3), transparent);
+    transform: translateX(-130%) skewX(-20deg); pointer-events: none;
+  }
+  .btn--ink:hover::after, .btn--honey:hover::after { animation: glans .75s var(--ease) both; }
 
   .benefit { transition: transform .35s var(--ease-ut), box-shadow .35s var(--ease-ut); }
   .benefit:hover { transform: translateY(-5px); box-shadow: 0 22px 34px -26px rgba(17, 17, 15, .5); }
@@ -1229,9 +1298,36 @@ body.meny-apen .sticky-cta { display: none; }
   .sticker:hover > svg { animation-duration: 6s; }
 }
 
+/* --- Trykk: små reaksjoner på mobil og nettbrett -------------------------- */
+@media (hover: none) {
+  .benefit, .duo__card, .moment, .btn { transition: transform .2s var(--ease-ut), background-color .2s var(--ease); }
+  .benefit:active, .duo__card:active, .moment:active { transform: scale(.975); }
+  .btn:not(.btn--ghost):active { transform: scale(.96); }
+  .benefit:active .benefit__icon .icon, .qitem:active .qitem__icon { animation: vipp .6s var(--ease) both; }
+}
+
+/* Hoppet kommer etter hover-reglene, så det vinner mens det pågår */
+.mascot__knapp.hopp .figure { animation: hopp .7s var(--ease) both; }
+
+/* --- Myk modus: «redusert bevegelse» er på. Bare toning, ingen forflytning. */
+.anim--myk .hero .kicker, .anim--myk .hero__h1 .r, .anim--myk .hero__lead, .anim--myk .hero__img.klar,
+.anim--myk .stamp, .anim--myk .hero__stats .stat, .anim--myk .hero__cta,
+.anim--myk .subhero__copy > *, .anim--myk .subhero .pic,
+.anim--myk .launch--page .launch__copy > *, .anim--myk .launch__cutout img.klar,
+.anim--myk .launch__mascot.is-in .bubble, .anim--myk .flavor__inner > .doodles.is-in .figure,
+.anim--myk .moment.is-in .moment__label, .anim--myk .duo__card.is-in .duo__num,
+.anim--myk .flavor__inner > .chips.is-in li, .anim--myk .step.is-in .step__num,
+.anim--myk .bubble.ny, .anim--myk .form__done { animation-name: inn; }
+.anim--myk .hero__media, .anim--myk .launch__cutout, .anim--myk .oops .figure,
+.anim--myk .moment--text.is-in .figure, .anim--myk .benefit.is-in .benefit__icon .icon,
+.anim--myk .qitem.is-in .qitem__icon, .anim--myk .mascot__knapp.hopp .figure { animation: none; }
+.anim--myk .stat__v.is-pending .stat__num { animation: none; background: none; color: inherit; }
+.anim--myk .reveal { transform: none; }
+.anim--myk .media--flavor.reveal img, .anim--myk .split__media.reveal img { transform: none; }
+
 /* Ved utskrift skal alt vises */
 @media print {
-  .anim .reveal, .anim img.laster { opacity: 1 !important; transform: none !important; }
+  .anim .reveal, .anim img.laster, .anim .hero__img, .anim .launch__cutout img { opacity: 1 !important; transform: none !important; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1300,7 +1396,8 @@ body.meny-apen .sticky-cta { display: none; }
   .moment--big { grid-column: 1 / 3; grid-row: 1 / 3; aspect-ratio: auto; }
 
   .launch__inner { grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); }
-  .launch__mascot { display: flex; justify-self: end; }
+  .launch__mascot { justify-self: end; }
+  .launch__mascot .figure { --fig: clamp(120px, 14vw, 180px); }
   .launch--page .launch__inner { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
   .launch__cutout { margin: 0 calc(-1 * var(--bleed)) 0 0; }
   .oops__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
@@ -1335,13 +1432,21 @@ body.meny-apen .sticky-cta { display: none; }
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
+  /* Uten myk modus (nettleseren mangler støtte): alt står helt stille */
+  html:not(.anim--myk) *, html:not(.anim--myk) *::before, html:not(.anim--myk) *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-  .sticker > svg { animation: none !important; }
-  .duo__card:hover .duo__media img { transform: none; }
-  .ticker__track { animation: none !important; }
-  .menu .menu__inner > * { opacity: 1; transform: none; }
+  /* Med myk modus: toninger er lov, forflytning og evig bevegelse er det ikke */
+  .sticker > svg, .ticker__track, .topbar__tag::before { animation: none !important; }
+  .menu .menu__inner > * { transform: none; }
+  ::view-transition-new(root) { animation-name: inn; }
+  .btn:hover, .btn:active, .benefit:hover, .benefit:active, .duo__card:hover, .duo__card:active,
+  .moment:active, .moment:hover img, .moment:hover .moment__label, .doodles .figure:hover,
+  .duo__card:hover .duo__media img, .jump a:hover .dot { transform: none !important; }
+  .btn--ink:hover::after, .btn--honey:hover::after, .benefit:hover .benefit__icon .icon,
+  .benefit:active .benefit__icon .icon, .qitem:hover .qitem__icon, .qitem:active .qitem__icon,
+  .mascot:hover .figure, .wordmark:hover .wordmark__icon, .foot__mark:hover .foot__icon,
+  .moment--text:hover .figure { animation: none !important; }
 }

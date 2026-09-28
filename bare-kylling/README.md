@@ -169,17 +169,22 @@ aldri noe som ikke er bekreftet.
   innebygde forhåndsvisninger som husker scrollposisjonen fra forrige side.
   Tilbake-knappen beholder posisjonen som vanlig. Se «0. NY SIDE STARTER
   ØVERST» i `js/main.js`.
-- Animasjoner (se «T. ANIMASJONER» i `css/style.css` og «5. ANIMASJONER» i
-  `js/main.js`): heroen bygges opp ved lasting og pakkene svever rolig,
-  «200 g» teller opp, innhold toner inn når du scroller, kort og knapper
-  reagerer på hover, maskotene får litt liv, rullebåndet under heroen går av
-  seg selv, spørsmål åpner seg mykt og sidene glir over i hverandre
-  (View Transitions). Kun CSS og litt JavaScript, ingen biblioteker, og bare
-  `transform`/`opacity` animeres.
-- Alt er pynt: klassen `.anim` settes i `<head>` bare når nettleseren støtter
-  det og brukeren ikke har slått på «redusert bevegelse». Uten den står alt
-  i ro og er synlig. Innhold som allerede vises ved lasting, og ankermål
-  (elementer med id), animeres aldri inn fra scroll.
+- Animasjoner (se «T. ANIMASJONER» i `css/style.css` og «4b/4c/5» i
+  `js/main.js`): heroen bygges opp når pakkebildet er lastet, pakkene svever
+  og vipper mot musepekeren, «2 smaker»-stempelet spretter inn og «200 g»
+  teller opp. Rullebånd under heroen, fremdriftslinje i menyen, pulserende
+  prikk ved «Kommer snart» og glimt over plassholdertallene. Innhold toner
+  inn når du scroller, med små «pop» på ikoner, etiketter og smaksnoter.
+  Kyllingen i CTA-båndet hopper og sier noe nytt når du trykker på den, og
+  det kommer konfetti når noen melder seg på. Kort og knapper reagerer på
+  hover (mus) og trykk (mobil). Sidene glir over i hverandre.
+- Alt er pynt: klassen `.anim` settes i `<head>`. Har brukeren «redusert
+  bevegelse» på, settes også `.anim--myk`, og da blir alt myke toninger uten
+  forflytning, uten evig bevegelse og uten konfetti. Innhold som allerede
+  vises ved lasting, og ankermål (elementer med id), animeres aldri inn.
+- CSS og JS lenkes med `?v=…`. Bytt verdien i hode-blokken i `index.html`
+  (og i script-taggene nederst på hver side) når du endrer dem, så ingen
+  nettleser henger igjen på en gammel versjon.
 - Bilder: `<picture>` med WebP i tre bredder og JPEG-reserve. Hero-bildet
   forhåndslastes; resten lastes lat (se images/README.md).
 - `404.html` setter `<base>` med et lite script fordi GitHub Pages serverer den
