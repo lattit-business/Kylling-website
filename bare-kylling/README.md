@@ -165,6 +165,10 @@ aldri noe som ikke er bekreftet.
 - All animasjon respekterer `prefers-reduced-motion`.
 - Fungerer uten JavaScript: alt innhold er i HTML-en; JavaScript fyller bare
   inn bekreftede data fra `content.js` og styrer meny og skjema.
+- En ny side starter alltid øverst (eller ved #ankeret i lenken), også i
+  innebygde forhåndsvisninger som husker scrollposisjonen fra forrige side.
+  Tilbake-knappen beholder posisjonen som vanlig. Se «0. NY SIDE STARTER
+  ØVERST» i `js/main.js`.
 - Ingen scroll-animasjoner eller parallax. Det eneste som beveger seg, er
   stempelet i heroen og menyen som toner inn.
 - Bilder: `<picture>` med WebP i tre bredder og JPEG-reserve. Hero-bildet

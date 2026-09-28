@@ -13,6 +13,49 @@
   var lite = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------------------------------------------------------------------------
+     0. NY SIDE STARTER ØVERST
+     Nettlesere åpner en ny side øverst av seg selv, men innebygde visninger
+     (f.eks. forhåndsvisninger i iframe) kan ta med scrollposisjonen fra
+     forrige side. Rett etter lasting flyttes siden derfor tilbake til toppen,
+     eller til #ankeret lenken peker på, hvis noe annet enn brukeren har
+     scrollet den. Tilbake/fram og oppdatering beholder posisjonen som vanlig,
+     og vakten slår seg av så snart brukeren scroller, trykker eller taster.
+     --------------------------------------------------------------------------- */
+  (function () {
+    var nav = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+    if (nav && nav.type !== 'navigate') { return; }
+
+    var root = document.documentElement;
+    var aktiv = true;
+    var hendelser = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+
+    function mal() {
+      var id = decodeURIComponent(location.hash.slice(1));
+      var el = id ? document.getElementById(id) : null;
+      if (!el) { return 0; }
+      var pad = parseFloat(getComputedStyle(root).scrollPaddingTop) || 0;
+      return Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - pad));
+    }
+    function rett() {
+      if (!aktiv) { return; }
+      var y = mal();
+      if (Math.abs(window.scrollY - y) > 2) { window.scrollTo(0, y); }
+    }
+    function stopp() {
+      if (!aktiv) { return; }
+      aktiv = false;
+      root.style.scrollBehavior = '';
+      window.removeEventListener('scroll', rett);
+      hendelser.forEach(function (t) { window.removeEventListener(t, stopp, true); });
+    }
+
+    root.style.scrollBehavior = 'auto';   /* hopp direkte, ikke animert */
+    hendelser.forEach(function (t) { window.addEventListener(t, stopp, { capture: true, passive: true }); });
+    window.addEventListener('scroll', rett, { passive: true });
+    window.addEventListener('load', function () { rett(); window.setTimeout(stopp, 1500); });
+  })();
+
+  /* ---------------------------------------------------------------------------
      1. NAVIGASJON
      --------------------------------------------------------------------------- */
   var nav = $('#nav');
