@@ -1,0 +1,7 @@
+# Filer som ikke skal lastes opp til Vercel.
+# Nettstedet serveres fra bare-kylling/ (se outputDirectory i vercel.json),
+# så tools/ og .github/ er allerede utenfor – dette er resten.
+
+bare-kylling/README.md
+bare-kylling/images/README.md
+bare-kylling/images/ubrukt/

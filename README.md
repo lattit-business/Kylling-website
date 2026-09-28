@@ -32,36 +32,63 @@ og figurer finnes, at ingen udokumenterte påstander står i HTML-en, og at hver
 side har én `<h1>` og unik tittel. `python3 tools/sjekk.py --fiks` kopierer
 felles blokker fra `index.html` inn i de andre sidene.
 
+## Publisering
+
+Nettstedet er rene statiske filer, så det kan hostes hvor som helst.
+
+### Vercel (anbefalt)
+
+[`vercel.json`](vercel.json) ligger klar: `outputDirectory` peker på
+`bare-kylling/`, så Vercel publiserer den mappen som rot. Ingen bygging,
+ingen avhengigheter.
+
+Førstegangsoppsett:
+
+1. Gå til [vercel.com/new](https://vercel.com/new) og logg inn med GitHub.
+2. Velg **Kylling-website**. Behold standardvalgene – `vercel.json` gjør
+   resten. La *Framework Preset* stå på «Other» og ikke fyll inn noe
+   build-kommando.
+3. **Deploy.** Etter et halvt minutt ligger siden på
+   `kylling-website-*.vercel.app`.
+
+Etterpå bygger og publiserer Vercel automatisk ved hver push til `main`, og
+lager en egen forhåndsvisning for hver pull request.
+
+[`.vercelignore`](.vercelignore) holder interne README-filer og
+`images/ubrukt/` utenfor det som legges ut.
+
+### GitHub Pages
+
+Workflowen i [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+publiserer fortsatt `bare-kylling/` ved hver push. Når Vercel er i drift bør
+den slås av, så det ikke ligger to kopier av nettstedet ute – to adresser med
+samme innhold svekker synligheten i søk:
+
+*Settings → Pages → Source: None*, og slett `.github/workflows/pages.yml`.
+
 ## Eget domene
 
-Når domenet er registrert og DNS er lagt inn (se tabellen under), bytter
-dette skriptet alle adresser, lager `CNAME` og setter inn `canonical`:
+Når domenet er registrert og DNS er lagt inn, bytter dette skriptet alle
+adresser og setter inn `canonical`:
 
 ```bash
 python3 tools/domene.py barekylling.no          # viser hva som vil skje
 python3 tools/domene.py barekylling.no --skriv  # gjør endringene
 ```
 
-Skriptet sjekker DNS først og nekter å skrive hvis postene ikke er på plass,
-slik at den fungerende siden ikke tas offline. DNS-poster som skal inn hos
-domeneleverandøren:
+Skriptet sjekker DNS først og nekter å skrive hvis postene mangler. Poster
+som skal inn hos domeneleverandøren:
 
 | Type | Navn | Verdi |
 |---|---|---|
-| A | `@` | `185.199.108.153` |
-| A | `@` | `185.199.109.153` |
-| A | `@` | `185.199.110.153` |
-| A | `@` | `185.199.111.153` |
-| CNAME | `www` | `lattit-business.github.io.` |
+| A | `@` | `76.76.21.21` |
+| CNAME | `www` | `cname.vercel-dns.com.` |
 
-Etterpå: *Settings → Pages → Custom domain*, og kryss av «Enforce HTTPS»
-når sertifikatet er utstedt.
+Legg deretter domenet inn i Vercel: *prosjektet → Settings → Domains → Add*.
+HTTPS-sertifikat ordnes automatisk.
 
-## Publisering
-
-Hver push til `main` publiserer `bare-kylling/` til GitHub Pages via
-[`.github/workflows/pages.yml`](.github/workflows/pages.yml). Under
-*Settings → Pages* må kilden stå til «GitHub Actions».
+Blir dere værende på GitHub Pages, kjør med `--pages` i stedet – da lages
+`CNAME`-fila og skriptet sjekker GitHubs fire A-poster.
 
 ## Kjøre lokalt
 

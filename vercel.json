@@ -1,0 +1,31 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+
+  "//": "Nettstedet ligger i bare-kylling/ og er rene statiske filer – ingen bygging. outputDirectory sier hvilken mappe Vercel skal publisere som rot.",
+  "outputDirectory": "bare-kylling",
+  "trailingSlash": false,
+
+  "//headers": "css/js har ikke innholdshash i filnavnet, så de må revalideres for at en ny versjon skal slå gjennom med én gang. Bildene byttes sjelden og kan caches en dag.",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+      ]
+    },
+    {
+      "source": "/(css|js)/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}
