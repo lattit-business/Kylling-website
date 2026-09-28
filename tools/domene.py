@@ -5,6 +5,9 @@ Bytt nettstedet fra en midlertidig adresse til et eget domene.
     python3 tools/domene.py barekylling.no                   # vis hva som vil skje
     python3 tools/domene.py barekylling.no --skriv           # gjør endringene
     python3 tools/domene.py barekylling.no --pages --skriv   # hvis dere blir på GitHub Pages
+    python3 tools/domene.py barekylling.no --skriv --uten-dns
+        # når maskinen ikke kan slå opp DNS (mangler «dig» eller nett), men
+        # dere har sett at domenet allerede viser siden. Sjekk det selv etterpå.
 
 Standard er Vercel. Skriptet gjør tre ting:
   1. Bytter alle forekomster av den gamle adressen i HTML, sitemap og
@@ -125,7 +128,12 @@ def main() -> int:
     print(f"Domene: {domene}")
     print(f"Vert:   {vert['navn']}\n")
     print("DNS:")
-    dns_ok = sjekk_dns(domene, vert)
+    if "--uten-dns" in argv:
+        print(f"  MERK   DNS og HTTP ble ikke sjekket (--uten-dns). Åpne https://{domene}")
+        print(f"         selv og kontroller at siden vises før dere stoler på endringen.")
+        dns_ok = True
+    else:
+        dns_ok = sjekk_dns(domene, vert)
     print()
 
     if not dns_ok and skriv:
@@ -157,7 +165,8 @@ def main() -> int:
         treff = s.count(GAMMEL)
         s = s.replace(GAMMEL, ny)
 
-        if fil.suffix == ".html" and 'rel="canonical"' not in s:
+        uten_kommentarer = re.sub(r"<!--.*?-->", "", s, flags=re.S)
+        if fil.suffix == ".html" and 'rel="canonical"' not in uten_kommentarer:
             s = re.sub(r"\n<!-- FØR EGET DOMENE:.*?-->", "", s, flags=re.S)
             m = re.search(r'(<meta property="og:url" content="([^"]+)"[^>]*/>)', s)
             if m:

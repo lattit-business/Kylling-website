@@ -4,7 +4,8 @@ Statisk produktside for matvaremerket Bare Kylling – ferdigstekt kyllingfilet
 i to smaker (Original og Sweet Paprika), «naturens proteinbar».
 Ren HTML, CSS og JavaScript – ingen rammeverk, ingen byggesteg.
 
-**Live:** https://lattit-business.github.io/Kylling-website/
+**Live:** https://barekylling.no/ (Vercel). Kopi på GitHub Pages:
+https://lattit-business.github.io/Kylling-website/ – `canonical` peker til barekylling.no.
 
 Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju sider:
 
@@ -42,6 +43,17 @@ Nettstedet er rene statiske filer, så det kan hostes hvor som helst.
 [`vercel.json`](vercel.json) ligger klar: `outputDirectory` peker på
 `bare-kylling/`, så Vercel publiserer den mappen som rot. Ingen bygging,
 ingen avhengigheter.
+
+`vercel.json` må være ren JSON uten kommentarfelter. Vercel avviser filen
+hvis den har felter den ikke kjenner (f.eks. `"//"`), og da feiler hver
+publisering med en lenke til «project configuration». Det som ville stått
+som kommentarer:
+
+- `outputDirectory: "bare-kylling"` – nettstedet er rene statiske filer i
+  `bare-kylling/`, uten bygging; mappen publiseres som rot.
+- `headers` – css/js har ikke innholdshash i filnavnet, så de revalideres
+  hver gang (en ny versjon slår gjennom med én gang). Bilder byttes sjelden
+  og caches en dag.
 
 Førstegangsoppsett:
 

@@ -31,7 +31,7 @@ FORBUDT = [
 # Smaker og navn som er tatt ut av sortimentet. Skal ikke stå noe sted på nettstedet.
 UTGATT = [r"brown sugar", r"smoky", r"chili", r"\blime\b", r"sitron", r"honning",
           r"salt &(?:amp;)? ?pepper"]
-LIVE = "https://lattit-business.github.io/Kylling-website/"
+LIVE = "https://barekylling.no/"
 
 feil, advarsler = [], []
 
