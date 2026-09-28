@@ -127,12 +127,17 @@
   <path d="M8 44v1M12 52v1M54 40v1" stroke-width="5"/>
 </symbol>
 
-<!-- Honningskje: skaft, rillet hode og en dråpe -->
-<symbol id="doodle-honning" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M52 6L34 24"/>
-  <path d="M34 24c-4-4-12-3-16 3s-4 13 0 17 11 4 17 0 7-12 3-16z"/>
-  <path d="M20 28l12 12M17 35l8 8M27 22l11 11"/>
-  <path d="M14 48c-3 4-4 7-2 9s5 0 5-3-1-4-3-6z"/>
+<!-- Paprikafrukt (søt paprika): tre buer i bunnen og en stilk -->
+<symbol id="doodle-paprikafrukt" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M32 20c-4-3-9-3-13-1-7 3-10 11-9 20 1 10 6 17 13 17 3 0 5-2 9-2s6 2 9 2c7 0 12-7 13-17 1-9-2-17-9-20-4-2-9-2-13 1z"/>
+  <path d="M32 20v8M24 30c-2 6-2 14 0 20M40 30c2 6 2 14 0 20"/>
+  <path d="M32 20c0-6 3-10 8-12"/>
+</symbol>
+
+<symbol id="doodle-urt" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M32 58c-2-16-2-32 2-50"/>
+  <path d="M31 44c-10-2-15-8-16-15 9 0 14 6 16 15zM33 44c10-2 15-8 16-15-9 0-14 6-16 15z"/>
+  <path d="M31 28c-8-2-11-6-12-12 7 0 10 5 12 12zM33 28c8-2 11-6 12-12-7 0-10 5-12 12z"/>
 </symbol>
 
 <!-- ================= IKONER ================= -->

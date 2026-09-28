@@ -1,7 +1,7 @@
 # Bare Kylling – nettside
 
 Statisk produktside for matvaremerket Bare Kylling – ferdigstekt kyllingfilet
-i to smaker (Salt & Pepper og Paprika & Honning), «naturens proteinbar».
+i to smaker (Original og Sweet Paprika), «naturens proteinbar».
 Ren HTML, CSS og JavaScript – ingen rammeverk, ingen byggesteg.
 
 **Live:** https://lattit-business.github.io/Kylling-website/
@@ -11,7 +11,7 @@ Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju side
 | Fil | Side |
 |---|---|
 | `index.html` | Forside |
-| `smakene.html` | Smakene (Salt & Pepper, Paprika & Honning) |
+| `smakene.html` | Smakene (Original, Sweet Paprika) |
 | `hvorfor.html` | Hvorfor kylling? – naturens proteinbar |
 | `om-oss.html` | Om oss |
 | `faq.html` | Spørsmål og svar |

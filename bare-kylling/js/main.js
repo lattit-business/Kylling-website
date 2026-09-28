@@ -219,7 +219,7 @@
       var ing = s.ingredienser || {};
       var art = el('article', 'ing');
       var h = el('h3', 'ing__navn');
-      h.appendChild(el('span', 'dot dot--' + (key === 'salt-pepper' ? 'salt' : 'paprika')));
+      h.appendChild(el('span', 'dot dot--' + (key === 'original' ? 'salt' : 'paprika')));
       h.appendChild(document.createTextNode(s.navn));
       art.appendChild(h);
 

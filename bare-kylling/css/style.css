@@ -16,9 +16,9 @@
   --beige:        #E8E1D5;
   --ink:          #11110F;
   --ink-soft:     #3A3A34;
-  --forest:       #334D29;   /* Salt & Pepper */
+  --forest:       #334D29;   /* Original */
   --forest-deep:  #24371D;
-  --paprika:      #B5502C;   /* Paprika & Honning */
+  --paprika:      #B5502C;   /* Sweet Paprika */
   --paprika-deep: #8E3D20;
   --sage:         #AAB39D;
 
@@ -230,7 +230,7 @@ input { font: inherit; }
 
 /* Fargeprikk for smakene */
 .dot { display: inline-block; flex: none; width: .8em; height: .8em; border-radius: 50%; }
-.dot--salt    { background: var(--forest); }
+.dot--original    { background: var(--forest); }
 .dot--paprika { background: var(--paprika); }
 
 /* Merkelapp for opplysninger som ikke er klare ennå */
@@ -604,13 +604,13 @@ body.meny-apen .sticky-cta { display: none; }
   border-radius: var(--r); overflow: hidden;
   color: var(--cream);
 }
-.duo__card--salt    { background: var(--forest); }
+.duo__card--original    { background: var(--forest); }
 .duo__card--paprika { background: var(--paprika-surface); }
 .duo__media { position: relative; margin: 0; aspect-ratio: 16 / 10; overflow: hidden; }
 .duo__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease); }
 /* Pakken ligger til venstre i salt-bildet og til høyre i paprika-bildet.
    Beskjæringen ankres mot pakken, så det er krydderet i kanten som kuttes. */
-.duo__card--salt .duo__media img    { object-position: 20% 50%; }
+.duo__card--original .duo__media img    { object-position: 20% 50%; }
 .duo__card--paprika .duo__media img { object-position: 85% 50%; }
 .duo__card:hover .duo__media img { transform: scale(1.03); }
 .duo__body {
@@ -626,6 +626,7 @@ body.meny-apen .sticky-cta { display: none; }
   font-family: var(--display); font-weight: 900; font-stretch: 75%;
   font-size: clamp(2.4rem, 5vw, 3.8rem); line-height: .9; letter-spacing: -.02em;
 }
+.duo__sub { margin-top: -.45rem; font-size: var(--fs-label); font-weight: 800; text-transform: uppercase; letter-spacing: .14em; }
 .duo__desc { font-size: var(--fs-lead); line-height: 1.45; max-width: 34ch; }
 .duo__more {
   margin-top: auto; padding-top: .6rem;
@@ -827,7 +828,7 @@ body.meny-apen .sticky-cta { display: none; }
 .flavors__stack { display: grid; }
 
 .flavor { display: grid; color: var(--cream); }
-.flavor--salt    { background: var(--forest); }
+.flavor--original    { background: var(--forest); }
 .flavor--paprika { background: var(--paprika-surface); }
 
 .flavor__inner {
@@ -836,7 +837,7 @@ body.meny-apen .sticky-cta { display: none; }
 }
 .media--flavor { aspect-ratio: 16 / 10; overflow: hidden; }
 .media--flavor img { width: 100%; height: 100%; object-fit: cover; }
-.flavor--salt .media--flavor img    { object-position: 20% 50%; }
+.flavor--original .media--flavor img    { object-position: 20% 50%; }
 .flavor--paprika .media--flavor img { object-position: 85% 50%; }
 
 .flavor__name {
@@ -844,6 +845,7 @@ body.meny-apen .sticky-cta { display: none; }
   font-size: clamp(2.8rem, 6.5vw, 4.8rem); line-height: .9;
   letter-spacing: -.02em; margin-bottom: 1rem;
 }
+.flavor__sub { margin: -.3rem 0 1rem; font-size: var(--fs-label); font-weight: 800; text-transform: uppercase; letter-spacing: .14em; }
 .flavor__desc { font-size: var(--fs-lead); line-height: 1.45; max-width: 40ch; margin-bottom: clamp(1.2rem, 2.6vw, 1.6rem); }
 .flavor .chips { margin-bottom: clamp(1.2rem, 2.6vw, 1.6rem); }
 .flavor__kicker {

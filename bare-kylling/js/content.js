@@ -117,21 +117,21 @@ window.BK = {
      5. SMAKENE
      smaksnoter   = smakskomponenter. Vises på siden.
      ingredienser = juridisk ingrediensdeklarasjon. IKKE bekreftet ennå.
-     allergener   = allergener som skal uthevet. IKKE bekreftet ennå.
+     allergener   = allergener som skal utheves. IKKE bekreftet ennå.
      naering      = næringsdeklarasjon per 100 g. IKKE bekreftet ennå.
                     Per pakke regnes ut automatisk fra pakkevekten (200 g).
      --------------------------------------------------------------------------- */
   pakkevekt: 200,
 
   smaker: {
-    'salt-pepper': {
-      navn: 'Salt & Pepper',
-      smaksnoter: ['Salt', 'Pepper'],
+    'original': {
+      navn: 'Original',
+      smaksnoter: ['Salt', 'Pepper', 'Urter'],
       ingredienser: {
         bekreftet: false,
         base: 'Kyllingfilet',
         tekst: null,
-        notat: 'Pakkedesignet på bildene heter «Original – Salt, Pepper & Urter». Endelig navn, urter og ingrediensliste med mengder må fastsettes.'
+        notat: 'Fullt navn: «Original – Salt, Pepper & Urter». Hvilke urter som inngår, og ingrediensliste med mengder, må fastsettes.'
       },
       allergener: {
         bekreftet: false,
@@ -143,14 +143,14 @@ window.BK = {
         per100: { energiKj: null, energiKcal: null, fett: null, mettet: null, karbohydrat: null, sukkerarter: null, protein: null, salt: null }
       }
     },
-    'paprika-honning': {
-      navn: 'Paprika & Honning',
-      smaksnoter: ['Paprika', 'Honning'],
+    'sweet-paprika': {
+      navn: 'Sweet Paprika',
+      smaksnoter: ['Søt paprika'],
       ingredienser: {
         bekreftet: false,
         base: 'Kyllingfilet',
         tekst: null,
-        notat: 'Pakkedesignet på bildene heter bare «Paprika». Honning må med i navn og ingrediensliste på pakken hvis den er i produktet.'
+        notat: 'Pakkedesignet på bildene heter bare «Paprika», mens produktnavnet er «Sweet Paprika». Ingrediensliste med mengder må fastsettes.'
       },
       allergener: {
         bekreftet: false,

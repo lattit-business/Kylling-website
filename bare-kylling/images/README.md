@@ -22,12 +22,12 @@ byttes (krever Pillow: `pip install pillow`):
 
 ```python
 from PIL import Image
-im = Image.open('bilder-originaler/smak-salt-pepper.png').convert('RGB')
+im = Image.open('bilder-originaler/smak-original.png').convert('RGB')
 for b in (720, 1100, im.width):
     r = im if b == im.width else im.resize((b, round(im.height * b / im.width)), Image.LANCZOS)
-    r.save(f'bare-kylling/images/smak-salt-pepper-{b}.webp', 'WEBP', quality=74, method=6)
+    r.save(f'bare-kylling/images/smak-original-{b}.webp', 'WEBP', quality=74, method=6)
 im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
-  .save('bare-kylling/images/smak-salt-pepper.jpg', 'JPEG', quality=78, optimize=True, progressive=True)
+  .save('bare-kylling/images/smak-original.jpg', 'JPEG', quality=78, optimize=True, progressive=True)
 ```
 
 ## I bruk
@@ -35,15 +35,15 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | Filnavn | Motiv | Brukes |
 |---|---|---|
 | `hero-to-pakker-i-hand` | Hånd holder begge pakkene, **gjennomsiktig bakgrunn** (3:2) | Hero på forsiden, venteliste.html. JPEG-reserven har honningfarget bakgrunn (#F1B240) |
-| `smak-salt-pepper` | Salt & Pepper-pakken på mørk grønn bakgrunn med salt, pepper og urter. Pakken til venstre (16:10) | Smakskort (forside) + bånd (smakene.html) |
-| `smak-paprika-honning` | Paprika & Honning-pakken med paprikapulver, pepper og hvitløk. Pakken til høyre (16:10) | Smakskort (forside) + bånd (smakene.html) |
+| `smak-original` | Original-pakken på mørk grønn bakgrunn med salt, pepper og urter. Pakken til venstre (16:10) | Smakskort (forside) + bånd (smakene.html) |
+| `smak-sweet-paprika` | Sweet Paprika-pakken med paprikapulver, pepper og hvitløk. Pakken til høyre (16:10) | Smakskort (forside) + bånd (smakene.html) |
 | `to-smaker-kjokken` | Begge pakkene på lys kjøkkenbenk med krydder (16:9) | Toppen av smakene.html |
 | `to-smaker-benk` | Begge pakkene på solfylt kjøkkenbenk (16:9) | «Historien» (om-oss.html) |
 | `to-pakker-forfra` | Begge pakkene forfra, lys bakgrunn (3:2) | «Kvalitet» (forside) |
-| `to-pakker-hand-lys` | Hånd løfter Paprika & Honning, lys bakgrunn (4:3) | Toppen av hvorfor.html |
-| `pakke-paprika-honning` | Paprika & Honning, enkeltpakke forfra (3:4) | «Allerede ferdig» (hvorfor.html) |
-| `farten-treningsbag` | Paprika & Honning i en treningsbag i garderoben (3:4) | «Etter trening» (forside) + «Ta den med» (hvorfor.html) |
-| `farten-skolesekk` | Salt & Pepper i en skolesekk ved pulten (4:5) | «På skolen» (forside) + «Når det passer deg» (hvorfor.html) |
+| `to-pakker-hand-lys` | Hånd løfter Sweet Paprika, lys bakgrunn (4:3) | Toppen av hvorfor.html |
+| `pakke-sweet-paprika` | Sweet Paprika, enkeltpakke forfra (3:4) | «Allerede ferdig» (hvorfor.html) |
+| `farten-treningsbag` | Sweet Paprika i en treningsbag i garderoben (3:4) | «Etter trening» (forside) + «Ta den med» (hvorfor.html) |
+| `farten-skolesekk` | Original i en skolesekk ved pulten (4:5) | «På skolen» (forside) + «Når det passer deg» (hvorfor.html) |
 | `spis-rett-fra-pakken` | Ung mann biter i en kyllingfilet, oransje bakgrunn (3:4) | Stor flis «Rett fra pakken» (forside) |
 | `spis-ute` | Kvinne biter i en kyllingfilet ute på gresset. Beskåret: stempel og rå kjøttpakke nederst er fjernet | Flis «Mellom måltider» (forside) |
 | `proteinbar-ingrediensliste` | Baksiden av en proteinbar med lang ingrediensliste (4:3) | «Problemet» (forside + hvorfor.html) |
@@ -67,9 +67,8 @@ kanten som kuttes – ikke emballasjen.
 
 Alle produktbildene er generert. Emballasjen på dem viser:
 
-- **Andre navn enn nettsiden bruker:** «Original – Salt, Pepper & Urter» og
-  «Paprika». Nettsiden bruker «Salt & Pepper» og «Paprika & Honning».
-  Navnene må samkjøres før ekte pakker trykkes og fotograferes.
+- **Paprika-pakken heter bare «Paprika»**, mens produktnavnet er «Sweet Paprika».
+  Oppdater etiketten før ekte pakker trykkes og fotograferes.
 - **Udokumenterte tall og merker:** «36 g protein», «185 kalorier»,
   «Uten tilsetningsstoffer», «Nyt Norge» og «100 % kylling – ingen tilsatt vann».
   Nettsiden skriver ikke disse i tekst (se `../README.md`).

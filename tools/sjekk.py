@@ -7,7 +7,7 @@ Sjekker
   2. Alle relative lenker/ressurser peker på filer som finnes, og #ankere finnes
   3. Alle <use href="images/figurer.svg#id"> finnes i spriten (ubrukte = advarsel)
   4. Ingen udokumenterte påstander i HTML; devModus/bekreftet er ikke slått på
-     og ingen utgåtte smaker (produktutvalget er Salt & Pepper og Paprika & Honning)
+     og ingen utgåtte smaker (produktutvalget er Original og Sweet Paprika)
   5. Per side: én <h1>, <main id="hovedinnhold">, skip-lenke, unik title/description, og:url
 
 Avslutter med kode 1 hvis noe feiler.
@@ -28,8 +28,9 @@ FORBUDT = [
     r"36\s?g", r"\b185\b", r"100\s?%", r"tilsetningsstoff", r"nyt norge",
     r"tilsatt vann",
 ]
-# Smaker som er tatt ut av sortimentet. Skal ikke stå noe sted på nettstedet.
-UTGATT = [r"brown sugar", r"smoky", r"chili", r"\blime\b", r"sitron"]
+# Smaker og navn som er tatt ut av sortimentet. Skal ikke stå noe sted på nettstedet.
+UTGATT = [r"brown sugar", r"smoky", r"chili", r"\blime\b", r"sitron", r"honning",
+          r"salt &(?:amp;)? ?pepper"]
 LIVE = "https://lattit-business.github.io/Kylling-website/"
 
 feil, advarsler = [], []

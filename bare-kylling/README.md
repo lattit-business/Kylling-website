@@ -1,7 +1,7 @@
 # Bare Kylling — nettside
 
 Statisk produktside for Bare Kylling – ferdigstekt kyllingfilet i to smaker,
-Salt & Pepper og Paprika & Honning, posisjonert som «naturens proteinbar»: et
+Original og Sweet Paprika, posisjonert som «naturens proteinbar»: et
 proteinrikt mellommåltid du tar med og spiser rett fra pakken.
 
 Ren HTML, CSS og JavaScript uten rammeverk, byggesteg eller avhengigheter.
@@ -14,7 +14,7 @@ bare-kylling/
 ├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn):
 │                       hero med nøkkeltall, problemet, sammenligning, fordeler,
 │                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
-├── smakene.html        De to smakene (ankere: #salt-pepper, #paprika-honning)
+├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
 ├── om-oss.html         Historien, hvem, slik jobber vi, status (#status)
 ├── faq.html            Spørsmål og svar
@@ -71,8 +71,8 @@ Brukes slik, hvor som helst i HTML-en:
   ikoner bruker `class="icon"` (32 px). Fargen arves fra `color` i CSS.
 - Maskot: `kylling-loper`, `kylling-titter`, `kylling-i-sekk`, `kylling-snakker`,
   `kylling-flekser`, `kylling-sover`
-- Doodles: `doodle-salt`, `doodle-pepper` (Salt & Pepper),
-  `doodle-paprika`, `doodle-honning` (Paprika & Honning)
+- Doodles: `doodle-salt`, `doodle-pepper` (Original),
+  `doodle-paprika`, `doodle-honning` (Sweet Paprika)
 - Ikoner: `ikon-riv-opp`, `ikon-kald-varm`, `ikon-hake`, `ikon-sekk`,
   `ikon-kylling`, `ikon-epost`, `ikon-bjelle`, `ikon-panne`, `ikon-oye`, `ikon-sted`
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
@@ -98,8 +98,8 @@ Alt styres fra `js/content.js`.
    ingredienser, allergener, opprinnelse, kvalitetskontroll, holdbarhet og
    oppbevaring står som plassholdere til dere fyller dem inn og setter
    `bekreftet: true`. Se tabellen under.
-2. **Samkjør navnene.** Pakkedesignet heter «Original – Salt, Pepper & Urter»
-   og «Paprika». Nettsiden bruker «Salt & Pepper» og «Paprika & Honning».
+2. **Oppdater paprika-etiketten.** Smakene heter «Original – Salt, Pepper &
+   Urter» og «Sweet Paprika», men pakkedesignet på bildene sier bare «Paprika».
 3. **Koble påmeldingsskjemaet.** `config.ventelisteEndepunkt` er satt til
    Formspree. Settes den til `null`, skjules e-postfeltet og siden sier ærlig
    at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle sider)
@@ -139,8 +139,13 @@ plassholderen ut automatisk på alle sider. Merk at `tools/sjekk.py` melder
 dokumentasjonen før publisering. Fjern den linjen i skriptet når dataene er
 kontrollert.
 
-Fast i HTML-en (ikke plassholdere): «0 min tilberedning» og «kan spises kald»
-følger av at kyllingen er ferdigstekt, og «200 g» er pakkestørrelsen.
+Fast i HTML-en (bekreftet, ikke plassholdere): kyllingen er ferdigstekt og
+trenger ingen tilberedning («0 min»), kan spises kald og kan varmes i
+mikrobølgeovn. «200 g» er pakkestørrelsen.
+
+Plassholdertekstene har bevisst en lett, leken tone («Lab-en jobber med
+saken», «Under arbeid», «Fra en kylling – så mye kan vi love»), men lover
+aldri noe som ikke er bekreftet.
 
 ## Når produktet kommer i salg
 
