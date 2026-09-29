@@ -12,7 +12,8 @@ Informasjonsside, ikke nettbutikk: ingen handlekurv, ingen bestilling.
 ```
 bare-kylling/
 ├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn):
-│                       hero med nøkkeltall, problemet, sammenligning, fordeler,
+│                       hero med nøkkeltall, rullebånd, hva du får, problemet,
+│                       sammenligning, fordeler,
 │                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
 ├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken

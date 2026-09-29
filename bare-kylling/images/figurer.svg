@@ -197,4 +197,12 @@
   <circle cx="16" cy="14" r="3.5"/>
 </symbol>
 
+<!-- Nam: fornøyd fjes med lukkede øyne og tunga ute -->
+<symbol id="ikon-nam" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="16" cy="16" r="13"/>
+  <path d="M9.5 13.5c1.2-1.8 3.3-1.8 4.5 0M18 13.5c1.2-1.8 3.3-1.8 4.5 0"/>
+  <path d="M9.5 18.5c2.6 4 10.4 4 13 0"/>
+  <path d="M18 21v1.8a1.9 1.9 0 0 0 3.8 0v-2.6"/>
+</symbol>
+
 </svg>

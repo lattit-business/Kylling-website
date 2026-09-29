@@ -496,6 +496,7 @@
          på de samme elementene virker som normalt.                          */
   var utvalg = [
     '.sec__head', '.split__media', '.split__body', '.compare__scroll', '.note',
+    '.gains__media', '.gain',
     '.benefit', '.moment', '.duo__card', '.qitem', '.decl', '.faq__list .qa', '.faq__more',
     '.launch--band .launch__copy', '.launch__mascot',
     '.media--flavor', '.flavor__inner > *',

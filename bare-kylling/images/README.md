@@ -44,7 +44,7 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | `pakke-sweet-paprika` | Sweet Paprika, enkeltpakke forfra (3:4) | «Allerede ferdig» (hvorfor.html) |
 | `farten-treningsbag` | Sweet Paprika i en treningsbag i garderoben (3:4) | «Etter trening» (forside) + «Ta den med» (hvorfor.html) |
 | `farten-skolesekk` | Original i en skolesekk ved pulten (4:5) | «På skolen» (forside) + «Når det passer deg» (hvorfor.html) |
-| `spis-rett-fra-pakken` | Ung mann biter i en kyllingfilet, oransje bakgrunn (3:4) | Stor flis «Rett fra pakken» (forside) |
+| `spis-rett-fra-pakken` | Ung mann biter i en kyllingfilet, oransje bakgrunn (3:4) | «Hva du får» med «Rett fra pakken» (forside) |
 | `spis-ute` | Kvinne biter i en kyllingfilet ute på gresset. Beskåret: stempel og rå kjøttpakke nederst er fjernet | Flis «Mellom måltider» (forside) |
 | `proteinbar-ingrediensliste` | Baksiden av en proteinbar med lang ingrediensliste (4:3) | «Problemet» (forside + hvorfor.html) |
 | `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |

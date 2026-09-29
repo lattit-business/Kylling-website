@@ -110,7 +110,7 @@ input { font: inherit; }
 }
 .sec--forest :focus-visible, .sec--ink :focus-visible, .trans :focus-visible,
 .menu :focus-visible, .ben--forest :focus-visible,
-.flavor :focus-visible, .foot :focus-visible, .duo__card :focus-visible, .topbar:focus-visible {
+.flavor :focus-visible, .foot :focus-visible, .duo__card :focus-visible, .topbar:focus-visible, .gains :focus-visible {
   outline-color: var(--honey);
 }
 
@@ -496,6 +496,57 @@ body.meny-apen .sticky-cta { display: none; }
 .split__text { margin-top: clamp(1rem, 2.4vw, 1.4rem); max-width: 44ch; color: var(--ink-soft); }
 
 /* ---------------------------------------------------------------------------
+   C2. HVA DU FÅR – bildet «Rett fra pakken» og fire grunner
+   Paprika-bakgrunn: tekst i cream (5:1), ikoner i honning (3:1, grafikk).
+   --------------------------------------------------------------------------- */
+.gains { background: var(--paprika-surface); color: var(--cream); }
+.gains__grid { display: grid; gap: clamp(2rem, 5vw, 4.5rem); align-items: center; }
+.gains__media { aspect-ratio: 4 / 5; background: #E8661E; }
+.gains__media img { object-position: 50% 28%; }
+.gains .marker { color: var(--cream); }
+.gains .lead { color: rgba(243, 240, 233, .92); max-width: 38ch; }
+.gains .lead strong {
+  color: var(--cream); font-weight: 800;
+  background-image: linear-gradient(var(--honey), var(--honey));
+  background-size: 100% .2em; background-repeat: no-repeat; background-position: 0 94%;
+}
+.gains__head { margin-bottom: clamp(1.8rem, 4vw, 2.8rem); }
+
+.gains__list { display: grid; gap: 1.6rem; }
+.gain {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 1.1rem; row-gap: .3rem;
+  align-items: start;
+}
+.gain__icon {
+  grid-row: span 2;
+  display: grid; place-items: center;
+  width: 60px; height: 60px; color: var(--honey);
+}
+.gain__icon .icon { width: 52px; height: 52px; }
+.gain__icon--fleks .figure { --fig: 66px; }
+.gain__h3 {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.45rem, 2.4vw, 1.9rem); line-height: 1; letter-spacing: -.01em;
+  align-self: end;
+}
+.gain p { color: rgba(243, 240, 233, .9); line-height: 1.45; max-width: 32ch; }
+
+/* Tidsuret: stiplet skive med en ring som tegner seg rundt «0 min» */
+.gain__timer { position: relative; }
+.gain__timer svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.gain__timer circle { fill: none; stroke: currentColor; }
+.gain__spor { stroke-width: 5; stroke-dasharray: 1.2 3.05; opacity: .45; }
+.gain__ring { stroke-width: 5; stroke-dasharray: 100; stroke-dashoffset: 0; stroke-linecap: round; }
+.gain__timer b {
+  position: relative; font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: 1.7rem; line-height: .8; color: var(--cream); margin-top: -.25rem;
+}
+.gain__timer small {
+  position: absolute; bottom: 13px; left: 0; right: 0; text-align: center;
+  font-size: .5rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--cream);
+}
+
+/* ---------------------------------------------------------------------------
    D. SAMMENLIGNING
    --------------------------------------------------------------------------- */
 .compare__scroll {
@@ -575,8 +626,6 @@ body.meny-apen .sticky-cta { display: none; }
   aspect-ratio: 4 / 5;
 }
 .moment img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.moment--big { grid-column: span 2; aspect-ratio: 1 / 1; }
-.moment--big img { object-position: 50% 30%; }
 .moment__label {
   position: absolute; left: .75rem; bottom: .75rem; z-index: 2;
   padding: .45rem .85rem;
@@ -1120,6 +1169,8 @@ body.meny-apen .sticky-cta { display: none; }
 @keyframes skimmer    { to { background-position: -200% 0; } }
 @keyframes glans      { from { transform: translateX(-130%) skewX(-20deg); } to { transform: translateX(330%) skewX(-20deg); } }
 @keyframes fyll       { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes tegn       { from { stroke-dashoffset: 100; } }
+@keyframes fleks      { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-8deg) scale(1.12); } 40% { transform: rotate(4deg) scale(1.05); } 60% { transform: rotate(-6deg) scale(1.12); } }
 
 /* Myk overgang mellom sidene (Chrome, Edge, Safari 18+; andre bytter som før) */
 @view-transition { navigation: auto; }
@@ -1200,8 +1251,8 @@ body.meny-apen .sticky-cta { display: none; }
   transition-delay: calc(var(--i, 0) * 90ms);
 }
 .anim .reveal.is-in { opacity: 1; transform: none; }
-.anim .media--flavor.reveal img, .anim .split__media.reveal img { transform: scale(1.08); transition: transform 1.4s var(--ease-ut); }
-.anim .media--flavor.is-in img, .anim .split__media.is-in img { transform: none; }
+.anim .media--flavor.reveal img, .anim .split__media.reveal img, .anim .gains__media.reveal img { transform: scale(1.08); transition: transform 1.4s var(--ease-ut); }
+.anim .media--flavor.is-in img, .anim .split__media.is-in img, .anim .gains__media.is-in img { transform: none; }
 /* Små «pop» når ting kommer til syne – virker på mobil også */
 .anim .moment--text.is-in .figure            { animation: lop .45s ease-in-out 3; }
 .anim .launch__mascot.is-in .bubble          { animation: boble .6s var(--ease-sprett) .25s both; }
@@ -1210,6 +1261,11 @@ body.meny-apen .sticky-cta { display: none; }
 .anim .moment.is-in .moment__label           { animation: pop .6s var(--ease-sprett) .35s both; }
 .anim .duo__card.is-in .duo__num             { animation: pop .6s var(--ease-sprett) .3s both; }
 .anim .step.is-in .step__num                 { animation: pop .6s var(--ease-sprett) .15s both; }
+.anim .gains__media.is-in .moment__label     { animation: pop .6s var(--ease-sprett) .45s both; }
+.anim .gain.is-in .gain__icon                { animation: pop .65s var(--ease-sprett) .2s both; }
+.anim .gain.is-in .gain__icon--fleks .figure { animation: fleks 1s var(--ease) .75s both; }
+.anim .gain.is-in .gain__ring                { animation: tegn 1.3s var(--ease-ut) .45s both; }
+.anim .gain.is-in .gain__timer b             { animation: pop .5s var(--ease-sprett) 1.3s both; }
 .anim .flavor__inner > .chips.is-in li       { animation: pop .5s var(--ease-sprett) .1s both; }
 .anim .flavor__inner > .chips.is-in li:nth-child(2) { animation-delay: .18s; }
 .anim .flavor__inner > .chips.is-in li:nth-child(3) { animation-delay: .26s; }
@@ -1293,6 +1349,9 @@ body.meny-apen .sticky-cta { display: none; }
   .foot__mark:hover .foot__icon { animation: nikk .7s var(--ease) both; }
   .chips li { transition: background-color .2s var(--ease), color .2s var(--ease); }
   .qitem:hover .qitem__icon { animation: vipp .6s var(--ease) both; }
+  .gain:hover .gain__icon .icon { animation: vipp .6s var(--ease) both; }
+  .gain:hover .gain__icon--fleks .figure { animation: fleks .9s var(--ease) both; }
+  .gain:hover .gain__ring { animation: tegn 1s var(--ease-ut) both; }
   .jump a:hover .dot { transform: scale(1.4); }
   .jump .dot { transition: transform .25s var(--ease-sprett); }
   .sticker:hover > svg { animation-duration: 6s; }
@@ -1303,7 +1362,10 @@ body.meny-apen .sticky-cta { display: none; }
   .benefit, .duo__card, .moment, .btn { transition: transform .2s var(--ease-ut), background-color .2s var(--ease); }
   .benefit:active, .duo__card:active, .moment:active { transform: scale(.975); }
   .btn:not(.btn--ghost):active { transform: scale(.96); }
-  .benefit:active .benefit__icon .icon, .qitem:active .qitem__icon { animation: vipp .6s var(--ease) both; }
+  .benefit:active .benefit__icon .icon, .qitem:active .qitem__icon,
+  .gain:active .gain__icon .icon { animation: vipp .6s var(--ease) both; }
+  .gain:active .gain__icon--fleks .figure { animation: fleks .9s var(--ease) both; }
+  .gain:active .gain__ring { animation: tegn 1s var(--ease-ut) both; }
 }
 
 /* Hoppet kommer etter hover-reglene, så det vinner mens det pågår */
@@ -1317,13 +1379,16 @@ body.meny-apen .sticky-cta { display: none; }
 .anim--myk .launch__mascot.is-in .bubble, .anim--myk .flavor__inner > .doodles.is-in .figure,
 .anim--myk .moment.is-in .moment__label, .anim--myk .duo__card.is-in .duo__num,
 .anim--myk .flavor__inner > .chips.is-in li, .anim--myk .step.is-in .step__num,
-.anim--myk .bubble.ny, .anim--myk .form__done { animation-name: inn; }
+.anim--myk .bubble.ny, .anim--myk .form__done,
+.anim--myk .gains__media.is-in .moment__label, .anim--myk .gain.is-in .gain__icon,
+.anim--myk .gain.is-in .gain__timer b { animation-name: inn; }
+.anim--myk .gain.is-in .gain__icon--fleks .figure, .anim--myk .gain.is-in .gain__ring { animation: none; }
 .anim--myk .hero__media, .anim--myk .launch__cutout, .anim--myk .oops .figure,
 .anim--myk .moment--text.is-in .figure, .anim--myk .benefit.is-in .benefit__icon .icon,
 .anim--myk .qitem.is-in .qitem__icon, .anim--myk .mascot__knapp.hopp .figure { animation: none; }
 .anim--myk .stat__v.is-pending .stat__num { animation: none; background: none; color: inherit; }
 .anim--myk .reveal { transform: none; }
-.anim--myk .media--flavor.reveal img, .anim--myk .split__media.reveal img { transform: none; }
+.anim--myk .media--flavor.reveal img, .anim--myk .split__media.reveal img, .anim--myk .gains__media.reveal img { transform: none; }
 
 /* Ved utskrift skal alt vises */
 @media print {
@@ -1338,6 +1403,9 @@ body.meny-apen .sticky-cta { display: none; }
 }
 
 @media (min-width: 560px) {
+  .gains__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.2rem 2rem; }
+  .gain { grid-template-columns: 1fr; row-gap: .55rem; }
+  .gain__icon { grid-row: auto; margin-bottom: .35rem; }
   .form__row { grid-template-columns: minmax(0, 1fr) auto; }
   .values { grid-template-columns: repeat(3, 1fr); }
   .benefits__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1393,7 +1461,8 @@ body.meny-apen .sticky-cta { display: none; }
   .benefits__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   .onthego__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .moment--big { grid-column: 1 / 3; grid-row: 1 / 3; aspect-ratio: auto; }
+  .gains__grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
+  .gains__media { aspect-ratio: 3 / 4; }
 
   .launch__inner { grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); }
   .launch__mascot { justify-self: end; }
@@ -1448,5 +1517,7 @@ body.meny-apen .sticky-cta { display: none; }
   .btn--ink:hover::after, .btn--honey:hover::after, .benefit:hover .benefit__icon .icon,
   .benefit:active .benefit__icon .icon, .qitem:hover .qitem__icon, .qitem:active .qitem__icon,
   .mascot:hover .figure, .wordmark:hover .wordmark__icon, .foot__mark:hover .foot__icon,
-  .moment--text:hover .figure { animation: none !important; }
+  .moment--text:hover .figure, .gain:hover .gain__icon .icon, .gain:active .gain__icon .icon,
+  .gain:hover .gain__icon--fleks .figure, .gain:active .gain__icon--fleks .figure,
+  .gain:hover .gain__ring, .gain:active .gain__ring { animation: none !important; }
 }
