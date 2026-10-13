@@ -136,6 +136,7 @@
       var past = y > hero.offsetTop + hero.offsetHeight * 0.85;
       var atEnd = y + window.innerHeight > document.body.scrollHeight - 320;
       sticky.classList.toggle('is-on', past && !atEnd && !iLansering);
+      if (past && !sticky.classList.contains('vrikk')) { sticky.classList.add('vrikk'); }
     }
     onScrollNav();
   }
@@ -262,7 +263,7 @@
       var ing = s.ingredienser || {};
       var art = el('article', 'ing');
       var h = el('h3', 'ing__navn');
-      h.appendChild(el('span', 'dot dot--' + (key === 'original' ? 'salt' : 'paprika')));
+      h.appendChild(el('span', 'dot dot--' + (key === 'original' ? 'original' : 'paprika')));
       h.appendChild(document.createTextNode(s.navn));
       art.appendChild(h);
 
@@ -468,6 +469,296 @@
   });
 
   /* ---------------------------------------------------------------------------
+     4d. PIKSELSMULER – en liten sky av pikselruter (f.eks. når noen trykker på
+         en knapp eller finner Bare Kylling i sekken). Bare pynt: hoppes over
+         ved redusert bevegelse eller i nettlesere uten Web Animations.
+     --------------------------------------------------------------------------- */
+  function kanBevege() {
+    var h = document.documentElement;
+    return h.classList.contains('anim') && !h.classList.contains('anim--myk') && !!Element.prototype.animate;
+  }
+
+  function piksler(x, y, antall, farger) {
+    if (!kanBevege()) { return; }
+    farger = farger || ['#F1B240', '#11110F', '#D99A26', '#FAF8F3'];
+    var boks = el('div', 'konfetti');
+    boks.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(boks);
+    for (var i = 0; i < (antall || 10); i++) {
+      var bit = el('i', 'piksel');
+      var str = 4 + (i % 3) * 2;
+      bit.style.width = str + 'px';
+      bit.style.height = str + 'px';
+      bit.style.background = farger[i % farger.length];
+      boks.appendChild(bit);
+      var v = Math.random() * Math.PI * 2, d = 24 + Math.random() * 34;
+      bit.animate([
+        { transform: 'translate(' + x + 'px,' + y + 'px)', opacity: 1 },
+        { transform: 'translate(' + (x + Math.cos(v) * d) + 'px,' + (y + Math.sin(v) * d - 12) + 'px)', opacity: 1, offset: 0.6 },
+        { transform: 'translate(' + (x + Math.cos(v) * d * 1.15) + 'px,' + (y + Math.sin(v) * d + 20) + 'px)', opacity: 0 }
+      ], { duration: 520 + Math.random() * 260, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' });
+    }
+    window.setTimeout(function () { boks.remove(); }, 900);
+  }
+
+  /* ---------------------------------------------------------------------------
+     4e. BRYTEREN i «Problemet» – to faner (role="tab") som ser ut som én
+         bryter: «Snu pakken» og «Hva er i sekken?». Begge visningene ligger i
+         samme rute (se C3 i css), så høyden står stille når man bytter.
+         .er-klar settes først når alt er koblet opp – uten JavaScript står
+         begge visningene under hverandre, og bryteren er skjult.
+     --------------------------------------------------------------------------- */
+  var velgVisning = function () {};
+  var bryter = $('.bryter');
+  var scene = $('.scene');
+  if (bryter && scene) {
+    var faner = $$('[role="tab"]', bryter);
+    var visninger = faner.map(function (f) { return document.getElementById(f.getAttribute('aria-controls')); });
+    var valgt = 0;
+
+    velgVisning = function (i, fokus) {
+      var fra = valgt;
+      valgt = i;
+      faner.forEach(function (f, n) {
+        var paa = n === i;
+        f.setAttribute('aria-selected', String(paa));
+        f.tabIndex = paa ? 0 : -1;
+        visninger[n].classList.toggle('er-valgt', paa);
+        if (paa) { visninger[n].removeAttribute('inert'); } else { visninger[n].setAttribute('inert', ''); }
+      });
+      bryter.setAttribute('data-valgt', String(i));
+      if (i !== fra) {
+        /* kyllingen på knotten ser dit den skal, og hopper */
+        bryter.classList.toggle('mot-venstre', i < fra);
+        bryter.classList.remove('hopp'); void bryter.offsetWidth; bryter.classList.add('hopp');
+      }
+      if (fokus) { faner[i].focus(); }
+    };
+
+    faner.forEach(function (f, n) {
+      f.addEventListener('click', function () { velgVisning(n); });
+      f.addEventListener('keydown', function (e) {
+        var maal = { ArrowRight: n + 1, ArrowLeft: n - 1, Home: 0, End: faner.length - 1 }[e.key];
+        if (maal === undefined) { return; }
+        e.preventDefault();
+        velgVisning((maal + faner.length) % faner.length, true);
+      });
+    });
+    bryter.hidden = false;
+    velgVisning(0);
+    scene.classList.add('er-klar');
+  }
+
+  /* Visning 1: snu pakken – knappen og selve pakken snur den */
+  $$('.snu').forEach(function (snu) {
+    var knapp = $('.snu__knapp', snu);
+    var kort = $('.snu__kort', snu);
+    var tekst = $('.snu__tekst', snu);
+    var ord = $('.snu__ord', snu);
+    if (!knapp || !kort) { return; }
+    function snuPakken() {
+      var snudd = !snu.classList.contains('er-snudd');
+      snu.classList.toggle('er-snudd', snudd);
+      knapp.setAttribute('aria-pressed', String(snudd));
+      if (ord) { ord.textContent = snudd ? 'Snu tilbake' : 'Snu pakken'; }
+      if (tekst) { tekst.textContent = snudd ? 'Baksiden av Bare Kylling.' : 'Baksiden av en proteinbar.'; }
+      if (snudd) {
+        window.setTimeout(function () {
+          var r = kort.getBoundingClientRect();
+          piksler(r.left + r.width * 0.8, r.top + r.height * 0.22, 12);
+        }, 750);
+      }
+    }
+    knapp.hidden = false;
+    knapp.addEventListener('click', snuPakken);
+    kort.addEventListener('click', snuPakken);
+    snu.classList.add('er-klar');
+  });
+
+  /* Visning 2: hva er i sekken? – tingen løftes opp, dommen står i boblen */
+  var domBoble = $('[data-dom-boble]');
+  var ting = $$('.ting');
+  ting.forEach(function (t) {
+    t.addEventListener('click', function () {
+      ting.forEach(function (x) {
+        var paa = x === t;
+        x.classList.toggle('er-oppe', paa);
+        x.setAttribute('aria-pressed', String(paa));
+      });
+      if (!domBoble) { return; }
+      domBoble.textContent = '';
+      domBoble.appendChild(el('b', null, t.getAttribute('data-navn') + ':'));
+      domBoble.appendChild(document.createTextNode(' ' + t.getAttribute('data-dom')));
+      /* Proteinbaren: «Snu den» tar deg til den andre visningen og snur den */
+      if (t.getAttribute('data-lenke') === 'pakke' && bryter) {
+        var lenke = el('button', 'sekk__lenke', 'Snu den →');
+        lenke.type = 'button';
+        lenke.addEventListener('click', function () {
+          velgVisning(0, true);
+          var snu = $('.snu');
+          if (snu && !snu.classList.contains('er-snudd')) { $('.snu__knapp', snu).click(); }
+        });
+        domBoble.appendChild(document.createTextNode(' '));
+        domBoble.appendChild(lenke);
+      }
+      domBoble.classList.remove('ny'); void domBoble.offsetWidth; domBoble.classList.add('ny');
+      if (t.hasAttribute('data-feir')) {
+        var r = t.getBoundingClientRect();
+        piksler(r.left + r.width / 2, r.top + 8, 14);
+      }
+    });
+  });
+
+  /* ---------------------------------------------------------------------------
+     4f. EN DAG SOM GÅR FORT (Fordeler)
+         Fra 768 px: hvor langt du har dratt i sporet, er tiden på dagen. Den
+         styrer himmelen (--himmel, --p, --bue, .er-kveld, .er-natt), hvilket
+         stopp som er aktivt, og telleren. Pilene og musa flytter ett stopp.
+         Mobil: stoppet som passerer midten av skjermen er «nå», og merket øverst
+         viser tiden på dagen (morgen … kveld) med sol eller måne. Uten JavaScript er tidslinjen bare en vanlig liste.
+     --------------------------------------------------------------------------- */
+  var dag = $('.dag');
+  if (dag) {
+    var spor = $('.dag__spor', dag);
+    var stopp = $$('.stop', dag);
+    var styr = $('.dag__styr', dag);
+    var piler = $$('.dag__pil', dag);
+    var nrEl = $('[data-dag-nr]', dag);
+    var delEl = $('[data-dag-del]', dag);
+    var bred = window.matchMedia('(min-width: 768px)');
+    var aktiv = -1;
+    /* Himmelen gjennom dagen: daggry → formiddag → middag → ettermiddag → solnedgang → kveld */
+    var himmel = [[0, [248, 235, 200]], [0.2, [246, 215, 142]], [0.45, [241, 178, 64]],
+                  [0.65, [217, 154, 38]], [0.82, [168, 73, 42]], [1, [36, 55, 29]]];
+
+    var blandet = function (p) {
+      for (var i = 1; i < himmel.length; i++) {
+        if (p <= himmel[i][0]) {
+          var a = himmel[i - 1], b = himmel[i], t = (p - a[0]) / (b[0] - a[0]);
+          return 'rgb(' + a[1].map(function (c, k) { return Math.round(c + (b[1][k] - c) * t); }).join(',') + ')';
+        }
+      }
+      return 'rgb(36,55,29)';
+    };
+
+    var settDag = function (p, i) {
+      dag.style.setProperty('--p', p.toFixed(4));
+      dag.style.setProperty('--bue', Math.sin(p * Math.PI).toFixed(4));
+      dag.style.setProperty('--himmel', blandet(p));
+      dag.classList.toggle('er-kveld', p > 0.78);
+      dag.classList.toggle('er-natt', p > 0.93);
+      if (i === aktiv || !stopp[i]) { return; }
+      if (stopp[aktiv]) { stopp[aktiv].classList.remove('er-aktiv'); }
+      aktiv = i;
+      stopp[i].classList.add('er-aktiv');
+      if (nrEl) { nrEl.textContent = String(i + 1); }
+      if (delEl) { delEl.textContent = stopp[i].getAttribute('data-del'); }
+      if (piler.length === 2) {
+        piler[0].disabled = i === 0;
+        piler[1].disabled = i === stopp.length - 1;
+      }
+    };
+
+    var steg = function () {
+      return stopp.length > 1 ? stopp[1].offsetLeft - stopp[0].offsetLeft : spor.clientWidth;
+    };
+
+    var ramme = 0;
+    var lesSpor = function () {
+      ramme = 0;
+      if (!bred.matches) { return; }
+      var maks = steg() * (stopp.length - 1);
+      var p = maks > 0 ? Math.min(1, Math.max(0, spor.scrollLeft / maks)) : 0;
+      settDag(p, Math.round(p * (stopp.length - 1)));
+    };
+    spor.addEventListener('scroll', function () {
+      if (!ramme) { ramme = requestAnimationFrame(lesSpor); }
+    }, { passive: true });
+
+    piler.forEach(function (pil) {
+      pil.addEventListener('click', function () {
+        var maal = Math.max(0, Math.min(stopp.length - 1, aktiv + Number(pil.getAttribute('data-retning'))));
+        spor.scrollTo({ left: maal * steg(), behavior: lite ? 'auto' : 'smooth' });
+      });
+    });
+
+    /* Dra med musa (berøring og styreflate scroller som vanlig) */
+    var drar = null;
+    spor.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0 || !bred.matches) { return; }
+      drar = { x: e.clientX, start: spor.scrollLeft, flyttet: false };
+    });
+    window.addEventListener('pointermove', function (e) {
+      if (!drar) { return; }
+      var dx = e.clientX - drar.x;
+      if (!drar.flyttet && Math.abs(dx) > 4) { drar.flyttet = true; spor.classList.add('drar'); }
+      if (drar.flyttet) { spor.scrollLeft = drar.start - dx; }
+    });
+    window.addEventListener('pointerup', function () {
+      if (!drar) { return; }
+      var flyttet = drar.flyttet;
+      drar = null;
+      if (!flyttet) { return; }
+      spor.classList.remove('drar');
+      spor.scrollTo({ left: Math.round(spor.scrollLeft / steg()) * steg(), behavior: lite ? 'auto' : 'smooth' });
+    });
+
+    /* Mobil: det stoppet som krysser midten av skjermen, er «nå» */
+    if ('IntersectionObserver' in window) {
+      var midten = new IntersectionObserver(function (oppf) {
+        if (bred.matches) { return; }
+        oppf.forEach(function (o) {
+          if (!o.isIntersecting) { return; }
+          var i = stopp.indexOf(o.target);
+          settDag(stopp.length > 1 ? i / (stopp.length - 1) : 0, i);
+        });
+      }, { rootMargin: '-45% 0px -50% 0px' });
+      stopp.forEach(function (st) { midten.observe(st); });
+    }
+
+    var byttModus = function () { if (bred.matches) { lesSpor(); } };
+    if (bred.addEventListener) { bred.addEventListener('change', byttModus); } else { bred.addListener(byttModus); }
+    if (styr) { styr.hidden = false; }
+    settDag(0, 0);
+  }
+
+  /* ---------------------------------------------------------------------------
+     4g. SMÅ DETALJER
+         – Fylte knapper drysser noen pikselsmuler der du trykker.
+         – Kyllingen i bunnen hopper når du trykker på den, og etter fem trykk
+           legger den et egg. (Den har tross alt svart på FAQ-spørsmålet.)
+     --------------------------------------------------------------------------- */
+  document.addEventListener('click', function (e) {
+    var knapp = e.target.closest && e.target.closest('.btn--ink, .btn--honey, .sticky-cta');
+    if (!knapp) { return; }
+    var x = e.clientX, y = e.clientY;
+    if (!e.detail) {                     /* tastatur: midt på knappen */
+      var r = knapp.getBoundingClientRect();
+      x = r.left + r.width / 2; y = r.top + r.height / 2;
+    }
+    piksler(x, y, 9);
+  });
+
+  var fotMerke = $('.foot__mark');
+  if (fotMerke) {
+    var klukk = 0, klukkTid = 0, harEgg = false;
+    fotMerke.addEventListener('click', function () {
+      fotMerke.classList.remove('klukk'); void fotMerke.offsetWidth; fotMerke.classList.add('klukk');
+      klukk += 1;
+      window.clearTimeout(klukkTid);
+      klukkTid = window.setTimeout(function () { klukk = 0; }, 2500);
+      if (klukk < 5 || harEgg) { return; }
+      klukk = 0;
+      harEgg = true;
+      var egg = el('span', 'egg');
+      var boble = el('p', 'bubble egg__boble ny', 'Kyllingen kom først.');
+      fotMerke.appendChild(egg);
+      fotMerke.appendChild(boble);
+      window.setTimeout(function () { egg.remove(); boble.remove(); harEgg = false; }, 3800);
+    });
+  }
+
+  /* ---------------------------------------------------------------------------
      5. ANIMASJONER
      Klassen .anim settes på <html> av et lite skript i <head> (felles
      hode-blokk) når nettleseren støtter IntersectionObserver og brukeren ikke
@@ -497,7 +788,7 @@
   var utvalg = [
     '.sec__head', '.split__media', '.split__body', '.compare__scroll', '.note',
     '.gains__media', '.gain',
-    '.benefit', '.moment', '.duo__card', '.qitem', '.decl', '.faq__list .qa', '.faq__more',
+    '.problem__head', '.scene', '.problem__slutt', '.dag__head', '.stop', '.moment', '.duo__card', '.qitem', '.decl', '.faq__list .qa', '.faq__more',
     '.launch--band .launch__copy', '.launch__mascot',
     '.media--flavor', '.flavor__inner > *',
     '.ben__body', '.media--ben', '.trans__lists', '.trans__stamp', '.trans__more',
@@ -570,6 +861,40 @@
       });
     });
     heroFlate.addEventListener('pointerleave', function () { vippe.style.transform = ''; });
+  }
+
+  /* 5e. Kyllingen i CTA-båndet lener seg mot musepekeren, og smakskortene
+         vipper litt mot den (bare mus, og ikke ved redusert bevegelse)       */
+  if (!myk && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    var band = $('.launch--band');
+    var maskot = $('.launch__mascot .mascot__knapp');
+    if (band && maskot) {
+      var lenRamme = 0, lenX = 0;
+      band.addEventListener('pointermove', function (e) {
+        var r = maskot.getBoundingClientRect();
+        lenX = (e.clientX - (r.left + r.width / 2)) / 40;
+        if (lenRamme) { return; }
+        lenRamme = requestAnimationFrame(function () {
+          lenRamme = 0;
+          maskot.style.transform = 'rotate(' + Math.max(-9, Math.min(9, lenX)).toFixed(1) + 'deg)';
+        });
+      });
+      band.addEventListener('pointerleave', function () { maskot.style.transform = ''; });
+    }
+    $$('.duo__card').forEach(function (kort) {
+      var kRamme = 0, kx = 0, ky = 0;
+      kort.addEventListener('pointermove', function (e) {
+        var r = kort.getBoundingClientRect();
+        kx = (e.clientX - r.left) / r.width - 0.5;
+        ky = (e.clientY - r.top) / r.height - 0.5;
+        if (kRamme) { return; }
+        kRamme = requestAnimationFrame(function () {
+          kRamme = 0;
+          kort.style.transform = 'perspective(1000px) translateY(-6px) rotateX(' + (-ky * 4).toFixed(2) + 'deg) rotateY(' + (kx * 5).toFixed(2) + 'deg)';
+        });
+      });
+      kort.addEventListener('pointerleave', function () { kort.style.transform = ''; });
+    });
   }
 
   /* 5c. Bilder som lastes lat, toner inn i stedet for å dukke opp brått */

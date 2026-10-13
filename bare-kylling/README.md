@@ -12,8 +12,9 @@ Informasjonsside, ikke nettbutikk: ingen handlekurv, ingen bestilling.
 ```
 bare-kylling/
 ├── index.html          Forside (kanonisk kilde for felles topp/CTA/bunn):
-│                       hero med nøkkeltall, rullebånd, hva du får, problemet,
-│                       sammenligning, fordeler,
+│                       hero med nøkkeltall, rullebånd, hva du får, problemet
+│                       (bryter: snu pakken / hva er i sekken?), sammenligning,
+│                       en dag som går fort (tidslinje med fordelene),
 │                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
 ├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
@@ -74,8 +75,10 @@ Brukes slik, hvor som helst i HTML-en:
   `kylling-flekser`, `kylling-sover`
 - Doodles: `doodle-salt`, `doodle-pepper` (Original),
   `doodle-paprika`, `doodle-honning` (Sweet Paprika)
-- Ikoner: `ikon-riv-opp`, `ikon-kald-varm`, `ikon-hake`, `ikon-sekk`,
-  `ikon-kylling`, `ikon-epost`, `ikon-bjelle`, `ikon-panne`, `ikon-oye`, `ikon-sted`
+- Ikoner: `ikon-riv-opp`, `ikon-hake`, `ikon-kylling`, `ikon-epost`,
+  `ikon-bjelle`, `ikon-panne`, `ikon-sted`, `ikon-nam`
+- Sekken og tingene i «Problemet» (bar, shake, pulver, Bare Kylling-pakken) og
+  pikselkyllingen i footeren er tegnet direkte i HTML/CSS, ikke i spriten.
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
   (`mascot--rev` speilvendt, `mascot--stack` boble over figur). Boblen er ekte
   tekst; figuren er `aria-hidden`.
@@ -90,6 +93,27 @@ med samme strek-attributter som naboene, og referer til den med `<use>`.
 Merk: `<use>` mot en ekstern fil krever at siden serveres over `http://`.
 Åpner du HTML-filene direkte fra disk (`file://`), vises ikke figurene i
 Chrome. Bruk `python3 -m http.server` (se rot-README).
+
+## De to interaktive seksjonene på forsiden
+
+**Problemet** (`#problemet`). En bryter (to faner, `role="tab"`) veksler mellom
+to visninger av samme poeng:
+
+- *Snu pakken*: baksiden av en proteinbar snus, og på baksiden står vår etikett
+  («Kyllingfilet og krydder.»). Knappen og selve pakken snur den.
+- *Hva er i sekken?*: bar, shake, pulver og Bare Kylling er knapper. Trykk, så
+  løftes tingen opp og en kort dom står i boblen (`data-dom` i HTML-en).
+
+Konklusjonen («Ekte mat. Ekte protein.») står alltid synlig under. Uten
+JavaScript står begge visningene under hverandre, uten bryter. Se «4e» i
+`js/main.js` og «C3» i `css/style.css`.
+
+**En dag som går fort** (`#fordeler`). De seks fordelene på en tidslinje fra
+morgen til kveld, hver med sin maskot. Fra 768 px er det et vannrett spor du kan
+dra i (eller bruke pilene / piltastene), under en himmel som går fra morgen til
+natt med sol, måne, pikselskyer og stjerner. På mobil er tidslinjen loddrett, og
+et merke øverst viser tiden på dagen. Klokkeslettene er bare eksempler. Se «4f»
+i `js/main.js` og «E» i `css/style.css`.
 
 ## Før lansering — sjekkliste
 
@@ -179,6 +203,12 @@ aldri noe som ikke er bekreftet.
   Kyllingen i CTA-båndet hopper og sier noe nytt når du trykker på den, og
   det kommer konfetti når noen melder seg på. Kort og knapper reagerer på
   hover (mus) og trykk (mobil). Sidene glir over i hverandre.
+- Små detaljer (se «Små detaljer» i `css/style.css` og «4g/5e» i `js/main.js`):
+  fylte knapper fjærer når du trykker og drysser noen pikselsmuler, logoen
+  blunker av og til, kyllingen i CTA-båndet lener seg mot musepekeren,
+  smakskortene vipper litt, den faste mobilknappen vrikker første gang den
+  dukker opp, og en liten pikselkylling går en tur langs kanten av footeren
+  innimellom. Trykk fem ganger på kyllingen i footeren, så legger den et egg.
 - Alt er pynt: klassen `.anim` settes i `<head>`. Har brukeren «redusert
   bevegelse» på, settes også `.anim--myk`, og da blir alt myke toninger uten
   forflytning, uten evig bevegelse og uten konfetti. Innhold som allerede

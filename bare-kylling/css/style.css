@@ -549,6 +549,190 @@ body.meny-apen .sticky-cta { display: none; }
 }
 
 /* ---------------------------------------------------------------------------
+   C3. PROBLEMET – bryteren
+   Én bryter, to visninger av samme poeng: «Snu pakken» (et kort som snus)
+   og «Hva er i sekken?» (tingene er knapper). Gjenstandene står rett på
+   bordet – ingen kort rundt, bare en myk skygge under. main.js setter
+   .er-klar når alt er koblet opp; før det (og uten JavaScript) står begge
+   visningene under hverandre, uten bryter, og pakken viser begge sider.
+   --------------------------------------------------------------------------- */
+.problem__head { display: grid; gap: clamp(1rem, 2.4vw, 1.5rem); margin-bottom: clamp(2.2rem, 5vw, 3.4rem); }
+.problem__head .display { max-width: 15ch; }
+.problem__head .lead { max-width: 40ch; }
+
+/* Bryteren: et svart spor med en honningknott som fjærer fra side til side.
+   Kyllingen sitter på knotten og blir med (og ser dit den skal). */
+.problem__bryter { display: flex; justify-content: center; margin-bottom: clamp(2.4rem, 5vw, 3.4rem); padding-top: 1.4rem; }
+.bryter {
+  position: relative; isolation: isolate;
+  display: inline-grid; grid-template-columns: 1fr 1fr;
+  padding: 6px; border-radius: var(--pill);
+  background: var(--ink); color: var(--cream);
+  box-shadow: inset 0 2px 0 rgba(250, 248, 243, .1), 0 12px 24px -18px rgba(17, 17, 15, .7);
+}
+.bryter__valg {
+  position: relative; z-index: 1;
+  min-height: 50px; padding: .6rem clamp(.85rem, 2.6vw, 1.6rem);
+  border-radius: var(--pill);
+  font-weight: 800; font-size: clamp(.88rem, 1.1vw, 1rem); white-space: nowrap;
+  transition: color .3s var(--ease);
+}
+.bryter__valg[aria-selected="true"] { color: var(--ink); }
+.bryter__valg[aria-selected="false"]:hover { color: var(--honey); }
+.bryter__valg:focus-visible { outline-color: var(--honey); outline-offset: 3px; }
+.bryter__knott {
+  position: absolute; z-index: 0; top: 6px; bottom: 6px; left: 6px; width: calc(50% - 6px);
+  border-radius: var(--pill); background: var(--honey);
+  box-shadow: inset 0 -3px 0 var(--honey-deep), inset 0 2px 0 rgba(255, 255, 255, .35);
+  transition: transform .6s var(--ease-sprett);
+}
+.bryter[data-valgt="1"] .bryter__knott { transform: translateX(100%); }
+.bryter__kylling {
+  position: absolute; left: 50%; top: -33px; width: 38px; height: 38px; margin-left: -19px;
+  color: var(--ink); transition: scale .35s var(--ease);
+}
+.bryter.mot-venstre .bryter__kylling { scale: -1 1; }
+
+/* Scenen: begge visningene ligger i samme rute, så høyden står stille når
+   man bytter. Den som ikke er valgt, er usynlig og kan ikke fokuseres. */
+.scene { display: grid; align-items: start; }
+.scene__vis + .scene__vis { margin-top: clamp(3rem, 7vw, 4.5rem); }
+.scene.er-klar .scene__vis { grid-area: 1 / 1; margin-top: 0; transition: opacity .35s var(--ease), transform .45s var(--ease-ut); }
+.scene.er-klar .scene__vis:not(.er-valgt) { visibility: hidden; opacity: 0; transform: translateY(14px); pointer-events: none; }
+
+/* Visning 1 – snu pakken */
+.snu { display: grid; justify-items: center; gap: clamp(1.2rem, 3vw, 1.6rem); }
+.snu__kort { position: relative; width: min(100%, 620px); }
+.snu__kort::after {
+  content: ''; position: absolute; z-index: -1; left: 10%; right: 10%; bottom: -26px; height: 30px;
+  background: radial-gradient(closest-side, rgba(17, 17, 15, .2), transparent);
+}
+.snu__side { margin: 0; border-radius: var(--r); overflow: hidden; }
+.snu__side--for { aspect-ratio: 4 / 3; background: var(--beige); }
+.snu__side--for img { width: 100%; height: 100%; object-fit: cover; }
+.snu__side--bak { position: relative; margin-top: 1.2rem; }
+
+.snu.er-klar .snu__kort { aspect-ratio: 4 / 3; perspective: 1600px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.snu.er-klar .snu__flate { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 1s var(--ease-sprett); }
+.snu.er-klar .snu__side { position: absolute; inset: 0; margin: 0; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.snu.er-klar .snu__side--bak { transform: rotateY(180deg); }
+.snu.er-klar.er-snudd .snu__flate { transform: rotateY(180deg); }
+/* Et brettet hjørne som frister til å snu */
+.snu.er-klar .snu__side--for::after {
+  content: ''; position: absolute; right: 0; bottom: 0; width: 44px; height: 44px;
+  background: linear-gradient(to top left, var(--cream) 0 50%, #F6C25E 50% 100%);
+  border-top-left-radius: 8px; box-shadow: -3px -3px 6px rgba(17, 17, 15, .18);
+  transition: width .3s var(--ease-sprett), height .3s var(--ease-sprett);
+}
+
+/* Baksiden: vår etikett, med sveisede ender som på baren */
+.etikett {
+  position: relative; height: 100%; min-height: 15rem;
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: clamp(1.1rem, 3.4vw, 2rem) clamp(2.2rem, 7vw, 3.8rem) calc(clamp(2.8rem, 6vw, 3.6rem) + 1rem);
+  background: var(--cream-hi); color: var(--ink);
+}
+.etikett::before, .etikett::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: clamp(14px, 3vw, 22px);
+  background: repeating-linear-gradient(180deg, #E2DACB 0 3px, #F4F0E7 3px 6px);
+}
+.etikett::before { left: 0; } .etikett::after { right: 0; }
+.etikett__merke { display: flex; align-items: center; gap: .55rem; }
+.etikett__merke svg { width: clamp(34px, 6vw, 46px); color: var(--forest); flex: none; }
+.etikett__ord { display: flex; flex-direction: column; line-height: .82; }
+.etikett__bare { font-family: var(--display); font-weight: 900; font-size: clamp(1.5rem, 3.6vw, 2.2rem); letter-spacing: -.045em; }
+.etikett__kylling { font-family: var(--display); font-weight: 600; font-size: clamp(.6rem, 1.2vw, .72rem); text-transform: uppercase; letter-spacing: .36em; margin-top: .2rem; }
+.etikett__k {
+  margin-top: clamp(.9rem, 3vw, 1.6rem);
+  font-size: var(--fs-label); font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--paprika-deep);
+}
+.etikett__v {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(2rem, 6vw, 3.5rem); line-height: .95; letter-spacing: -.02em;
+  max-width: 11ch; margin-top: .25rem;
+}
+.etikett__fin { margin-top: .7rem; font-size: clamp(.72rem, 1.4vw, .82rem); line-height: 1.4; color: var(--ink-soft); max-width: 34ch; }
+.etikett__band {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: clamp(.7rem, 1.8vw, .95rem) clamp(2.2rem, 7vw, 3.8rem);
+  background: var(--forest); color: var(--cream);
+  font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
+  font-size: clamp(1rem, 2.4vw, 1.4rem); text-transform: uppercase; letter-spacing: .02em; line-height: 1;
+}
+.etikett__stempel {
+  position: absolute; right: 9%; top: 11%;
+  width: clamp(68px, 14vw, 98px); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center; text-align: center;
+  background: var(--honey); color: var(--ink);
+  font-family: var(--display); font-weight: 900; font-stretch: 75%;
+  font-size: clamp(1.05rem, 2.6vw, 1.5rem); line-height: .85; text-transform: uppercase;
+  box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 5px var(--honey), inset 0 0 0 6.5px var(--ink);
+  transform: rotate(-12deg);
+}
+
+.snu__under { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .8rem 1.4rem; }
+.snu__tekst { font-weight: 700; color: var(--ink-soft); }
+.snu__ikon { display: inline-block; font-size: 1.15em; line-height: 1; transition: transform .6s var(--ease-sprett); }
+.snu.er-snudd .snu__ikon { transform: rotate(-360deg); }
+
+/* Visning 2 – hva er i sekken? */
+.sekk { display: grid; justify-items: center; gap: 1.6rem; }
+.sekk__figur { position: relative; width: min(100%, 440px); aspect-ratio: 320 / 280; }
+.sekk__figur::after {
+  content: ''; position: absolute; z-index: -1; left: 12%; right: 12%; bottom: -14px; height: 28px;
+  background: radial-gradient(closest-side, rgba(17, 17, 15, .22), transparent);
+}
+.sekk__figur > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.sekk__bak   { z-index: 0; }
+.sekk__foran { z-index: 2; pointer-events: none; }
+.sekk__hank  { fill: none; stroke: var(--ink); stroke-width: 7; stroke-linecap: round; }
+.sekk__stropp { fill: none; stroke: var(--ink); stroke-width: 12; stroke-linecap: round; }
+.sekk__stropp-inni { fill: none; stroke: var(--forest-deep); stroke-width: 5; stroke-linecap: round; }
+.sekk__kylling { fill: none; stroke: var(--ink); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.sekk__inni  { fill: var(--forest-deep); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+.sekk__kropp { fill: var(--forest); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+.sekk__som   { fill: none; stroke: rgba(243, 240, 233, .5); stroke-width: 2.5; stroke-dasharray: 7 7; stroke-linecap: round; }
+.sekk__lomme { fill: var(--forest-deep); stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+.sekk__klaff { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.sekk__merke { fill: var(--honey); stroke: var(--ink); stroke-width: 3.5; }
+
+/* Tingene står i åpningen; sekkens forside dekker bunnen av dem */
+.sekk__ting {
+  position: absolute; z-index: 1; left: 17%; right: 17%; top: 0; height: 58%;
+  display: flex; justify-content: space-between; align-items: flex-end;
+}
+.ting {
+  position: relative; display: block; width: 23%; padding: 0; border-radius: 6px;
+  transform: translateY(var(--ty, 0)) rotate(var(--rt, 0deg)); transform-origin: 50% 100%;
+  transition: transform .55s var(--ease-sprett);
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.ting svg { width: 100%; height: auto; }
+.ting--bar    { --rt: -9deg; }
+.ting--shake  { --rt: 5deg; }
+.ting--pulver { --rt: -3deg; }
+.ting--pakke  { --rt: 8deg; }
+.ting.er-oppe { --ty: -44%; --rt: 0deg; }
+.ting:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.sekk__boble { margin: 0; max-width: 26rem; min-height: 3.4em; text-align: center; }
+.sekk .sekk__boble::before { left: 50%; bottom: auto; top: -9px; margin-left: -7px; transform: rotate(-135deg); }
+.sekk__boble b { font-weight: 900; }
+.sekk__lenke {
+  margin-left: .35rem; font: inherit; font-weight: 800;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 2px; text-decoration-color: var(--honey-deep);
+}
+
+/* Konklusjonen – alltid synlig, uansett visning */
+.problem__slutt {
+  display: grid; gap: .9rem 3rem; align-items: center;
+  margin-top: clamp(3rem, 7vw, 4.8rem); padding-top: clamp(1.6rem, 3.5vw, 2.4rem);
+  border-top: var(--edge);
+}
+.problem__tekst { color: var(--ink-soft); max-width: 46ch; }
+
+/* ---------------------------------------------------------------------------
    D. SAMMENLIGNING
    --------------------------------------------------------------------------- */
 .compare__scroll {
@@ -590,30 +774,77 @@ body.meny-apen .sticky-cta { display: none; }
 .compare__hint { margin-top: .8rem; font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
 
 /* ---------------------------------------------------------------------------
-   E. FORDELER
+   E. EN DAG SOM GÅR FORT – fordelene på en tidslinje
+   Mobil: loddrett linje med en klokke som står fast øverst og følger med.
+   Fra 768 px: et vannrett spor du kan dra i, under en himmel som går fra
+   morgen til natt. main.js setter --himmel (fargen), --p (0–1 gjennom dagen)
+   og --bue (hvor høyt sola står), og .er-kveld/.er-natt på seksjonen.
    --------------------------------------------------------------------------- */
-.benefits__grid { display: grid; gap: clamp(.75rem, 1.6vw, 1.1rem); }
-.benefit {
-  display: grid; grid-template-columns: auto 1fr; column-gap: 1rem; row-gap: .25rem;
-  align-items: start;
-  padding: clamp(1.1rem, 2.4vw, 1.7rem);
-  background: var(--cream-hi);
-  border: 1px solid rgba(17, 17, 15, .08);
-  border-radius: var(--r);
+.dag {
+  --himmel: #F8EBC8; --p: 0; --bue: 0; --stopp-b: clamp(270px, 26vw, 340px);
+  overflow: clip;
 }
-.benefit__icon {
-  grid-row: span 2;
+.dag__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.2rem 2rem; margin-bottom: clamp(1.8rem, 4vw, 2.6rem); }
+.dag__styr { display: none; align-items: center; gap: .55rem; }
+.dag__hint { margin-right: .7rem; font-size: var(--fs-label); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
+.dag__pil {
+  width: 50px; height: 50px; border-radius: 50%;
   display: grid; place-items: center;
-  width: 52px; height: 52px; border-radius: 50%;
-  background: var(--honey); color: var(--ink);
+  border: 2px solid var(--ink); font-size: 1.15rem; font-weight: 800;
+  transition: background-color .2s var(--ease), color .2s var(--ease), transform .35s var(--ease-sprett), opacity .2s var(--ease);
 }
-.benefit__icon .icon { width: 28px; height: 28px; }
-.benefit__h3 {
+.dag__pil:disabled { opacity: .28; cursor: default; }
+.dag__teller { min-width: 3.4em; text-align: center; font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.45rem; line-height: 1; }
+
+/* Himmelen vises bare fra 768 px */
+.dag__himmel { display: none; }
+
+/* Mobil: tiden på dagen står fast øverst mens dagen scroller forbi */
+.dag__klokke {
+  position: sticky; top: 78px; z-index: 3;
+  display: flex; align-items: center; gap: .6rem; width: fit-content;
+  margin: 0 var(--gut) 1.4rem;
+  padding: .45rem 1rem .45rem .55rem; border-radius: var(--pill);
+  background: var(--himmel); color: var(--klokke-fg, var(--ink));
+  box-shadow: 0 0 0 2px var(--ink), 0 10px 20px -14px rgba(17, 17, 15, .6);
+  font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; line-height: 1;
+  transition: background-color .45s var(--ease), color .45s var(--ease);
+}
+.dag__ikon {
+  width: 1.5rem; height: 1.5rem; border-radius: 50%; flex: none;
+  background: var(--cream-hi); box-shadow: inset 0 0 0 2px var(--ink);
+  transition: background-color .45s var(--ease), box-shadow .45s var(--ease);
+}
+.dag.er-kveld { --klokke-fg: var(--cream); }
+.dag.er-natt .dag__ikon { background: transparent; box-shadow: inset 7px -3px 0 0 var(--cream-hi); }
+
+/* Tidslinjen – loddrett på mobil */
+.dag__spor { padding-inline: var(--gut); }
+.dag__spor:focus-visible { outline-offset: -3px; }
+.dag__liste { position: relative; margin-left: .6rem; border-left: 3px solid var(--ink); }
+.stop {
+  position: relative;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 1rem; align-items: start;
+  padding: 0 0 clamp(2.2rem, 7vw, 3rem) clamp(1.4rem, 5vw, 2rem);
+}
+.stop:last-child { padding-bottom: .2rem; }
+/* Prikken på linjen */
+.stop::before {
+  content: ''; position: absolute; left: -12.5px; top: .5rem;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--cream); box-shadow: inset 0 0 0 3px var(--ink);
+  transition: background-color .3s var(--ease), transform .45s var(--ease-sprett);
+}
+.stop.er-aktiv::before { background: var(--honey); transform: scale(1.3); }
+.stop__tid { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: clamp(2.5rem, 9vw, 3.5rem); line-height: .9; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.stop__naar { grid-column: 1; margin-top: .4rem; font-size: var(--fs-label); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--paprika-deep); }
+.stop__fig { grid-column: 2; grid-row: 1 / span 2; --fig: clamp(70px, 19vw, 92px); color: var(--ink); }
+.stop__h3 {
+  grid-column: 1 / -1; margin-top: 1rem;
   font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
-  font-size: clamp(1.3rem, 2vw, 1.6rem); line-height: 1.05; letter-spacing: -.01em;
-  align-self: end;
+  font-size: clamp(1.45rem, 2.4vw, 1.8rem); line-height: 1.02; letter-spacing: -.01em;
 }
-.benefit p { color: var(--ink-soft); line-height: 1.45; max-width: 34ch; }
+.stop > p:last-child { grid-column: 1 / -1; margin-top: .35rem; color: var(--ink-soft); line-height: 1.5; max-width: 32ch; }
 
 /* ---------------------------------------------------------------------------
    F. PÅ FARTEN
@@ -1174,6 +1405,103 @@ body.meny-apen .sticky-cta { display: none; }
 @keyframes tegn       { from { stroke-dashoffset: 100; } }
 @keyframes fleks      { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-8deg) scale(1.12); } 40% { transform: rotate(4deg) scale(1.05); } 60% { transform: rotate(-6deg) scale(1.12); } }
 
+/* --- Problemet: bryteren, kortet og sekken ---------------------------------
+   Stempelet slås ned når pakken er snudd, kyllingen på bryteren hopper. */
+@keyframes stempel { 0% { opacity: 0; transform: rotate(-32deg) scale(1.9); } 60% { opacity: 1; transform: rotate(-9deg) scale(.92); } 100% { transform: rotate(-12deg) scale(1); } }
+@keyframes rist    { 0%, 100% { rotate: 0deg; } 20% { rotate: -7deg; } 45% { rotate: 6deg; } 70% { rotate: -3deg; } }
+.anim .snu.er-snudd .etikett__stempel { animation: stempel .55s var(--ease-sprett) .6s both; }
+.bryter.hopp .bryter__kylling { animation: hopp .6s var(--ease) both; }
+.anim .ting.er-oppe { animation: rist .55s var(--ease) .15s; }
+
+/* --- En dag: maskoten på det aktive stoppet gjør sitt, stjernene blinker --- */
+@keyframes dukk  { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(7px); } 70% { transform: translateY(-3px); } }
+@keyframes pust  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06, .95); } }
+@keyframes dytt  { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(5px); } }
+@keyframes glimt { 50% { opacity: .25; } }
+@keyframes driv  { from { translate: -40vw 0; } to { translate: 90vw 0; } }
+.anim .stop.er-aktiv .stop__fig--titt  { animation: titt 2.4s ease-in-out .15s 2; }
+.anim .stop.er-aktiv .stop__fig--sekk  { animation: dukk 1.1s var(--ease) .15s 2; }
+.anim .stop.er-aktiv .stop__fig--prat  { animation: nikk .7s var(--ease) .15s 3; }
+.anim .stop.er-aktiv .stop__fig--lop   { animation: lop .45s ease-in-out .15s 4; }
+.anim .stop.er-aktiv .stop__fig--fleks { animation: fleks 1s var(--ease) .15s 2; }
+.anim .stop.er-aktiv .stop__fig--sov   { animation: pust 2.6s ease-in-out .15s 2; transform-origin: 50% 100%; }
+.dag__hint::after { content: '→'; display: inline-block; margin-left: .45em; }
+.anim .dag__hint::after { animation: dytt 1.6s ease-in-out infinite; }
+.anim .dag.er-natt .dag__stjerner i { animation: glimt 2.6s steps(2, jump-none) infinite; }
+.anim .dag__sky { animation: driv 80s linear -30s infinite; }
+.anim .dag__sky--2 { animation-duration: 110s; animation-delay: -70s; }
+.anim .dag.er-natt .dag__stjerner i:nth-child(2n) { animation-delay: 1.3s; }
+.anim .dag.er-natt .dag__stjerner i:nth-child(3n) { animation-duration: 3.4s; }
+
+@media (hover: hover) {
+  .snu.er-klar .snu__kort:hover .snu__flate { transform: rotateY(-8deg); }
+  .snu.er-klar.er-snudd .snu__kort:hover .snu__flate { transform: rotateY(172deg); }
+  .snu.er-klar .snu__kort:hover .snu__side--for::after { width: 60px; height: 60px; }
+  .ting:hover { --ty: -12%; }
+  .ting.er-oppe:hover { --ty: -47%; }
+  .dag__pil:hover:not(:disabled) { background: var(--ink); color: var(--cream); transform: scale(1.07); }
+}
+.dag__pil:active:not(:disabled) { transform: scale(.92); }
+
+/* --- Små detaljer rundt på siden -------------------------------------------
+   Logoen blunker av og til, kyllingen i bunnen legger et egg hvis du trykker
+   nok ganger på den, og en liten pikselkylling går en tur langs kanten av
+   footeren innimellom. Knappene får en fjærende «klikk» og pikselsmuler
+   (smulene lages av main.js). Alt er pynt og står stille ved redusert bevegelse. */
+@keyframes blunk  { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes tramp  { to { background-position: -52px 0; } }
+@keyframes tur    {
+  0%        { translate: -40px 0; scale: 1 1; }
+  34%       { translate: calc(100vw + 10px) 0; scale: 1 1; }
+  34.01%, 50% { translate: calc(100vw + 10px) 0; scale: -1 1; }
+  84%       { translate: -40px 0; scale: -1 1; }
+  84.01%, 100% { translate: -40px 0; scale: 1 1; }
+}
+@keyframes egg-ned { 0% { opacity: 0; transform: translateY(-14px) scale(.6); } 45% { opacity: 1; transform: translateY(26px) scale(1.04, .94); } 65% { transform: translateY(18px) scale(.98, 1.03); } 100% { transform: translateY(22px) scale(1); } }
+@keyframes vipp-egg { 0%, 100% { rotate: 0deg; } 25% { rotate: -12deg; } 75% { rotate: 10deg; } }
+@keyframes vrikk { 0%, 100% { rotate: 0deg; } 20% { rotate: -4deg; } 45% { rotate: 3deg; } 70% { rotate: -1.5deg; } }
+
+.wordmark__icon circle, .foot__icon circle { transform-box: fill-box; transform-origin: center; }
+.anim .wordmark__icon circle, .anim .foot__icon circle { animation: blunk 7s ease-in-out 2.5s infinite; }
+.anim .foot__icon circle { animation-duration: 9s; animation-delay: 4s; }
+.anim .wordmark__icon { animation: nikk .8s var(--ease) .9s both; }
+.foot__mark.klukk .foot__icon { animation: hopp .55s var(--ease) both; }
+
+/* Egget: legges av kyllingen i bunnen etter fem trykk */
+.foot__mark { position: relative; }
+.egg {
+  position: absolute; left: clamp(18px, 4vw, 34px); top: clamp(30px, 7vw, 62px); z-index: 2;
+  width: 30px; height: 38px;
+  background: var(--cream-hi);
+  border-radius: 50% 50% 50% 50% / 60% 60% 42% 42%;
+  box-shadow: inset -4px -5px 0 rgba(17, 17, 15, .12);
+  animation: egg-ned .8s var(--ease-sprett) both, vipp-egg .5s var(--ease) .8s 2;
+  pointer-events: none;
+}
+.egg__boble {
+  position: absolute; left: clamp(60px, 9vw, 96px); top: clamp(20px, 5vw, 46px); z-index: 2;
+  margin: 0; white-space: nowrap; pointer-events: none;
+  font-size: .95rem;
+}
+
+/* Pikselkyllingen langs kanten av footeren */
+.foot { position: relative; }
+.pikselkylling {
+  position: absolute; z-index: 5; left: 0; top: -24px;
+  width: 26px; height: 24px; pointer-events: none;
+}
+.pikselkylling i {
+  display: block; width: 100%; height: 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 12' shape-rendering='crispEdges'%3E%3Crect x='6' y='0' width='2' height='1' fill='%23B5502C'/%3E%3Crect x='5' y='1' width='3' height='1' fill='%23B5502C'/%3E%3Crect x='8' y='1' width='1' height='1' fill='%2311110F'/%3E%3Crect x='4' y='2' width='1' height='1' fill='%2311110F'/%3E%3Crect x='5' y='2' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='9' y='2' width='1' height='1' fill='%2311110F'/%3E%3Crect x='4' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='5' y='3' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='7' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='8' y='3' width='1' height='1' fill='%23FAF8F3'/%3E%3Crect x='9' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='10' y='3' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%2311110F'/%3E%3Crect x='5' y='4' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%2311110F'/%3E%3Crect x='10' y='4' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='1' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='4' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='5' y='5' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='0' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='1' y='6' width='1' height='1' fill='%23FAF8F3'/%3E%3Crect x='2' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='5' y='6' width='5' height='1' fill='%23FAF8F3'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%2311110F'/%3E%3Crect x='1' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='3' y='7' width='2' height='1' fill='%2311110F'/%3E%3Crect x='5' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='7' y='7' width='2' height='1' fill='%23E8E1D5'/%3E%3Crect x='9' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='11' y='7' width='1' height='1' fill='%2311110F'/%3E%3Crect x='0' y='8' width='1' height='1' fill='%2311110F'/%3E%3Crect x='1' y='8' width='5' height='1' fill='%23FAF8F3'/%3E%3Crect x='6' y='8' width='2' height='1' fill='%23E8E1D5'/%3E%3Crect x='8' y='8' width='3' height='1' fill='%23FAF8F3'/%3E%3Crect x='11' y='8' width='1' height='1' fill='%2311110F'/%3E%3Crect x='1' y='9' width='1' height='1' fill='%2311110F'/%3E%3Crect x='2' y='9' width='8' height='1' fill='%23FAF8F3'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%2311110F'/%3E%3Crect x='2' y='10' width='8' height='1' fill='%2311110F'/%3E%3Crect x='3' y='11' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='7' y='11' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='19' y='0' width='2' height='1' fill='%23B5502C'/%3E%3Crect x='18' y='1' width='3' height='1' fill='%23B5502C'/%3E%3Crect x='21' y='1' width='1' height='1' fill='%2311110F'/%3E%3Crect x='17' y='2' width='1' height='1' fill='%2311110F'/%3E%3Crect x='18' y='2' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='22' y='2' width='1' height='1' fill='%2311110F'/%3E%3Crect x='17' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='18' y='3' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='20' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='21' y='3' width='1' height='1' fill='%23FAF8F3'/%3E%3Crect x='22' y='3' width='1' height='1' fill='%2311110F'/%3E%3Crect x='23' y='3' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='17' y='4' width='1' height='1' fill='%2311110F'/%3E%3Crect x='18' y='4' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='22' y='4' width='1' height='1' fill='%2311110F'/%3E%3Crect x='23' y='4' width='2' height='1' fill='%23F1B240'/%3E%3Crect x='14' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='17' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='18' y='5' width='4' height='1' fill='%23FAF8F3'/%3E%3Crect x='22' y='5' width='1' height='1' fill='%2311110F'/%3E%3Crect x='13' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='14' y='6' width='1' height='1' fill='%23FAF8F3'/%3E%3Crect x='15' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='17' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='18' y='6' width='5' height='1' fill='%23FAF8F3'/%3E%3Crect x='23' y='6' width='1' height='1' fill='%2311110F'/%3E%3Crect x='13' y='7' width='1' height='1' fill='%2311110F'/%3E%3Crect x='14' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='16' y='7' width='2' height='1' fill='%2311110F'/%3E%3Crect x='18' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='20' y='7' width='2' height='1' fill='%23E8E1D5'/%3E%3Crect x='22' y='7' width='2' height='1' fill='%23FAF8F3'/%3E%3Crect x='24' y='7' width='1' height='1' fill='%2311110F'/%3E%3Crect x='13' y='8' width='1' height='1' fill='%2311110F'/%3E%3Crect x='14' y='8' width='5' height='1' fill='%23FAF8F3'/%3E%3Crect x='19' y='8' width='2' height='1' fill='%23E8E1D5'/%3E%3Crect x='21' y='8' width='3' height='1' fill='%23FAF8F3'/%3E%3Crect x='24' y='8' width='1' height='1' fill='%2311110F'/%3E%3Crect x='14' y='9' width='1' height='1' fill='%2311110F'/%3E%3Crect x='15' y='9' width='8' height='1' fill='%23FAF8F3'/%3E%3Crect x='23' y='9' width='1' height='1' fill='%2311110F'/%3E%3Crect x='15' y='10' width='8' height='1' fill='%2311110F'/%3E%3Crect x='18' y='11' width='3' height='1' fill='%23F1B240'/%3E%3C/svg%3E") 0 0 / 52px 24px no-repeat;
+  image-rendering: pixelated;
+}
+.anim .pikselkylling { animation: tur 46s linear 6s infinite both; }
+.anim .pikselkylling i { animation: tramp .38s steps(2) infinite; }
+html:not(.anim) .pikselkylling, .anim--myk .pikselkylling { left: clamp(1rem, 4vw, 3rem); }
+
+/* Mobil: den faste knappen vrikker litt første gang den dukker opp */
+.anim .sticky-cta.vrikk { animation: vrikk .7s var(--ease) .3s both; }
+
 /* Myk overgang mellom sidene (Chrome, Edge, Safari 18+; andre bytter som før) */
 @view-transition { navigation: auto; }
 ::view-transition-old(root) { animation: .16s var(--ease) both reverse inn; }
@@ -1258,7 +1586,6 @@ body.meny-apen .sticky-cta { display: none; }
 /* Små «pop» når ting kommer til syne – virker på mobil også */
 .anim .moment--text.is-in .figure            { animation: lop .45s ease-in-out 3; }
 .anim .launch__mascot.is-in .bubble          { animation: boble .6s var(--ease-sprett) .25s both; }
-.anim .benefit.is-in .benefit__icon .icon    { animation: vipp .7s var(--ease) .35s both; }
 .anim .qitem.is-in .qitem__icon              { animation: vipp .7s var(--ease) .3s both; }
 .anim .moment.is-in .moment__label           { animation: pop .6s var(--ease-sprett) .35s both; }
 .anim .duo__card.is-in .duo__num             { animation: pop .6s var(--ease-sprett) .3s both; }
@@ -1310,17 +1637,27 @@ body.meny-apen .sticky-cta { display: none; }
   -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
 .mascot__knapp:focus-visible { outline-offset: 6px; }
+.mascot__knapp { transition: transform .45s var(--ease-ut); }
 .bubble.ny { animation: boble .45s var(--ease-sprett) both; }
 .anim .form__done { animation: boble .55s var(--ease-sprett) both; }
 
 /* Konfetti når noen melder seg på (bitene lages og animeres av main.js) */
 .konfetti { position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; z-index: 300; }
 .konfetti i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 2px; }
+.konfetti i.piksel { left: -3px; top: -3px; border-radius: 0; }
 
 /* --- Hover: små, fysiske reaksjoner (bare med mus/styreflate) ------------ */
 @media (hover: hover) {
   .btn:not(.btn--ghost):hover { transform: translateY(-2px); box-shadow: 0 10px 22px -12px rgba(17, 17, 15, .55); }
-  .btn:not(.btn--ghost):active { transform: translateY(0); box-shadow: none; }
+  .btn:not(.btn--ghost):active { transform: translateY(1px) scale(.96, .94); box-shadow: none; transition-duration: .08s; }
+  .btn { transition: background-color .2s var(--ease), color .2s var(--ease), transform .45s var(--ease-sprett), box-shadow .25s var(--ease-ut); }
+  .chips li { transition: background-color .2s var(--ease), color .2s var(--ease), transform .35s var(--ease-sprett); }
+  .chips li:hover { transform: translateY(-2px) rotate(-2deg); }
+  .jump a { transition: background-color .2s var(--ease), color .2s var(--ease), transform .35s var(--ease-sprett); }
+  .jump a:hover { transform: translateY(-2px); }
+  .nav__links a::after { transition: transform .4s var(--ease-sprett); }
+  .qa summary::after, .decl summary::after { transition: transform .45s var(--ease-sprett); }
+  .duo__card { transform-style: preserve-3d; }
   .btn--ghost { transition: box-shadow .25s var(--ease-ut), color .2s var(--ease); }
   /* Et lysglimt som sveiper over de fylte knappene */
   .btn--ink, .btn--honey { position: relative; overflow: hidden; isolation: isolate; }
@@ -1331,9 +1668,6 @@ body.meny-apen .sticky-cta { display: none; }
   }
   .btn--ink:hover::after, .btn--honey:hover::after { animation: glans .75s var(--ease) both; }
 
-  .benefit { transition: transform .35s var(--ease-ut), box-shadow .35s var(--ease-ut); }
-  .benefit:hover { transform: translateY(-5px); box-shadow: 0 22px 34px -26px rgba(17, 17, 15, .5); }
-  .benefit:hover .benefit__icon .icon { animation: vipp .6s var(--ease) both; }
 
   .duo__card { transition: transform .4s var(--ease-ut), box-shadow .4s var(--ease-ut); }
   .duo__card:hover { transform: translateY(-6px); box-shadow: 0 28px 44px -30px rgba(17, 17, 15, .6); }
@@ -1349,7 +1683,6 @@ body.meny-apen .sticky-cta { display: none; }
   .mascot:hover .figure { animation: nikk .7s var(--ease) both; }
   .wordmark:hover .wordmark__icon { animation: nikk .7s var(--ease) both; }
   .foot__mark:hover .foot__icon { animation: nikk .7s var(--ease) both; }
-  .chips li { transition: background-color .2s var(--ease), color .2s var(--ease); }
   .qitem:hover .qitem__icon { animation: vipp .6s var(--ease) both; }
   .gain:hover .gain__icon .icon { animation: vipp .6s var(--ease) both; }
   .gain:hover .gain__icon--fleks .figure { animation: fleks .9s var(--ease) both; }
@@ -1361,10 +1694,10 @@ body.meny-apen .sticky-cta { display: none; }
 
 /* --- Trykk: små reaksjoner på mobil og nettbrett -------------------------- */
 @media (hover: none) {
-  .benefit, .duo__card, .moment, .btn { transition: transform .2s var(--ease-ut), background-color .2s var(--ease); }
-  .benefit:active, .duo__card:active, .moment:active { transform: scale(.975); }
+  .duo__card, .moment, .btn { transition: transform .2s var(--ease-ut), background-color .2s var(--ease); }
+  .duo__card:active, .moment:active { transform: scale(.975); }
   .btn:not(.btn--ghost):active { transform: scale(.96); }
-  .benefit:active .benefit__icon .icon, .qitem:active .qitem__icon,
+  .qitem:active .qitem__icon,
   .gain:active .gain__icon .icon { animation: vipp .6s var(--ease) both; }
   .gain:active .gain__icon--fleks .figure { animation: fleks .9s var(--ease) both; }
   .gain:active .gain__ring { animation: tegn 1s var(--ease-ut) both; }
@@ -1386,9 +1719,15 @@ body.meny-apen .sticky-cta { display: none; }
 .anim--myk .gain.is-in .gain__timer b { animation-name: inn; }
 .anim--myk .gain.is-in .gain__icon--fleks .figure, .anim--myk .gain.is-in .gain__ring { animation: none; }
 .anim--myk .hero__media, .anim--myk .launch__cutout, .anim--myk .oops .figure,
-.anim--myk .moment--text.is-in .figure, .anim--myk .benefit.is-in .benefit__icon .icon,
+.anim--myk .moment--text.is-in .figure,
 .anim--myk .qitem.is-in .qitem__icon, .anim--myk .mascot__knapp.hopp .figure { animation: none; }
 .anim--myk .stat__v.is-pending .stat__num { animation: none; background: none; color: inherit; }
+.anim--myk .snu.er-snudd .etikett__stempel { animation-name: inn; }
+.anim--myk .wordmark__icon, .anim--myk .wordmark__icon circle, .anim--myk .foot__icon circle,
+.anim--myk .pikselkylling, .anim--myk .pikselkylling i, .anim--myk .sticky-cta.vrikk,
+.anim--myk .foot__mark.klukk .foot__icon, .anim--myk .egg { animation: none; }
+.anim--myk .bryter.hopp .bryter__kylling, .anim--myk .ting.er-oppe, .anim--myk .stop.er-aktiv .stop__fig,
+.anim--myk .dag__hint::after, .anim--myk .dag.er-natt .dag__stjerner i, .anim--myk .dag__sky { animation: none; }
 .anim--myk .reveal { transform: none; }
 .anim--myk .media--flavor.reveal img, .anim--myk .split__media.reveal img, .anim--myk .gains__media.reveal img { transform: none; }
 
@@ -1410,9 +1749,6 @@ body.meny-apen .sticky-cta { display: none; }
   .gain__icon { grid-row: auto; margin-bottom: .35rem; }
   .form__row { grid-template-columns: minmax(0, 1fr) auto; }
   .values { grid-template-columns: repeat(3, 1fr); }
-  .benefits__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .benefit { grid-template-columns: 1fr; row-gap: .6rem; }
-  .benefit__icon { grid-row: auto; margin-bottom: .4rem; }
 }
 
 @media (min-width: 768px) {
@@ -1427,9 +1763,80 @@ body.meny-apen .sticky-cta { display: none; }
   .stat, .stat:nth-child(odd), .stat:nth-child(even) { padding: 1rem .9rem 1rem 0; border-right: 1px solid rgba(17, 17, 15, .28); border-bottom: 0; }
   .stat + .stat { padding-left: .9rem; }
   .stat:last-child { border-right: 0; }
+
+  /* En dag: vannrett spor under en himmel som går fra morgen til natt */
+  .dag { --himmel-h: clamp(120px, 13vw, 168px); }
+  .dag__styr:not([hidden]) { display: flex; }
+  .dag__klokke { display: none; }
+  .dag__himmel {
+    display: block; position: relative; overflow: hidden;
+    height: var(--himmel-h);
+    background: var(--himmel); transition: background-color .6s var(--ease);
+  }
+  /* En liten pikselby i horisonten */
+  .dag__himmel::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
+    background: var(--skyline, rgba(17, 17, 15, .14));
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 30' shape-rendering='crispEdges'%3E%3Cpath d='M0 30V18h2v-2h2v-2h2v2h2v2h2v12zM12 30V11h10v19zM24 30V20h2v-2h2v-2h2v-2h2v2h2v2h2v2h2v10zM40 30V15h8v15zM50 30V22h2v-2h2v-2h2v2h2v2h2v8zM62 30V9h4V7h2v2h4v21zM74 30V19h12v11zM88 30V14h2v-2h2v-2h2v2h2v2h2v16zM100 30V21h9v9zM111 30V16h2v-2h2v-2h2v2h2v2h1v14z'/%3E%3C/svg%3E") repeat-x left bottom / auto 44px;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 30' shape-rendering='crispEdges'%3E%3Cpath d='M0 30V18h2v-2h2v-2h2v2h2v2h2v12zM12 30V11h10v19zM24 30V20h2v-2h2v-2h2v-2h2v2h2v2h2v2h2v10zM40 30V15h8v15zM50 30V22h2v-2h2v-2h2v2h2v2h2v8zM62 30V9h4V7h2v2h4v21zM74 30V19h12v11zM88 30V14h2v-2h2v-2h2v2h2v2h2v16zM100 30V21h9v9zM111 30V16h2v-2h2v-2h2v2h2v2h1v14z'/%3E%3C/svg%3E") repeat-x left bottom / auto 44px;
+    transition: background-color .6s var(--ease);
+  }
+  .dag.er-kveld { --skyline: rgba(250, 248, 243, .16); }
+  .dag__sky {
+    position: absolute; z-index: 0; left: 18%; top: 16%;
+    width: 120px; height: 50px;
+    background: rgba(250, 248, 243, .8);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 10' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h6v2h2v2h2V2h4v2h2v2h6v4H0V6h2V4h4z'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 10' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h6v2h2v2h2V2h4v2h2v2h6v4H0V6h2V4h4z'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: background-color .6s var(--ease);
+  }
+  .dag__sky--2 { left: 62%; top: 44%; width: 80px; height: 34px; }
+  .dag.er-kveld .dag__sky { background: rgba(250, 248, 243, .14); }
+  .dag__sol {
+    position: absolute; z-index: 1; left: 0; top: 0;
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--cream-hi);
+    box-shadow: inset 0 0 0 3px var(--ink), 0 0 0 10px rgba(250, 248, 243, .3);
+    transform: translate(calc(var(--bleed) + var(--p) * (100vw - 2 * var(--bleed) - 58px)), calc((var(--himmel-h) - 70px) * (1 - var(--bue)) + 12px * var(--bue)));
+    transition: transform .7s var(--ease-ut), background-color .5s var(--ease), box-shadow .5s var(--ease);
+  }
+  .dag.er-natt .dag__sol {
+    background: transparent; box-shadow: inset 17px -7px 0 0 var(--cream-hi);
+    transform: translate(calc(var(--bleed) + (100vw - 2 * var(--bleed) - 58px) * .82), calc(var(--himmel-h) * .12));
+  }
+  .dag__stjerner i { position: absolute; width: 4px; height: 4px; background: var(--cream-hi); opacity: 0; transition: opacity .8s var(--ease); }
+  .dag__stjerner i:nth-child(1) { left: 8%;  top: 22%; }
+  .dag__stjerner i:nth-child(2) { left: 19%; top: 48%; width: 3px; height: 3px; }
+  .dag__stjerner i:nth-child(3) { left: 33%; top: 16%; }
+  .dag__stjerner i:nth-child(4) { left: 47%; top: 38%; width: 3px; height: 3px; }
+  .dag__stjerner i:nth-child(5) { left: 61%; top: 20%; }
+  .dag__stjerner i:nth-child(6) { left: 78%; top: 44%; width: 3px; height: 3px; }
+  .dag__stjerner i:nth-child(7) { left: 91%; top: 18%; }
+  .dag.er-natt .dag__stjerner i { opacity: .9; }
+
+  .dag__spor {
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding-inline-start: var(--bleed);
+    padding: 0 0 .6rem var(--bleed);
+    scrollbar-width: none; cursor: grab;
+  }
+  .dag__spor::-webkit-scrollbar { display: none; }
+  .dag__spor.drar { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+  .dag__liste { display: flex; width: max-content; margin-left: 0; border-left: 0; border-top: 3px solid var(--ink); }
+  /* Luft etter siste stopp, så også kvelden kan legge seg helt til venstre */
+  .dag__liste::after { content: ''; flex: none; width: max(0px, calc(100vw - var(--bleed) - var(--stopp-b))); }
+  .stop { flex: none; width: var(--stopp-b); padding: 2.2rem clamp(1.4rem, 2.6vw, 2.4rem) 1rem 0; scroll-snap-align: start; }
+  .stop::before { left: -2px; top: -12.5px; }
+  .stop:last-child { padding-bottom: 1rem; }
 }
 
 @media (min-width: 900px) {
+  .problem__head { grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: end; column-gap: clamp(2rem, 5vw, 5rem); }
+  .problem__slutt { grid-template-columns: auto minmax(0, 1fr); }
+  .sekk { grid-template-columns: minmax(0, 440px) minmax(0, 19rem); align-items: center; justify-content: center; column-gap: 2.6rem; }
+  .sekk__boble { text-align: left; }
+  .sekk .sekk__boble::before { left: -9px; top: auto; bottom: 1.1rem; margin-left: 0; transform: rotate(135deg); }
+
   .nav__links { display: flex; }
   .nav__cta { display: inline-flex; }
   .burger { display: none; }
@@ -1459,8 +1866,6 @@ body.meny-apen .sticky-cta { display: none; }
 
   .split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .split--flip > .split__media { order: 2; }
-
-  .benefits__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   .onthego__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .gains__grid { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
@@ -1503,6 +1908,16 @@ body.meny-apen .sticky-cta { display: none; }
    --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  /* Pakken snus med en toning i stedet for en rotasjon */
+  .snu.er-klar .snu__flate { transition: none; transform: none !important; }
+  .snu.er-klar .snu__side { -webkit-backface-visibility: visible; backface-visibility: visible; transition: opacity .4s var(--ease); }
+  .snu.er-klar .snu__side--bak { transform: none; opacity: 0; }
+  .snu.er-klar.er-snudd .snu__side--bak { opacity: 1; }
+  .snu.er-klar.er-snudd .snu__side--for { opacity: 0; }
+  .scene.er-klar .scene__vis:not(.er-valgt) { transform: none; }
+  .ting, .bryter__knott, .dag__sol { transition-duration: .01ms; }
+  .ting:hover { --ty: 0; }
+  .ting.er-oppe, .ting.er-oppe:hover { --ty: -44%; }
   /* Uten myk modus (nettleseren mangler støtte): alt står helt stille */
   html:not(.anim--myk) *, html:not(.anim--myk) *::before, html:not(.anim--myk) *::after {
     animation-duration: .01ms !important;
@@ -1513,11 +1928,11 @@ body.meny-apen .sticky-cta { display: none; }
   .sticker > svg, .ticker__track, .topbar__tag::before { animation: none !important; }
   .menu .menu__inner > * { transform: none; }
   ::view-transition-new(root) { animation-name: inn; }
-  .btn:hover, .btn:active, .benefit:hover, .benefit:active, .duo__card:hover, .duo__card:active,
+  .btn:hover, .btn:active, .duo__card:hover, .duo__card:active, .chips li:hover, .jump a:hover,
   .moment:active, .moment:hover img, .moment:hover .moment__label, .doodles .figure:hover,
   .duo__card:hover .duo__media img, .jump a:hover .dot { transform: none !important; }
-  .btn--ink:hover::after, .btn--honey:hover::after, .benefit:hover .benefit__icon .icon,
-  .benefit:active .benefit__icon .icon, .qitem:hover .qitem__icon, .qitem:active .qitem__icon,
+  .btn--ink:hover::after, .btn--honey:hover::after,
+  .qitem:hover .qitem__icon, .qitem:active .qitem__icon,
   .mascot:hover .figure, .wordmark:hover .wordmark__icon, .foot__mark:hover .foot__icon,
   .moment--text:hover .figure, .gain:hover .gain__icon .icon, .gain:active .gain__icon .icon,
   .gain:hover .gain__icon--fleks .figure, .gain:active .gain__icon--fleks .figure,

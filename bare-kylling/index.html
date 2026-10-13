@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20260929b" />
+<link rel="stylesheet" href="css/style.css?v=20261013b" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -249,26 +249,160 @@
 
 <!-- ============================================================
      PROBLEMET – protein på farten
+     En bryter veksler mellom to visninger:
+       «Snu pakken»       – proteinbaren snus, og baksiden er vår etikett
+       «Hva er i sekken?» – trykk på tingene i sekken og få en kort dom
+     Konklusjonen under står alltid synlig. Uten JavaScript vises begge
+     visningene under hverandre, og bryteren er skjult. Se «6. BRYTEREN»
+     i js/main.js og «C3» i css/style.css.
      ============================================================ -->
 <section class="sec problem" id="problemet" aria-labelledby="problem-tittel">
-  <div class="shell split">
-    <figure class="pic pic--4x3 split__media">
-      <picture>
-        <source type="image/webp"
-                srcset="images/proteinbar-ingrediensliste-720.webp 720w, images/proteinbar-ingrediensliste-1100.webp 1100w, images/proteinbar-ingrediensliste-1448.webp 1448w"
-                sizes="(min-width: 900px) 46vw, 100vw" />
-        <img src="images/proteinbar-ingrediensliste.jpg"
-             alt="Baksiden av en proteinbar i svart og rød folie, med en lang ingrediensliste i liten skrift."
-             width="1448" height="1086" loading="lazy" decoding="async" />
-      </picture>
-    </figure>
-
-    <div class="split__body">
-      <p class="marker">Problemet</p>
-      <h2 class="display" id="problem-tittel">Protein på farten har blitt en bar.</h2>
+  <div class="shell">
+    <div class="problem__head">
+      <div>
+        <p class="marker">Problemet</p>
+        <h2 class="display" id="problem-tittel">Protein på farten har blitt en bar.</h2>
+      </div>
       <p class="lead">Når du trenger noe mettende mellom måltidene, blir det fort en bar, en shake eller et pulver. De har sin plass – men noen ganger vil du bare ha mat.</p>
+    </div>
+
+    <div class="problem__bryter">
+      <div class="bryter" role="tablist" aria-label="Velg hvordan du vil se forskjellen" data-valgt="0" hidden>
+        <button class="bryter__valg" type="button" role="tab" id="fane-pakke" aria-controls="vis-pakke" aria-selected="true">Snu pakken</button>
+        <button class="bryter__valg" type="button" role="tab" id="fane-sekk" aria-controls="vis-sekk" aria-selected="false" tabindex="-1">Hva er i sekken?</button>
+        <span class="bryter__knott" aria-hidden="true">
+          <svg class="bryter__kylling" focusable="false"><use href="images/figurer.svg#kylling-loper"></use></svg>
+        </span>
+      </div>
+    </div>
+
+    <div class="scene">
+      <!-- Visning 1: snu pakken -->
+      <div class="scene__vis" id="vis-pakke" role="tabpanel" aria-labelledby="fane-pakke">
+        <div class="snu">
+          <div class="snu__kort">
+            <div class="snu__flate">
+              <figure class="snu__side snu__side--for">
+                <picture>
+                  <source type="image/webp"
+                          srcset="images/proteinbar-ingrediensliste-720.webp 720w, images/proteinbar-ingrediensliste-1100.webp 1100w, images/proteinbar-ingrediensliste-1448.webp 1448w"
+                          sizes="(min-width: 900px) 640px, 100vw" />
+                  <img src="images/proteinbar-ingrediensliste.jpg"
+                       alt="Baksiden av en proteinbar i svart og rød folie, med en lang ingrediensliste i liten skrift."
+                       width="1448" height="1086" loading="lazy" decoding="async" />
+                </picture>
+              </figure>
+              <div class="snu__side snu__side--bak">
+                <div class="etikett">
+                  <p class="sr-only">Baksiden av en pakke Bare Kylling:</p>
+                  <p class="etikett__merke" aria-hidden="true">
+                    <svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5" />
+                      <path d="M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3" />
+                      <path d="M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11" />
+                      <path d="M39.5 84.5V97h-8.5M60.5 84.5V97h8.5" />
+                      <circle cx="75.5" cy="18.5" r="2.7" fill="currentColor" stroke="none" />
+                    </svg>
+                    <span class="etikett__ord"><span class="etikett__bare">bare</span><span class="etikett__kylling">Kylling</span></span>
+                  </p>
+                  <p class="etikett__k">Ingredienser</p>
+                  <p class="etikett__v">Kyllingfilet og krydder.</p>
+                  <p class="etikett__fin">Full ingrediensliste med mengder kommer når resepten er låst.</p>
+                  <p class="etikett__band"><span>Ferdigstekt</span><span>200 g</span></p>
+                </div>
+                <span class="etikett__stempel" aria-hidden="true">Ekte<br />mat</span>
+              </div>
+            </div>
+          </div>
+          <div class="snu__under">
+            <p class="snu__tekst" aria-live="polite">Baksiden av en proteinbar.</p>
+            <button class="btn btn--ink snu__knapp" type="button" aria-pressed="false" hidden>
+              <span class="snu__ikon" aria-hidden="true">↻</span>
+              <span class="snu__ord">Snu pakken</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visning 2: hva er i sekken? Tingene er knapper; dommen står i boblen. -->
+      <div class="scene__vis" id="vis-sekk" role="tabpanel" aria-labelledby="fane-sekk">
+        <div class="sekk">
+          <div class="sekk__figur">
+            <svg class="sekk__bak" viewBox="0 0 320 280" aria-hidden="true" focusable="false">
+              <path class="sekk__stropp" d="M64 110c-30 8-42 64-24 124M256 110c30 8 42 64 24 124" />
+              <path class="sekk__stropp-inni" d="M64 110c-30 8-42 64-24 124M256 110c30 8 42 64 24 124" />
+              <path class="sekk__hank" d="M126 88c0-38 68-38 68 0" />
+              <path class="sekk__inni" d="M44 106c42-28 190-28 232 0l-5 24c-42-20-180-20-222 0z" />
+            </svg>
+
+            <div class="sekk__ting">
+              <button class="ting ting--bar" type="button" aria-pressed="false"
+                      data-navn="Proteinbar" data-dom="Praktisk. Men snu den og les baksiden." data-lenke="pakke">
+                <span class="sr-only">Proteinbar</span>
+                <svg viewBox="0 0 60 100" aria-hidden="true" focusable="false">
+                  <rect x="15" y="3" width="30" height="94" rx="3" fill="#11110F" />
+                  <path d="M15 11h30M15 89h30" stroke="#B5502C" stroke-width="4" />
+                  <rect x="19" y="24" width="22" height="50" rx="2" fill="#FAF8F3" />
+                  <path d="M23 32h14M23 38h14M23 44h10M23 50h14M23 56h8M23 62h12" stroke="#11110F" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+              </button>
+              <button class="ting ting--shake" type="button" aria-pressed="false"
+                      data-navn="Shake" data-dom="Må ristes – og skylles etterpå.">
+                <span class="sr-only">Shake</span>
+                <svg viewBox="0 0 60 100" aria-hidden="true" focusable="false">
+                  <rect x="25" y="1" width="10" height="9" rx="2" fill="#11110F" />
+                  <rect x="15" y="8" width="30" height="12" rx="3" fill="#11110F" />
+                  <path d="M14 20h32l-3 74a4 4 0 0 1-4 4H21a4 4 0 0 1-4-4z" fill="#AAB39D" stroke="#11110F" stroke-width="3" stroke-linejoin="round" />
+                  <path d="M17 48c7 4 19-4 26 0" fill="none" stroke="#FAF8F3" stroke-width="3" stroke-linecap="round" />
+                </svg>
+              </button>
+              <button class="ting ting--pulver" type="button" aria-pressed="false"
+                      data-navn="Pulver" data-dom="Trenger shaker, vann og tålmodighet.">
+                <span class="sr-only">Proteinpulver</span>
+                <svg viewBox="0 0 60 100" aria-hidden="true" focusable="false">
+                  <rect x="7" y="32" width="46" height="64" rx="6" fill="#B5502C" stroke="#11110F" stroke-width="3" />
+                  <rect x="5" y="23" width="50" height="13" rx="3" fill="#11110F" />
+                  <rect x="13" y="50" width="34" height="22" rx="2" fill="#FAF8F3" />
+                  <path d="M18 57h24M18 64h16" stroke="#11110F" stroke-width="1.8" stroke-linecap="round" />
+                </svg>
+              </button>
+              <button class="ting ting--pakke" type="button" aria-pressed="false"
+                      data-navn="Bare Kylling" data-dom="Kyllingfilet og krydder. Åpne og spis." data-feir>
+                <span class="sr-only">Bare Kylling</span>
+                <svg viewBox="0 0 60 100" aria-hidden="true" focusable="false">
+                  <rect x="8" y="5" width="44" height="90" rx="4" fill="#FAF8F3" stroke="#11110F" stroke-width="3" />
+                  <path d="M17 18c2-3 6-3 7 0" fill="none" stroke="#334D29" stroke-width="2.4" stroke-linecap="round" />
+                  <path d="M16 24h18" stroke="#11110F" stroke-width="3" stroke-linecap="round" />
+                  <ellipse cx="34" cy="48" rx="11" ry="21" transform="rotate(22 34 48)" fill="#D98A3D" />
+                  <path d="M30 40l1 1M37 46l1 1M31 53l1 1M38 57l1 1" stroke="#8E3D20" stroke-width="2.4" stroke-linecap="round" />
+                  <path d="M8 72h44v19a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#A8492A" />
+                </svg>
+              </button>
+            </div>
+
+            <svg class="sekk__foran" viewBox="0 0 320 280" aria-hidden="true" focusable="false">
+              <path class="sekk__kropp" d="M40 114c44 22 196 22 240 0l-8 130c-1 14-10 22-24 22H72c-14 0-23-8-24-22z" />
+              <path class="sekk__som" d="M54 128c42 18 170 18 212 0" />
+              <path class="sekk__lomme" d="M100 182h120v52c0 8-5 13-13 13H113c-8 0-13-5-13-13z" />
+              <path class="sekk__klaff" d="M100 200h120" />
+              <circle class="sekk__merke" cx="160" cy="154" r="17" />
+              <!-- Bare Kylling-merket på lokket (logoens kylling, skalert ned) -->
+              <g class="sekk__kylling" transform="translate(146.5 141) scale(.27)">
+                <path d="M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5" />
+                <path d="M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3" />
+                <path d="M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11" />
+              </g>
+            </svg>
+          </div>
+
+          <p class="bubble sekk__boble" aria-live="polite" data-dom-boble>Trykk på noe i sekken.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="problem__slutt">
       <p class="turn"><span>Ekte mat. Ekte protein.</span></p>
-      <p class="split__text">Bare Kylling er kyllingfilet som er stekt og krydret før den pakkes. Like lett å ta med som en bar – bare laget av kylling.</p>
+      <p class="problem__tekst">Bare Kylling er kyllingfilet som er stekt og krydret før den pakkes. Like lett å ta med som en bar – bare laget av kylling.</p>
     </div>
   </div>
 </section>
@@ -355,47 +489,83 @@
 </section>
 
 <!-- ============================================================
-     FORDELER – korte kort
+     FORDELER – en dag som går fort
+     De seks fordelene, hver knyttet til et øyeblikk i løpet av dagen.
+     PC/nettbrett: vannrett tidslinje du kan dra i, med en himmel som går
+     fra morgen til kveld. Mobil: loddrett tidslinje med en klokke som
+     følger med. Klokkeslettene er bare eksempler på en vanlig dag.
+     Se «7. EN DAG» i js/main.js og «E» i css/style.css.
      ============================================================ -->
-<section class="sec benefits" id="fordeler" aria-labelledby="benefits-tittel">
-  <div class="shell">
-    <div class="sec__head">
+<section class="sec dag" id="fordeler" aria-labelledby="benefits-tittel">
+  <div class="shell dag__head">
+    <div>
       <p class="marker">Derfor</p>
       <h2 class="display" id="benefits-tittel">Laget for dager som går fort</h2>
     </div>
+    <div class="dag__styr" hidden>
+      <p class="dag__hint" aria-hidden="true">Dra gjennom dagen</p>
+      <button class="dag__pil" type="button" data-retning="-1" aria-label="Tidligere på dagen" disabled><span aria-hidden="true">←</span></button>
+      <p class="dag__teller" aria-live="polite"><span class="sr-only">Øyeblikk </span><b data-dag-nr>1</b> / 6</p>
+      <button class="dag__pil" type="button" data-retning="1" aria-label="Senere på dagen"><span aria-hidden="true">→</span></button>
+    </div>
+  </div>
 
-    <ul class="benefits__grid">
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kylling"></use></svg></span>
-        <h3 class="benefit__h3">Ekte kyllingfilet</h3>
-        <p>Hele stykker kyllingfilet med krydder – ikke pulver, ikke bar.</p>
-      </li>
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-panne"></use></svg></span>
-        <h3 class="benefit__h3">Ferdigstekt</h3>
-        <p>Stekt og krydret før den pakkes, så du slipper å lage noe.</p>
-      </li>
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-kald-varm"></use></svg></span>
-        <h3 class="benefit__h3">God kald</h3>
-        <p>Laget for å smake godt rett fra pakken – eller varm den i mikroen.</p>
-      </li>
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-sekk"></use></svg></span>
-        <h3 class="benefit__h3">Tar liten plass</h3>
-        <p>Flat pakke som glir ned i sekken, treningsbagen eller vesken.</p>
-      </li>
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-riv-opp"></use></svg></span>
-        <h3 class="benefit__h3">Åpne og spis</h3>
-        <p>Ingen bestikk, ingen tallerken og ingen oppvask etterpå.</p>
-      </li>
-      <li class="benefit">
-        <span class="benefit__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-oye"></use></svg></span>
-        <h3 class="benefit__h3">Du ser hva du får</h3>
-        <p>Klar emballasje, så du ser kyllingfileten før du åpner den.</p>
-      </li>
-    </ul>
+  <div class="dag__scene">
+    <!-- Himmelen (PC): fargen, sola, månen og stjernene følger dagen; pikselskyene driver forbi -->
+    <div class="dag__himmel" aria-hidden="true">
+      <span class="dag__sky"></span><span class="dag__sky dag__sky--2"></span>
+      <span class="dag__sol"></span>
+      <span class="dag__stjerner"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+    </div>
+    <!-- Tiden på dagen (mobil): står fast øverst mens du scroller gjennom dagen -->
+    <p class="dag__klokke" aria-hidden="true"><span class="dag__ikon"></span><span data-dag-del>Morgen</span></p>
+
+    <div class="dag__spor" role="region" aria-label="En dag med Bare Kylling, fra morgen til kveld" tabindex="0">
+      <ol class="dag__liste">
+        <li class="stop" data-del="Morgen">
+          <p class="stop__tid"><time datetime="07:15">07:15</time></p>
+          <p class="stop__naar">Kjøleskapet</p>
+          <svg class="figure stop__fig stop__fig--titt" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-titter"></use></svg>
+          <h3 class="stop__h3">Du ser hva du får</h3>
+          <p>Klar emballasje, så du ser kyllingfileten før du åpner den.</p>
+        </li>
+        <li class="stop" data-del="Morgen">
+          <p class="stop__tid"><time datetime="07:40">07:40</time></p>
+          <p class="stop__naar">Sekken pakkes</p>
+          <svg class="figure stop__fig stop__fig--sekk" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-i-sekk"></use></svg>
+          <h3 class="stop__h3">Tar liten plass</h3>
+          <p>Flat pakke som glir ned i sekken, treningsbagen eller vesken.</p>
+        </li>
+        <li class="stop" data-del="Formiddag">
+          <p class="stop__tid"><time datetime="10:05">10:05</time></p>
+          <p class="stop__naar">Friminutt</p>
+          <svg class="figure stop__fig stop__fig--prat" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-snakker"></use></svg>
+          <h3 class="stop__h3">Åpne og spis</h3>
+          <p>Ingen bestikk, ingen tallerken og ingen oppvask etterpå.</p>
+        </li>
+        <li class="stop" data-del="Middag">
+          <p class="stop__tid"><time datetime="12:30">12:30</time></p>
+          <p class="stop__naar">Lunsj på farten</p>
+          <svg class="figure stop__fig stop__fig--lop" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-loper"></use></svg>
+          <h3 class="stop__h3">God kald</h3>
+          <p>Laget for å smake godt rett fra pakken – eller varm den i mikroen.</p>
+        </li>
+        <li class="stop" data-del="Ettermiddag">
+          <p class="stop__tid"><time datetime="16:45">16:45</time></p>
+          <p class="stop__naar">Etter trening</p>
+          <svg class="figure stop__fig stop__fig--fleks" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-flekser"></use></svg>
+          <h3 class="stop__h3">Ekte kyllingfilet</h3>
+          <p>Hele stykker kyllingfilet med krydder – ikke pulver, ikke bar.</p>
+        </li>
+        <li class="stop" data-del="Kveld">
+          <p class="stop__tid"><time datetime="20:30">20:30</time></p>
+          <p class="stop__naar">Sen kveld</p>
+          <svg class="figure stop__fig stop__fig--sov" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-sover"></use></svg>
+          <h3 class="stop__h3">Ferdigstekt</h3>
+          <p>Stekt og krydret før den pakkes, så du slipper å lage noe.</p>
+        </li>
+      </ol>
+    </div>
   </div>
 </section>
 
@@ -722,6 +892,8 @@
      FOOTER
      ============================================================ -->
 <footer class="foot">
+  <!-- Pikselkyllingen går en tur langs kanten av og til (pynt, se «8» i css) -->
+  <span class="pikselkylling" aria-hidden="true"><i></i></span>
   <div class="shell">
     <div class="foot__mark" aria-hidden="true">
       <span class="foot__icon"><svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -767,7 +939,7 @@
 
 <a class="sticky-cta" href="venteliste.html">Få beskjed ved lansering</a>
 
-<script src="js/content.js?v=20260929b"></script>
-<script src="js/main.js?v=20260929b"></script>
+<script src="js/content.js?v=20261013b"></script>
+<script src="js/main.js?v=20261013b"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20260929b" />
+<link rel="stylesheet" href="css/style.css?v=20261013b" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -184,6 +184,8 @@
      FOOTER
      ============================================================ -->
 <footer class="foot">
+  <!-- Pikselkyllingen går en tur langs kanten av og til (pynt, se «8» i css) -->
+  <span class="pikselkylling" aria-hidden="true"><i></i></span>
   <div class="shell">
     <div class="foot__mark" aria-hidden="true">
       <span class="foot__icon"><svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -227,7 +229,7 @@
 </footer>
 <!-- BK:FELLES bunn END -->
 
-<script src="js/content.js?v=20260929b"></script>
-<script src="js/main.js?v=20260929b"></script>
+<script src="js/content.js?v=20261013b"></script>
+<script src="js/main.js?v=20261013b"></script>
 </body>
 </html>
