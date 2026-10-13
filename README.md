@@ -18,6 +18,7 @@ Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju side
 | `faq.html` | Spørsmål og svar |
 | `venteliste.html` | Venteliste |
 | `404.html` | Feilside |
+| `spill.html` | Spillet «Veien til Jobbsenteret» |
 
 Les [`bare-kylling/README.md`](bare-kylling/README.md) for hvordan innholdet
 styres, hvordan de felles blokkene holdes i sync, og hva som må på plass før
@@ -103,6 +104,38 @@ HTTPS-sertifikat ordnes automatisk.
 
 Blir dere værende på GitHub Pages, kjør med `--pages` i stedet – da lages
 `CNAME`-fila og skriptet sjekker GitHubs fire A-poster.
+
+## Global toppliste (spillet)
+
+Spillet har en global topp 10 som lagres i en ekte database. Koden er
+Vercel-funksjonen [`api/toppliste.js`](api/toppliste.js); Vercel finner
+`api/`-mappa av seg selv. Databasen er Upstash Redis (gratisnivået holder godt).
+
+1. Vercel → prosjektet → **Storage** (eller *Marketplace*) → **Upstash** →
+   *Redis* → opprett en database og **Connect** den til prosjektet.
+   Vercel legger da inn `KV_REST_API_URL` og `KV_REST_API_TOKEN` (eller
+   `UPSTASH_REDIS_REST_URL`/`_TOKEN`) som miljøvariabler.
+2. Valgfritt: legg inn `TOPPLISTE_HEMMELIGHET` (en lang tilfeldig tekst) som
+   miljøvariabel. Ellers lages signaturnøkkelen fra databasenøkkelen.
+3. Publiser på nytt. Ferdig – topplista viser seg på `spill.html`.
+
+Uten database svarer funksjonen 503, og spillet viser bare de beste rundene på
+enheten (det samme skjer på GitHub Pages og lokalt med `http.server`).
+
+Vern mot juks: hver runde får en signert billett som bare kan brukes én gang,
+spillet sender en logg over hoppene som serveren regner etter (samme poeng,
+ingen hopp raskere enn mulig, ikke lenger runde enn billetten har levd),
+grenser per IP (bare en hash lagres) og sjekk av kallenavn (2–16 tegn og et
+lite filter mot stygge ord). Kallenavn er ikke kontoer – samme navn deler plass.
+Et nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
+
+Testene kjøres uten database (fetch byttes ut med en Redis i minnet):
+
+```bash
+node tools/test-toppliste.js
+```
+
+Vil du tømme lista: slett nøklene `bk:topp` og `bk:navn` i Upstash-konsollen.
 
 ## Kjøre lokalt
 

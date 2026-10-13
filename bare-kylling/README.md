@@ -22,11 +22,14 @@ bare-kylling/
 ├── faq.html            Spørsmål og svar
 ├── venteliste.html     Påmeldingsskjemaet
 ├── 404.html            Feilside (GitHub Pages bruker den automatisk)
+├── spill.html          Spillet «Veien til Jobbsenteret» (se under)
 ├── robots.txt          Peker på sitemap.xml
 ├── sitemap.xml         Alle sidene (oppdater hvis du legger til en side)
 ├── css/style.css       Design tokens og all styling
 ├── js/content.js       ← ALT innhold som skal kunne endres
 ├── js/main.js          Interaksjon (meny, skjema, sticky CTA, innhold fra content.js)
+├── js/spill/           Spillet: spill.js, verden.js, modeller.js, voxel.js, lyd.js, toppliste.js
+├── js/vendor/          Three.js r170 (MIT, se three.LICENSE.txt) – bare spillet bruker den
 ├── images/             Bildefiler — se images/README.md
 └── images/figurer.svg  Tegnede figurer (maskot, doodles, ikoner) — se under
 ```
@@ -114,6 +117,43 @@ dra i (eller bruke pilene / piltastene), under en himmel som går fra morgen til
 natt med sol, måne, pikselskyer og stjerner. På mobil er tidslinjen loddrett, og
 et merke øverst viser tiden på dagen. Klokkeslettene er bare eksempler. Se «4f»
 i `js/main.js` og «E» i `css/style.css`.
+
+## Spillet: Veien til Jobbsenteret
+
+`spill.html` er et lite 3D-spill i voxelstil (som Crossy Road). Logokyllingen
+hopper fra Bare Kylling-butikken, over veier, elver, parker og bybaneskinner,
+til Jobbsenteret på rad 60. Etter Jobbsenteret fortsetter det i uendelig modus.
+Inngangen er diskret: lenken «Spillet» i footeren og pikselkyllingen som går
+langs footerkanten.
+
+- **Styring:** piltaster/WASD (ett trykk = ett hopp) og sveip/trykk på mobil.
+- **Død:** påkjørt (bil, buss, lastebil, vår egen varebil), bybanen (kyllingen
+  blir med på turen), plask i elva, drift ut av skjermen på en tømmerstokk, og
+  måka som tar deg hvis du står stille for lenge. Hver har sin egen melding.
+- **Lyd:** alle lydeffekter og musikken lages i nettleseren (WebAudio), ingen
+  lydfiler. Lyd og musikk kan slås av hver for seg, og valget huskes.
+- **Rekorder:** personlig rekord og de ti beste rundene på enheten ligger i
+  `localStorage`. Den globale topplista går via `/api/toppliste` (se
+  `api/toppliste.js` i repo-rota og «Global toppliste» i README-en der). Er den
+  ikke koblet til, viser siden bare enhetens egen liste.
+
+| Fil | Innhold |
+|---|---|
+| `js/spill/spill.js` | Oppstart, kamera, kyllingen, styring, poeng, død, HUD, toppliste-visning |
+| `js/spill/verden.js` | Radene (vei, elv, park, fortau, bane, Jobbsenteret), trafikk og kollisjoner |
+| `js/spill/modeller.js` | Alle modeller av klosser, skilt og den animerte reklametavla |
+| `js/spill/voxel.js` | Fargepaletten, klosser → én geometri, logoen → voxelkylling |
+| `js/spill/lyd.js` | Lydeffekter og chiptune-musikk |
+| `js/spill/toppliste.js` | Lokal lagring og kall til `/api/toppliste` |
+
+Verdenen lages tilfeldig hver runde, men alltid med en mulig vei videre.
+Vanskeligheten øker gradvis (`vanske()` i `verden.js`): raskere trafikk, færre
+og kortere tømmerstokker, oftere bybane. Jobbsenteret flyttes med `JOBB` øverst
+i `verden.js`. Kvaliteten skrus ned av seg selv på trege maskiner.
+
+For automatiske tester: `spill.html?test` legger `window.__bkSpill` på siden
+(tilstand, poeng, `hoppTil(n)`, `sakte(k)` for sakte film). Uten `?test` finnes
+den ikke.
 
 ## Før lansering — sjekkliste
 
@@ -222,6 +262,8 @@ aldri noe som ikke er bekreftet.
   på den etterspurte (dype) adressen.
 - To webfonter fra Google Fonts: Archivo (variabel, med bredde-akse for de
   kondenserte overskriftene) og Manrope. Ingen andre eksterne kall.
+- Spillet bruker Three.js, lagt ved i `js/vendor/` (ingen CDN, ingen bygging).
+  Bare `spill.html` laster den.
 
 ## Publisering
 

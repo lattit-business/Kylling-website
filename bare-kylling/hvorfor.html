@@ -284,8 +284,9 @@
      FOOTER
      ============================================================ -->
 <footer class="foot">
-  <!-- Pikselkyllingen går en tur langs kanten av og til (pynt, se «8» i css) -->
-  <span class="pikselkylling" aria-hidden="true"><i></i></span>
+  <!-- Pikselkyllingen går en tur langs kanten av og til – og er en snarvei til
+       spillet (for mus og trykk; tastatur og skjermleser bruker lenken i menyen under) -->
+  <a class="pikselkylling" href="spill.html" tabindex="-1" aria-hidden="true" title="Spill: Veien til Jobbsenteret"><i></i></a>
   <div class="shell">
     <div class="foot__mark" aria-hidden="true">
       <span class="foot__icon"><svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -309,6 +310,7 @@
         <a href="om-oss.html">Om oss</a>
         <a href="faq.html">Spørsmål og svar</a>
         <a href="venteliste.html">Venteliste</a>
+        <a class="foot__spill" href="spill.html">Spillet: Veien til Jobbsenteret</a>
       </nav>
       <div class="foot__nav">
         <p class="foot__h">Om Bare Kylling</p>

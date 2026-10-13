@@ -453,7 +453,8 @@
     'Åpne. Spis. Fortsett dagen.',
     'Jeg er ikke en bar. Jeg er ekte mat.',
     'Ferdigstekt og klar. Er du?',
-    'Psst … e-posten din går i feltet der borte.'
+    'Psst … e-posten din går i feltet der borte.',
+    'Psst … det ligger et spill nederst på siden.'
   ];
   $$('.mascot__knapp').forEach(function (knapp) {
     var boble = $('[data-kakle]', knapp.parentNode);

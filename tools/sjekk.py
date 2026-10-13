@@ -67,7 +67,12 @@ def fiks() -> None:
             ny = ref
             if navn == "topp":
                 ny = ny.replace(f'<a href="{p.name}">', f'<a href="{p.name}" aria-current="page">')
-            html = html.replace(egen, ny)
+            # Bytt bare ut området mellom markørene (en tom blokk må ikke treffe
+            # alle linjeskift i filen).
+            html = re.sub(
+                rf"(<!-- BK:FELLES {navn} START -->).*?(<!-- BK:FELLES {navn} END -->)",
+                lambda m: m.group(1) + ny + m.group(2), html, count=1, flags=re.S,
+            )
         p.write_text(html, encoding="utf-8")
         print("oppdatert", p.name)
 
@@ -94,7 +99,7 @@ def main() -> int:
         for fil, s in html.items():
             b = blokk(s, navn)
             if b is None:
-                if navn == "cta" and fil in ("venteliste.html", "404.html"):
+                if navn == "cta" and fil in ("venteliste.html", "404.html", "spill.html"):
                     continue
                 feil.append(f"{fil}: mangler blokk BK:FELLES {navn}")
             elif normaliser(b) != normaliser(ref):
