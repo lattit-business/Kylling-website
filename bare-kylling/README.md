@@ -137,8 +137,10 @@ langs footerkanten.
   lydfiler. Lyd og musikk kan slås av hver for seg, og valget huskes.
 - **Rekorder:** personlig rekord og de ti beste rundene på enheten ligger i
   `localStorage`. Den globale topplista går via `/api/toppliste` (se
-  `api/toppliste.js` i repo-rota og «Global toppliste» i README-en der). Er den
-  ikke koblet til, viser siden bare enhetens egen liste.
+  `api/toppliste.js` i repo-rota og «Global toppliste» i README-en der). Den
+  oppdaterer seg selv hvert 20. sekund, og startkortet viser rekorden å slå.
+  Er den ikke koblet til, viser siden bare enhetens egen liste, merket
+  «Bare denne enheten».
 
 | Fil | Innhold |
 |---|---|

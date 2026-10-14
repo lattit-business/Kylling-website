@@ -92,8 +92,8 @@ async function start() {
     sluttTekst: $('[data-slutt-tekst]'), nyRekord: $('[data-ny-rekord]'), navnSkjema: $('[data-navn-skjema]'),
     navn: $('[data-navn]'), navnStatus: $('[data-navn-status]'), igjen: $('[data-igjen]'),
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
-    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), startRekord: $('[data-start-rekord]'),
-    feiring: $('[data-feiring]')
+    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'),
+    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -179,7 +179,10 @@ async function start() {
   let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0;
   /* «Redusert bevegelse»: kameraet rister ikke */
   const ristSkala = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
-  let lokalModus = false;
+  /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
+     enhetens egen liste) eller 'ukjent' (ikke fått svar ennå). listeFeil er
+     satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
+  let listeModus = 'ukjent', globalListe = [], listeFeil = '';
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -249,7 +252,9 @@ async function start() {
     melding(velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     lyd.startMusikk();
     sisteTrekk = performance.now();
-    T.startRunde().then((b) => { billett = b; });
+    /* Billetten hører til denne runden; en sen billett fra en avbrutt runde brukes ikke */
+    const runde = runder;
+    if (listeModus !== 'lokal') { T.startRunde().then((b) => { if (runde === runder) { billett = b; } }); }
   }
 
   /* -------------------------------------------------------------------------
@@ -452,6 +457,7 @@ async function start() {
     if (ui.nyRekord) { ui.nyRekord.hidden = !nyRekord || poeng === 0; }
     if (ui.navnSkjema) { ui.navnSkjema.hidden = true; }
     if (ui.navnStatus) { ui.navnStatus.textContent = ''; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (ui.slutt) { ui.slutt.hidden = false; }
     oppdaterHud();
     if (nyRekord && poeng > 0) {
@@ -465,14 +471,16 @@ async function start() {
     if (ui.igjen) { ui.igjen.focus({ preventScroll: true }); }
 
     /* Kom poengsummen på den globale lista? Da kan du skrive kallenavn. */
-    const svar = await oppdaterToppliste();
-    lokalModus = !svar.ok;
+    await oppdaterToppliste();
+    if (listeModus === 'global') { T.forberedBillett(); }   /* klar til neste runde */
     if (poeng > 0 && tilstand === 'over' && ui.navnSkjema) {
-      if (svar.ok && billett) {
-        const liste = svar.liste;
-        const kvalifisert = liste.length < 10 || poeng > liste[liste.length - 1].poeng;
-        if (kvalifisert) { visNavnSkjema('Du er på topp 10! Skriv inn et kallenavn:'); }
-      } else if (!svar.ok && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
+      if (listeModus === 'global') {
+        const kvalifisert = globalListe.length < 10 || poeng > globalListe[globalListe.length - 1].poeng;
+        if (kvalifisert && billett) { visNavnSkjema('Du er på topp 10! Skriv inn et kallenavn:'); }
+        else if (kvalifisert && ui.sluttInfo) {
+          ui.sluttInfo.textContent = 'Du kom på topp 10, men runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
+        }
+      } else if (listeModus === 'lokal' && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
         /* Uten global liste: gi runden et navn på enhetens egen liste */
         visNavnSkjema('Gi runden et kallenavn på lista til denne enheten:');
       }
@@ -486,29 +494,78 @@ async function start() {
     if (ui.navn) { ui.navn.value = T.sisteNavn(); }
   }
 
-  async function oppdaterToppliste(markert) {
-    const svar = await T.hentListe();
-    tegnListe(svar.ok ? svar.liste : T.lokalListe(), svar.ok, markert);
-    return svar;
+  /* Henter topplista (én forespørsel om gangen) og tegner den på nytt */
+  let henterListe = null, sistHentet = -Infinity;
+  function oppdaterToppliste() {
+    if (!henterListe) {
+      henterListe = T.hentListe().then((svar) => {
+        henterListe = null;
+        sistHentet = performance.now();
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; listeFeil = ''; }
+        else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
+        else { listeFeil = svar.grunn; }
+        tegnListe();
+        oppdaterStartKort();
+        return svar;
+      });
+    }
+    return henterListe;
   }
+
+  /* Startkortet: din rekord, og rekorden du skal slå */
+  function oppdaterStartKort() {
+    if (!ui.startRekord) { return; }
+    const deler = rekord > 0 ? [`Din rekord: ${rekord}`] : [];
+    const topp = listeModus === 'global' && globalListe[0];
+    if (topp) {
+      const meg = T.sisteNavn().toLowerCase();
+      deler.push(meg && topp.navn.toLowerCase() === meg ? `Du leder topplista med ${topp.poeng}!` : `Rekorden å slå: ${topp.poeng} (${topp.navn})`);
+    }
+    ui.startRekord.textContent = deler.join(' · ');
+  }
+
+  /* Kopien på GitHub Pages har ingen api/, så den kan bare vise enhetens egen liste */
+  const paaKopi = /\.github\.io$/.test(location.hostname);
 
   /* Egen pikselkrone til førsteplassen (ingen emojier) */
   const KRONE = '<svg class="krone" viewBox="0 0 11 8" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#F1B240" d="M0 0h1v1H0zM5 0h1v1H5zM10 0h1v1h-1zM0 1h2v1H0zM4 1h3v1H4zM9 1h2v1H9zM0 2h3v1H0zM4 2h3v1H4zM8 2h3v1H8zM0 3h11v3H0z"/><path fill="#11110F" d="M0 6h11v2H0z"/><path fill="#A8492A" d="M2 4h1v1H2zM5 4h1v1H5zM8 4h1v1H8z"/></svg>';
 
-  function tegnListe(liste, global, markert) {
+  function tegnListe() {
     if (!ui.liste) { return; }
-    ui.liste.textContent = '';
-    if (ui.listeStatus) {
-      ui.listeStatus.textContent = global
-        ? (liste.length ? '' : 'Ingen på lista ennå. Bli den første!')
-        : 'Den globale topplista er ikke koblet til ennå. Her er de beste rundene på denne enheten.';
+    const global = listeModus === 'global';
+    const liste = global ? globalListe : T.lokalListe();
+    if (ui.listeMerke) { ui.listeMerke.textContent = global ? 'Global toppliste' : 'Bare denne enheten'; }
+    if (ui.listeInfo) {
+      ui.listeInfo.textContent = global
+        ? 'Topplista er felles for alle som spiller, og oppdaterer seg selv. Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over.'
+        : 'Rekordene her lagres bare i denne nettleseren. Andre som spiller, ser dem ikke.';
     }
+    if (ui.listeStatus) {
+      const s = ui.listeStatus;
+      s.textContent = '';
+      if (listeFeil) {
+        s.textContent = global ? 'Fikk ikke oppdatert topplista akkurat nå. Prøver igjen …' : 'Fikk ikke kontakt med topplista. Prøver igjen …';
+      } else if (global && !liste.length) {
+        s.textContent = 'Ingen på lista ennå. Bli den første!';
+      } else if (!global && paaKopi) {
+        const lenke = document.createElement('a');
+        lenke.className = 'link'; lenke.href = 'https://barekylling.no/spill.html'; lenke.textContent = 'barekylling.no';
+        s.append('Den felles topplista finnes bare på ', lenke, '. Her er rundene på denne enheten.');
+      } else if (!global) {
+        s.textContent = 'Den felles topplista er ikke koblet til ennå, så her står bare rundene på denne enheten.';
+      }
+    }
+    /* Ditt kallenavn markeres (navn er like uansett store og små bokstaver) */
+    const meg = T.sisteNavn().toLowerCase();
+    ui.liste.textContent = '';
     liste.slice(0, 10).forEach((rad, i) => {
       const li = document.createElement('li');
-      if (markert && rad.navn === markert) { li.classList.add('er-deg'); }
+      const erDeg = meg && String(rad.navn).toLowerCase() === meg;
+      if (erDeg) { li.classList.add('er-deg'); }
       const plass = document.createElement('span'); plass.className = 'toppliste__plass'; plass.textContent = String(i + 1);
       if (i === 0) { plass.insertAdjacentHTML('beforeend', KRONE); }
       const navn = document.createElement('span'); navn.className = 'toppliste__navn'; navn.textContent = rad.navn;
+      if (erDeg) { const sr = document.createElement('span'); sr.className = 'sr-only'; sr.textContent = ' (deg)'; navn.append(sr); }
       const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad.poeng);
       const dato = document.createElement('time'); dato.className = 'toppliste__dato';
       if (rad.dato) {
@@ -526,9 +583,10 @@ async function start() {
       e.preventDefault();
       const navn = (ui.navn.value || '').trim().replace(/\s+/g, ' ');
       if (navn.length < 2 || navn.length > 16) { ui.navnStatus.textContent = 'Kallenavnet må ha 2–16 tegn.'; ui.navn.focus(); return; }
-      if (lokalModus) {
+      if (listeModus !== 'global') {
         T.lagreNavn(navn);
-        tegnListe(T.navngiLokal(poeng, navn), false, navn);
+        T.navngiLokal(poeng, navn);
+        tegnListe();
         ui.navnSkjema.hidden = true;
         melding('Lagret på denne enheten!', 2.5);
         lyd.poeng();
@@ -545,7 +603,9 @@ async function start() {
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
         melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
-        tegnListe(svar.liste, true, navn);
+        globalListe = svar.liste; listeFeil = '';
+        tegnListe();
+        oppdaterStartKort();
         lyd.poeng();
       } else {
         ui.navnStatus.textContent = svar.melding;
@@ -762,8 +822,16 @@ async function start() {
      I GANG
      ------------------------------------------------------------------------- */
   nyVerden();
-  if (ui.startRekord) { ui.startRekord.textContent = rekord > 0 ? `Din rekord: ${rekord}` : ''; }
-  oppdaterToppliste();
+  oppdaterStartKort();
+  oppdaterToppliste().then((svar) => { if (svar.ok) { T.forberedBillett(); } });
+
+  /* Topplista oppdateres av seg selv mens siden er synlig, så nye rekorder fra
+     andre dukker opp uten at noen må laste siden på nytt. */
+  const OPPDATER_HVERT = 20000;
+  window.setInterval(() => {
+    if (document.hidden || listeModus === 'lokal') { return; }
+    if (performance.now() - sistHentet >= OPPDATER_HVERT) { oppdaterToppliste(); }
+  }, 2500);
   requestAnimationFrame((t) => { forrige = t; steg(t); });
   scene_.classList.add('er-klar');
 

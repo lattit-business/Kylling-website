@@ -3,9 +3,9 @@
    Personlig rekord og en liten liste over de beste rundene lagres på enheten
    (localStorage). Den globale topplista ligger i en ekte database bak
    api/toppliste (se api/toppliste.js i repo-rota). Hver runde får en signert
-   billett fra serveren når den starter, og serveren sjekker tid, trekk og
-   kallenavn før en poengsum kommer på lista. Er databasen ikke koblet til
-   (f.eks. lokalt eller på GitHub Pages), viser siden bare den lokale lista.
+   billett fra serveren, og serveren sjekker tid, trekk og kallenavn før en
+   poengsum kommer på lista. Er databasen ikke koblet til (f.eks. lokalt eller
+   på GitHub Pages), viser siden bare den lokale lista.
    ============================================================================= */
 const API = 'api/toppliste';
 
@@ -58,16 +58,48 @@ async function kall(metode, kropp) {
   }
 }
 
-/* { ok: true, liste } eller { ok: false, grunn: 'ikke-koblet' | 'nett' } */
+/* { ok: true, liste } eller { ok: false, grunn }
+   grunn: 'ikke-koblet' – ingen database, eller en side uten api/ (GitHub Pages, lokalt)
+          'opptatt'     – for mange forespørsler akkurat nå
+          'nett'        – fikk ikke svar; prøv igjen senere */
 export async function hentListe() {
   const { status, data } = await kall('GET');
   if (status === 200 && data && Array.isArray(data.liste)) { return { ok: true, liste: data.liste }; }
-  return { ok: false, grunn: status === 503 || status === 404 ? 'ikke-koblet' : 'nett' };
+  if ([404, 405, 501, 503].includes(status)) { return { ok: false, grunn: 'ikke-koblet' }; }
+  return { ok: false, grunn: status === 429 ? 'opptatt' : 'nett' };
 }
 
-export async function startRunde() {
+/* ---------------------------------------------------------------------------
+   Billetter
+   Én billett holdes klar på forhånd (hentet ved sidelasting og etter hver
+   runde), så runden kan sendes inn selv om kyllingen dør før en treg
+   forespørsel er ferdig. Billetten gjelder i to timer på serveren; en
+   eldre enn en time byttes ut.
+   --------------------------------------------------------------------------- */
+const BILLETT_MAKS_ALDER = 60 * 60 * 1000;
+let klar = null;     /* { billett, hentet } */
+let henter = null;   /* pågående forhåndshenting */
+const fersk = (b) => b && Date.now() - b.hentet < BILLETT_MAKS_ALDER;
+
+async function hentBillett() {
   const { status, data } = await kall('POST', { handling: 'start' });
-  return status === 200 && data && data.billett ? data.billett : null;
+  return status === 200 && data && data.billett ? { billett: data.billett, hentet: Date.now() } : null;
+}
+
+/* Henter neste billett i bakgrunnen hvis det ikke ligger en klar */
+export function forberedBillett() {
+  if (!henter && !fersk(klar)) {
+    henter = hentBillett().then((b) => { henter = null; if (b) { klar = b; } });
+  }
+}
+
+/* Gir billetten til en ny runde. Hver billett brukes av én runde. */
+export async function startRunde() {
+  if (!fersk(klar) && henter) { await henter; }
+  let b = fersk(klar) ? klar : null;
+  klar = null;
+  if (!b) { b = await hentBillett(); }
+  return b ? b.billett : null;
 }
 
 /* { ok, plass, liste } eller { ok: false, melding } */

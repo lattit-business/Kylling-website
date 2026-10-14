@@ -89,7 +89,8 @@ const FIL = path.join(__dirname, '..', 'api', 'toppliste.js');
 function last(env) {
   delete require.cache[require.resolve(FIL)];
   const gammel = { ...process.env };
-  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET']
+  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET',
+    'REDIS_URL', 'KV_URL', 'POSTGRES_URL', 'DATABASE_URL', 'BLOB_READ_WRITE_TOKEN']
     .forEach((k) => delete process.env[k]);
   Object.assign(process.env, env);
   const mod = require(FIL);
@@ -120,9 +121,27 @@ async function test(navn, fn) {
 (async () => {
   console.log('api/toppliste.js');
 
-  await test('uten database: 503', async () => {
-    const r = await kall(last({}), { method: 'GET' });
+  /* 503-svaret logges med console.error; hold testutskriften ren */
+  const stille = async (fn) => {
+    const ekte = console.error; const logget = [];
+    console.error = (...a) => logget.push(a.join(' '));
+    try { return { svar: await fn(), logget }; } finally { console.error = ekte; }
+  };
+
+  await test('uten database: 503 med hjelpetekst', async () => {
+    const { svar: r, logget } = await stille(() => kall(last({}), { method: 'GET' }));
     assert.strictEqual(r.status, 503);
+    assert.strictEqual(r.data.feil, 'ikke-koblet');
+    assert.match(r.data.hjelp, /Ingen database/);
+    assert.strictEqual(r.hode['cache-control'], 'no-store');
+    assert.strictEqual(logget.length, 1);
+  });
+
+  await test('feil databasetype (bare REDIS_URL): 503 som sier hva som mangler', async () => {
+    const { svar: r } = await stille(() => kall(last({ REDIS_URL: 'redis://hemmelig@falsk:6379' }), { method: 'GET' }));
+    assert.strictEqual(r.status, 503);
+    assert.match(r.data.hjelp, /Upstash for Redis/);
+    assert.ok(!JSON.stringify(r.data).includes('hemmelig'), 'verdien skal aldri vises');
   });
 
   const fn = last({ KV_REST_API_URL: 'https://falsk.upstash.io', KV_REST_API_TOKEN: 'test-token' });
@@ -150,6 +169,13 @@ async function test(navn, fn) {
     const r = await kall(fn, { method: 'GET' });
     assert.strictEqual(r.status, 200);
     assert.deepStrictEqual(r.data.liste, []);
+    /* Lista kan caches kort i CDN-et, men aldri i nettleseren */
+    assert.match(r.hode['cache-control'], /s-maxage=\d+/);
+    assert.match(r.hode['cache-control'], /(^|, )max-age=0/);
+  });
+
+  await test('billetter og innsendinger caches aldri', async () => {
+    const r = await kall(fn, { body: { handling: 'start' }, ip: nyIp() });
     assert.strictEqual(r.hode['cache-control'], 'no-store');
   });
 
@@ -250,10 +276,31 @@ async function test(navn, fn) {
     assert.ok(navn.indexOf('Kari') < navn.indexOf('Ola'));
   });
 
+  /* Grensene teller i faste 10-minuttersvinduer. Spol til starten av et nytt
+     vindu, så en test ikke deles i to av et vindusskifte midt i. */
+  const nyttVindu = () => spol(600000 - (Date.now() % 600000) + 1000);
+
+  await test('en hel skoleklasse bak samme IP kan spille og sende inn', async () => {
+    nyttVindu();
+    const skole = '10.0.7.1';
+    for (let runde = 0; runde < 3; runde++) {
+      for (let elev = 0; elev < 30; elev++) {
+        const b = await start(skole);
+        assert.ok(b, `elev ${elev} fikk ikke billett i runde ${runde + 1}`);
+        if (runde === 0) {
+          const r = await sendInn(b, { navn: 'Elev ' + elev, poeng: 5, logg: logg(5), ip: skole });
+          assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+        }
+      }
+    }
+    assert.strictEqual((await kall(fn, { method: 'GET', ip: skole })).status, 200);
+  });
+
   await test('grense per IP for innsending', async () => {
+    nyttVindu();
     const ip = '10.0.0.9';
     let siste;
-    for (let i = 0; i < 13; i++) { siste = await sendInn(await start('10.0.1.' + i), { navn: 'Spammer' + i, ip }); }
+    for (let i = 0; i < 61; i++) { siste = await sendInn(await start('10.0.1.' + i), { navn: 'Spammer' + i, ip }); }
     assert.strictEqual(siste.status, 429);
     const annen = await sendInn(await start('10.0.2.1'), { navn: 'Annen', ip: '10.0.0.10' });
     assert.strictEqual(annen.status, 200);

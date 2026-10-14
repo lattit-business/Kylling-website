@@ -142,7 +142,29 @@ Valgfritt: legg inn `TOPPLISTE_HEMMELIGHET` (en lang tilfeldig tekst) under
 databasenøkkelen.
 
 Uten database svarer funksjonen 503, og spillet viser bare de beste rundene på
-enheten (det samme skjer på GitHub Pages og lokalt med `http.server`).
+enheten (det samme skjer på GitHub Pages og lokalt med `http.server`). Da står
+det «Bare denne enheten» over lista i stedet for «Global toppliste».
+
+### Ser du bare dine egne rekorder?
+
+Da er databasen ikke koblet til, og hver nettleser har sin egen liste. Åpne
+`barekylling.no/api/toppliste`:
+
+| Svar | Betyr | Gjør dette |
+|---|---|---|
+| `{"liste":[…]}` | Alt virker | Lista oppdaterer seg selv hvert 20. sekund. |
+| `"hjelp":"Ingen database er koblet til …"` | Databasen mangler | Følg stegene over. |
+| `"hjelp":"Fant en database, men ikke av riktig type …"` | Feil type database (f.eks. «Redis» fra Redis Cloud) | Lag en **Upstash for Redis** i stedet, og publiser på nytt. |
+| 404 | Funksjonen ble ikke publisert | Sjekk at `api/` ligger i repo-rota og at prosjektet publiseres fra `main`. |
+
+Husk å publisere på nytt (*Redeploy*) etter at databasen er koblet til.
+Spiller noen på kopien på GitHub Pages, ser de bare sin egen liste; der lenker
+spillet til barekylling.no.
+
+Lista hentes på nytt hvert 20. sekund mens siden er synlig, og Vercels CDN
+cacher svaret i 5 sekunder, så mange spillere samtidig gir få databasekall.
+Grensene per IP-adresse (800 runder og 60 innsendinger per 10 minutter) er
+satt høyt nok til at en hel skoleklasse bak samme nettverk kan spille samtidig.
 
 Vern mot juks: hver runde får en signert billett som bare kan brukes én gang,
 spillet sender en logg over hoppene som serveren regner etter (samme poeng,

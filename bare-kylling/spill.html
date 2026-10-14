@@ -185,6 +185,7 @@
               </div>
               <p class="spill__navn-status" data-navn-status role="status" aria-live="polite"></p>
             </form>
+            <p class="spill__navn-status" data-slutt-info role="status" aria-live="polite"></p>
             <button class="btn btn--honey btn--lg" type="button" data-igjen>Spill igjen</button>
           </div>
         </div>
@@ -199,11 +200,11 @@
     </div>
 
     <aside class="toppliste" aria-labelledby="toppliste-tittel">
-      <p class="marker">Global toppliste</p>
+      <p class="marker" data-toppliste-merke>Global toppliste</p>
       <h2 class="display toppliste__h2" id="toppliste-tittel">Topp 10</h2>
       <p class="toppliste__status" data-toppliste-status role="status">Henter topplista …</p>
       <ol class="toppliste__liste" data-toppliste></ol>
-      <p class="toppliste__info">Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over. Din egen rekord lagres på denne enheten.</p>
+      <p class="toppliste__info" data-toppliste-info>Topplista er felles for alle som spiller, og oppdaterer seg selv. Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over.</p>
     </aside>
   </div>
 </section>
@@ -264,6 +265,6 @@
 
 <script src="js/content.js?v=20261014c"></script>
 <script src="js/main.js?v=20261014c"></script>
-<script type="module" src="js/spill/spill.js?v=20261014c"></script>
+<script type="module" src="js/spill/spill.js?v=20261014d"></script>
 </body>
 </html>

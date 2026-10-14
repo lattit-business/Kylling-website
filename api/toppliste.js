@@ -40,6 +40,10 @@ function finnDatabase(env) {
   return { url: '', token: '' };
 }
 const { url: URL_DB, token: TOKEN } = finnDatabase(process.env);
+/* Er en annen database koblet til (f.eks. «Redis» fra Redis Cloud, som bare gir
+   REDIS_URL)? Da sier 503-svaret fra hva som er galt, uten å vise verdiene. */
+const ANNEN_DATABASE = !URL_DB &&
+  Object.keys(process.env).some((k) => /(^|_)(REDIS_URL|KV_URL|POSTGRES_URL|DATABASE_URL|BLOB_READ_WRITE_TOKEN)$/.test(k));
 const HEMMELIG = process.env.TOPPLISTE_HEMMELIGHET ||
   (TOKEN ? crypto.createHash('sha256').update('bk-toppliste:' + TOKEN).digest('hex') : '');
 
@@ -56,11 +60,17 @@ const MAKS_POENG = 5000;
 const MAKS_TREKK = 30000;
 const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
+/* Grensene gjelder per IP-adresse. En hel skole eller et kontor deler ofte én
+   adresse, så de må tåle en klasse som spiller samtidig (30 elever, en runde
+   hvert halvminutt ≈ 600 runder på 10 minutter). */
 const GRENSER = {
-  start: { antall: 40, vindu: 600 },
-  send: { antall: 12, vindu: 600 },
-  hent: { antall: 120, vindu: 60 }
+  start: { antall: 800, vindu: 600 },
+  send: { antall: 60, vindu: 600 },
+  hent: { antall: 600, vindu: 60 }
 };
+/* Lista caches i Vercels CDN i noen sekunder, så automatisk oppdatering hos
+   mange spillere ikke blir mange databasekall. Nettleseren cacher aldri. */
+const LISTE_CACHE = 'public, max-age=0, s-maxage=5, stale-while-revalidate=10';
 
 /* ---------------------------------------------------------------------------
    Upstash REST
@@ -83,10 +93,10 @@ const en = async (...k) => (await db([k]))[0];
 /* ---------------------------------------------------------------------------
    Hjelpere
    --------------------------------------------------------------------------- */
-function send(res, status, data) {
+function send(res, status, data, cache = 'no-store') {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', cache);
   res.end(JSON.stringify(data));
 }
 
@@ -229,7 +239,13 @@ async function lesKropp(req) {
    Selve funksjonen
    --------------------------------------------------------------------------- */
 module.exports = async function toppliste(req, res) {
-  if (!URL_DB || !TOKEN || !HEMMELIG) { return send(res, 503, { feil: 'ikke-koblet' }); }
+  if (!URL_DB || !TOKEN || !HEMMELIG) {
+    const hjelp = ANNEN_DATABASE
+      ? 'Fant en database, men ikke av riktig type. Topplista trenger «Upstash for Redis» (Vercel → Storage).'
+      : 'Ingen database er koblet til. Se «Global toppliste» i README.md.';
+    console.error('toppliste: ' + hjelp);
+    return send(res, 503, { feil: 'ikke-koblet', hjelp });
+  }
 
   /* Bare forespørsler fra egen side (stopper enkle skript fra andre sider) */
   const opphav = req.headers.origin;
@@ -245,7 +261,7 @@ module.exports = async function toppliste(req, res) {
 
     if (req.method === 'GET') {
       if (await forMange('hent', ip)) { return send(res, 429, { melding: 'For mange forespørsler.' }); }
-      return send(res, 200, { liste: await hentListe(10) });
+      return send(res, 200, { liste: await hentListe(10) }, LISTE_CACHE);
     }
 
     if (req.method !== 'POST') {
