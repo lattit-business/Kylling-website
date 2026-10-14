@@ -564,7 +564,7 @@
       snu.classList.toggle('er-snudd', snudd);
       knapp.setAttribute('aria-pressed', String(snudd));
       if (ord) { ord.textContent = snudd ? 'Snu tilbake' : 'Snu pakken'; }
-      if (tekst) { tekst.textContent = snudd ? 'Baksiden av Bare Kylling.' : 'Baksiden av en proteinbar.'; }
+      if (tekst) { tekst.textContent = snudd ? 'Baksiden av Bare Kylling.' : 'En vanlig proteinbar.'; }
       if (snudd) {
         window.setTimeout(function () {
           var r = kort.getBoundingClientRect();

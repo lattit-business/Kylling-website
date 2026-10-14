@@ -46,7 +46,7 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | `farten-skolesekk` | Original i en skolesekk ved pulten (4:5) | «På skolen» (forside) + «Når det passer deg» (hvorfor.html) |
 | `rett-fra-pakken` | Ung mann med solbriller biter i en kyllingfilet, oransje bakgrunn (3:4) | «Hva du får» med «Rett fra pakken» (forside) |
 | `spis-ute` | Kvinne biter i en kyllingfilet ute på gresset. Beskåret: stempel og rå kjøttpakke nederst er fjernet | Flis «Mellom måltider» (forside) |
-| `proteinbar-ingrediensliste` | Baksiden av en proteinbar med lang ingrediensliste (4:3) | «Problemet» (forside + hvorfor.html) |
+| `proteinbar-salt-karamell` | En påbitt proteinbar med salt karamell i blå innpakning (4:3) | «Problemet» (forside + hvorfor.html) |
 | `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |
 | `og-bare-kylling.jpg` | Beskåret `to-smaker-kjokken`, 1200 × 630 | `og:image` ved deling i sosiale medier |
 | `figurer.svg` | Tegnede figurer: maskot, doodles og ikoner (SVG-sprite) | Alle sider – se `../README.md` |
