@@ -100,12 +100,15 @@ Chrome. Bruk `python3 -m http.server` (se rot-README).
 ## De to interaktive seksjonene på forsiden
 
 **Problemet** (`#problemet`). En bryter (to faner, `role="tab"`) veksler mellom
-to visninger av samme poeng:
+to visninger av samme poeng. Siden åpner på sekken:
 
-- *Snu pakken*: baksiden av en proteinbar snus, og på baksiden står vår etikett
-  («Kyllingfilet og krydder.»). Knappen og selve pakken snur den.
 - *Hva er i sekken?*: bar, shake, pulver og Bare Kylling er knapper. Trykk, så
   løftes tingen opp og en kort dom står i boblen (`data-dom` i HTML-en).
+  Proteinbaren får en «Snu den →»-knapp som bytter til den andre visningen.
+- *Snu pakken*: baksiden av en proteinbar snus, og på baksiden står vår etikett
+  («Kyllingfilet og krydder.»). Knappen og selve pakken snur den.
+
+Rekkefølgen styres av rekkefølgen på fanene og panelene i HTML-en.
 
 Konklusjonen («Ekte mat. Ekte protein.») står alltid synlig under. Uten
 JavaScript står begge visningene under hverandre, uten bryter. Se «4e» i

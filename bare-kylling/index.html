@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261013b" />
+<link rel="stylesheet" href="css/style.css?v=20261014a" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -268,8 +268,8 @@
 
     <div class="problem__bryter">
       <div class="bryter" role="tablist" aria-label="Velg hvordan du vil se forskjellen" data-valgt="0" hidden>
-        <button class="bryter__valg" type="button" role="tab" id="fane-pakke" aria-controls="vis-pakke" aria-selected="true">Snu pakken</button>
-        <button class="bryter__valg" type="button" role="tab" id="fane-sekk" aria-controls="vis-sekk" aria-selected="false" tabindex="-1">Hva er i sekken?</button>
+        <button class="bryter__valg" type="button" role="tab" id="fane-sekk" aria-controls="vis-sekk" aria-selected="true">Hva er i sekken?</button>
+        <button class="bryter__valg" type="button" role="tab" id="fane-pakke" aria-controls="vis-pakke" aria-selected="false" tabindex="-1">Snu pakken</button>
         <span class="bryter__knott" aria-hidden="true">
           <svg class="bryter__kylling" focusable="false"><use href="images/figurer.svg#kylling-loper"></use></svg>
         </span>
@@ -277,54 +277,7 @@
     </div>
 
     <div class="scene">
-      <!-- Visning 1: snu pakken -->
-      <div class="scene__vis" id="vis-pakke" role="tabpanel" aria-labelledby="fane-pakke">
-        <div class="snu">
-          <div class="snu__kort">
-            <div class="snu__flate">
-              <figure class="snu__side snu__side--for">
-                <picture>
-                  <source type="image/webp"
-                          srcset="images/proteinbar-ingrediensliste-720.webp 720w, images/proteinbar-ingrediensliste-1100.webp 1100w, images/proteinbar-ingrediensliste-1448.webp 1448w"
-                          sizes="(min-width: 900px) 640px, 100vw" />
-                  <img src="images/proteinbar-ingrediensliste.jpg"
-                       alt="Baksiden av en proteinbar i svart og rød folie, med en lang ingrediensliste i liten skrift."
-                       width="1448" height="1086" loading="lazy" decoding="async" />
-                </picture>
-              </figure>
-              <div class="snu__side snu__side--bak">
-                <div class="etikett">
-                  <p class="sr-only">Baksiden av en pakke Bare Kylling:</p>
-                  <p class="etikett__merke" aria-hidden="true">
-                    <svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                      <path d="M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5" />
-                      <path d="M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3" />
-                      <path d="M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11" />
-                      <path d="M39.5 84.5V97h-8.5M60.5 84.5V97h8.5" />
-                      <circle cx="75.5" cy="18.5" r="2.7" fill="currentColor" stroke="none" />
-                    </svg>
-                    <span class="etikett__ord"><span class="etikett__bare">bare</span><span class="etikett__kylling">Kylling</span></span>
-                  </p>
-                  <p class="etikett__k">Ingredienser</p>
-                  <p class="etikett__v">Kyllingfilet og krydder.</p>
-                  <p class="etikett__fin">Full ingrediensliste med mengder kommer når resepten er låst.</p>
-                  <p class="etikett__band"><span>Ferdigstekt</span><span>200 g</span></p>
-                </div>
-                <span class="etikett__stempel" aria-hidden="true">Ekte<br />mat</span>
-              </div>
-            </div>
-          </div>
-          <div class="snu__under">
-            <p class="snu__tekst" aria-live="polite">Baksiden av en proteinbar.</p>
-            <button class="btn btn--ink snu__knapp" type="button" aria-pressed="false" hidden>
-              <span class="snu__ikon" aria-hidden="true">↻</span>
-              <span class="snu__ord">Snu pakken</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Visning 2: hva er i sekken? Tingene er knapper; dommen står i boblen. -->
+      <!-- Visning 1 (vises først): hva er i sekken? Tingene er knapper; dommen står i boblen. -->
       <div class="scene__vis" id="vis-sekk" role="tabpanel" aria-labelledby="fane-sekk">
         <div class="sekk">
           <div class="sekk__figur">
@@ -396,6 +349,53 @@
           </div>
 
           <p class="bubble sekk__boble" aria-live="polite" data-dom-boble>Trykk på noe i sekken.</p>
+        </div>
+      </div>
+
+      <!-- Visning 2: snu pakken -->
+      <div class="scene__vis" id="vis-pakke" role="tabpanel" aria-labelledby="fane-pakke">
+        <div class="snu">
+          <div class="snu__kort">
+            <div class="snu__flate">
+              <figure class="snu__side snu__side--for">
+                <picture>
+                  <source type="image/webp"
+                          srcset="images/proteinbar-ingrediensliste-720.webp 720w, images/proteinbar-ingrediensliste-1100.webp 1100w, images/proteinbar-ingrediensliste-1448.webp 1448w"
+                          sizes="(min-width: 900px) 640px, 100vw" />
+                  <img src="images/proteinbar-ingrediensliste.jpg"
+                       alt="Baksiden av en proteinbar i svart og rød folie, med en lang ingrediensliste i liten skrift."
+                       width="1448" height="1086" loading="lazy" decoding="async" />
+                </picture>
+              </figure>
+              <div class="snu__side snu__side--bak">
+                <div class="etikett">
+                  <p class="sr-only">Baksiden av en pakke Bare Kylling:</p>
+                  <p class="etikett__merke" aria-hidden="true">
+                    <svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5" />
+                      <path d="M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3" />
+                      <path d="M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11" />
+                      <path d="M39.5 84.5V97h-8.5M60.5 84.5V97h8.5" />
+                      <circle cx="75.5" cy="18.5" r="2.7" fill="currentColor" stroke="none" />
+                    </svg>
+                    <span class="etikett__ord"><span class="etikett__bare">bare</span><span class="etikett__kylling">Kylling</span></span>
+                  </p>
+                  <p class="etikett__k">Ingredienser</p>
+                  <p class="etikett__v">Kyllingfilet og krydder.</p>
+                  <p class="etikett__fin">Full ingrediensliste med mengder kommer når resepten er låst.</p>
+                  <p class="etikett__band"><span>Ferdigstekt</span><span>200 g</span></p>
+                </div>
+                <span class="etikett__stempel" aria-hidden="true">Ekte<br />mat</span>
+              </div>
+            </div>
+          </div>
+          <div class="snu__under">
+            <p class="snu__tekst" aria-live="polite">Baksiden av en proteinbar.</p>
+            <button class="btn btn--ink snu__knapp" type="button" aria-pressed="false" hidden>
+              <span class="snu__ikon" aria-hidden="true">↻</span>
+              <span class="snu__ord">Snu pakken</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -941,7 +941,7 @@
 
 <a class="sticky-cta" href="venteliste.html">Få beskjed ved lansering</a>
 
-<script src="js/content.js?v=20261013b"></script>
-<script src="js/main.js?v=20261013b"></script>
+<script src="js/content.js?v=20261014a"></script>
+<script src="js/main.js?v=20261014a"></script>
 </body>
 </html>

@@ -504,7 +504,8 @@
 
   /* ---------------------------------------------------------------------------
      4e. BRYTEREN i «Problemet» – to faner (role="tab") som ser ut som én
-         bryter: «Snu pakken» og «Hva er i sekken?». Begge visningene ligger i
+         bryter: «Hva er i sekken?» (vises først) og «Snu pakken». Rekkefølgen
+         følger fanene i HTML-en. Begge visningene ligger i
          samme rute (se C3 i css), så høyden står stille når man bytter.
          .er-klar settes først når alt er koblet opp – uten JavaScript står
          begge visningene under hverandre, og bryteren er skjult.
@@ -516,6 +517,7 @@
     var faner = $$('[role="tab"]', bryter);
     var visninger = faner.map(function (f) { return document.getElementById(f.getAttribute('aria-controls')); });
     var valgt = 0;
+    var pakkeFane = Math.max(0, faner.indexOf(document.getElementById('fane-pakke')));
 
     velgVisning = function (i, fokus) {
       var fra = valgt;
@@ -550,7 +552,7 @@
     scene.classList.add('er-klar');
   }
 
-  /* Visning 1: snu pakken – knappen og selve pakken snur den */
+  /* Visning 2: snu pakken – knappen og selve pakken snur den */
   $$('.snu').forEach(function (snu) {
     var knapp = $('.snu__knapp', snu);
     var kort = $('.snu__kort', snu);
@@ -576,7 +578,7 @@
     snu.classList.add('er-klar');
   });
 
-  /* Visning 2: hva er i sekken? – tingen løftes opp, dommen står i boblen */
+  /* Visning 1: hva er i sekken? – tingen løftes opp, dommen står i boblen */
   var domBoble = $('[data-dom-boble]');
   var ting = $$('.ting');
   ting.forEach(function (t) {
@@ -595,7 +597,7 @@
         var lenke = el('button', 'sekk__lenke', 'Snu den →');
         lenke.type = 'button';
         lenke.addEventListener('click', function () {
-          velgVisning(0, true);
+          velgVisning(pakkeFane, true);
           var snu = $('.snu');
           if (snu && !snu.classList.contains('er-snudd')) { $('.snu__knapp', snu).click(); }
         });
