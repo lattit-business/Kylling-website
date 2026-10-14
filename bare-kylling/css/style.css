@@ -1511,7 +1511,13 @@ kbd {
 }
 .toppliste__plass { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.25rem; color: var(--paprika-deep); }
 .toppliste__liste li:nth-child(-n+3) .toppliste__plass { color: var(--ink); }
-.toppliste__liste li:first-child .toppliste__plass::after { content: ' 🏆'; font-size: .8em; }
+.toppliste__plass { display: inline-flex; align-items: center; gap: .25rem; }
+.krone { width: 1.15em; height: auto; flex: none; display: inline-block; vertical-align: -.05em; image-rendering: pixelated; }
+.toppliste__plass .krone { width: .95em; transform-origin: 50% 100%; }
+.anim .toppliste__plass .krone { animation: vipp-krone 2.6s ease-in-out infinite; }
+@keyframes vipp-krone { 0%, 70%, 100% { transform: rotate(0); } 78% { transform: rotate(-14deg) translateY(-2px); } 88% { transform: rotate(10deg); } }
+.anim--myk .toppliste__plass .krone { animation: none; }
+.spill__eget { margin-top: .4rem; font-size: .8rem; }
 .toppliste__navn { font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .toppliste__poeng { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 .toppliste__dato { grid-column: 2 / -1; font-size: .74rem; color: var(--ink-soft); }
@@ -2110,3 +2116,5 @@ html:not(.anim) .pikselkylling, .anim--myk .pikselkylling { left: clamp(1rem, 4v
   .gain:hover .gain__icon--fleks .figure, .gain:active .gain__icon--fleks .figure,
   .gain:hover .gain__ring, .gain:active .gain__ring { animation: none !important; }
 }
+.spill__ny-rekord { display: inline-flex; align-items: center; gap: .4rem; }
+.spill__ny-rekord .krone path:first-child { fill: var(--cream-hi, #FAF8F3); }

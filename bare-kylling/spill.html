@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261014a" />
+<link rel="stylesheet" href="css/style.css?v=20261014b" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -79,6 +79,7 @@
       <a href="hvorfor.html">Hvorfor kylling?</a>
       <a href="om-oss.html">Om oss</a>
       <a href="faq.html">Spørsmål og svar</a>
+      <a href="spill.html" aria-current="page">Bare spill</a>
     </nav>
 
     <div class="nav__end">
@@ -98,6 +99,7 @@
     <a href="hvorfor.html">Hvorfor kylling?</a>
     <a href="om-oss.html">Om oss</a>
     <a href="faq.html">Spørsmål og svar</a>
+    <a href="spill.html" aria-current="page">Bare spill</a>
     <a class="btn btn--honey menu__cta" href="venteliste.html">Få beskjed ved lansering</a>
     <p class="menu__foot">Ekte mat. Ekte protein.</p>
   </nav>
@@ -171,7 +173,7 @@
         <!-- Slutt på runden -->
         <div class="spill__slutt" data-spill-slutt hidden>
           <div class="spill__kort">
-            <p class="spill__ny-rekord" data-ny-rekord hidden>🏆 NY BARE KYLLING-REKORD!</p>
+            <p class="spill__ny-rekord" data-ny-rekord hidden><svg class="krone" viewBox="0 0 11 8" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#F1B240" d="M0 0h1v1H0zM5 0h1v1H5zM10 0h1v1h-1zM0 1h2v1H0zM4 1h3v1H4zM9 1h2v1H9zM0 2h3v1H0zM4 2h3v1H4zM8 2h3v1H8zM0 3h11v3H0z"/><path fill="#11110F" d="M0 6h11v2H0z"/><path fill="#A8492A" d="M2 4h1v1H2zM5 4h1v1H5zM8 4h1v1H8z"/></svg> NY BARE KYLLING-REKORD!</p>
             <h2 class="spill__slutt-tittel" data-slutt-tittel>Runden er over</h2>
             <p class="spill__tall"><span><b data-slutt-poeng>0</b> poeng</span><span>Rekord <b data-slutt-rekord>0</b></span></p>
             <p class="spill__slutt-tekst" data-slutt-tekst></p>
@@ -193,6 +195,7 @@
         <noscript><div class="spill__feil"><p>Spillet trenger JavaScript.</p></div></noscript>
       </div>
       <p class="spill__hjelp">PC: piltastene eller WASD – ett trykk er ett hopp. Mobil: sveip i den retningen du vil, eller trykk for å hoppe framover. Poengene er hvor mange ruter du kommer framover.</p>
+      <p class="spill__hjelp spill__eget">Veien til Jobbsenteret er et eget spill laget av Bare Kylling. Det er ikke Crossy Road og har ingen tilknytning til Crossy Road eller Hipster Whale.</p>
     </div>
 
     <aside class="toppliste" aria-labelledby="toppliste-tittel">
@@ -259,8 +262,8 @@
 </footer>
 <!-- BK:FELLES bunn END -->
 
-<script src="js/content.js?v=20261014a"></script>
-<script src="js/main.js?v=20261014a"></script>
-<script type="module" src="js/spill/spill.js?v=20261014a"></script>
+<script src="js/content.js?v=20261014b"></script>
+<script src="js/main.js?v=20261014b"></script>
+<script type="module" src="js/spill/spill.js?v=20261014b"></script>
 </body>
 </html>

@@ -185,7 +185,7 @@ async function start() {
   let runder = 0;
 
   const MELDINGER = {
-    start: ['Jobbsenteret venter på deg! 🐥'],
+    start: ['Jobbsenteret venter på deg!'],
     igjen: ['Én runde til? Selvfølgelig!', 'Ny dag, nye muligheter!', 'Jobbsenteret venter fortsatt!'],
     bil: ['Du ble nesten til nuggets!', 'Det der var nesten en kyllingburger.', 'Se til begge sider, kylling!'],
     varebil: ['Påkjørt av vår egen varebil. Pinlig!'],
@@ -195,7 +195,7 @@ async function start() {
     vann: ['Plask! Kyllinger er ikke laget for svømming.', 'Kyllingfilet skal stekes, ikke kokes.'],
     drift: ['Du drev til havs. Ha det!', 'Neste stopp: Nordsjøen.'],
     maake: ['Måka tok deg. Typisk Bergen.', 'Ikke stå stille – måkene følger med.'],
-    rekord: ['Du er offisielt en legendekylling! 🏆'],
+    rekord: ['Du er offisielt en legendekylling!'],
     jobb: ['Gratulerer! Du kom deg på jobb!']
   };
   const velg = (liste) => liste[Math.floor(Math.random() * liste.length)];
@@ -286,8 +286,8 @@ async function start() {
       lyd.bonk();
       spiller.klemt = 0.12;
       /* små påskeegg der man ikke kommer videre */
-      if (r === 'l' && spiller.rad >= 0 && spiller.rad <= 2 && Math.round(spiller.x) === -KOL + 1) { melding('Butikken åpner snart! 😉 Sett deg på ventelista.'); }
-      else if (r === 'd' && spiller.rad <= -1) { melding('Feil vei! Jobbsenteret er fremover. ⬆'); }
+      if (r === 'l' && spiller.rad >= 0 && spiller.rad <= 2 && Math.round(spiller.x) === -KOL + 1) { melding('Butikken åpner snart. Sett deg på ventelista.'); }
+      else if (r === 'd' && spiller.rad <= -1) { melding('Feil vei! Jobbsenteret er fremover.'); }
       else if (radNy && radNy.type === 'jobb' && Math.round(nyX) !== 0) { melding('Døra er i midten!'); }
       return;
     }
@@ -314,7 +314,7 @@ async function start() {
       else if (poeng === 25) { melding('25! Nå snakker vi.'); }
       else if (poeng === JOBB - 10) { melding('Jobbsenteret er rett der fremme!'); }
       else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
-      if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis! 🏆'); lyd.poeng(); }
+      if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
       oppdaterHud();
     }
   }
@@ -492,6 +492,9 @@ async function start() {
     return svar;
   }
 
+  /* Egen pikselkrone til førsteplassen (ingen emojier) */
+  const KRONE = '<svg class="krone" viewBox="0 0 11 8" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#F1B240" d="M0 0h1v1H0zM5 0h1v1H5zM10 0h1v1h-1zM0 1h2v1H0zM4 1h3v1H4zM9 1h2v1H9zM0 2h3v1H0zM4 2h3v1H4zM8 2h3v1H8zM0 3h11v3H0z"/><path fill="#11110F" d="M0 6h11v2H0z"/><path fill="#A8492A" d="M2 4h1v1H2zM5 4h1v1H5zM8 4h1v1H8z"/></svg>';
+
   function tegnListe(liste, global, markert) {
     if (!ui.liste) { return; }
     ui.liste.textContent = '';
@@ -504,6 +507,7 @@ async function start() {
       const li = document.createElement('li');
       if (markert && rad.navn === markert) { li.classList.add('er-deg'); }
       const plass = document.createElement('span'); plass.className = 'toppliste__plass'; plass.textContent = String(i + 1);
+      if (i === 0) { plass.insertAdjacentHTML('beforeend', KRONE); }
       const navn = document.createElement('span'); navn.className = 'toppliste__navn'; navn.textContent = rad.navn;
       const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad.poeng);
       const dato = document.createElement('time'); dato.className = 'toppliste__dato';
@@ -540,7 +544,7 @@ async function start() {
         billett = null;
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
-        melding(svar.plass ? `Du er nummer ${svar.plass} på topplista! 🏆` : 'Lagret!', 3);
+        melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
         tegnListe(svar.liste, true, navn);
         lyd.poeng();
       } else {

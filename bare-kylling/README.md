@@ -123,7 +123,7 @@ i `js/main.js` og «E» i `css/style.css`.
 
 ## Spillet: Veien til Jobbsenteret
 
-`spill.html` er et lite 3D-spill i voxelstil (som Crossy Road). Logokyllingen
+`spill.html` er et eget lite 3D-hoppespill i voxelstil, laget for Bare Kylling. Logokyllingen
 hopper fra Bare Kylling-butikken, over veier, elver, parker og bybaneskinner,
 til Jobbsenteret på rad 60. Etter Jobbsenteret fortsetter det i uendelig modus.
 Inngangen er diskret: lenken «Spillet» i footeren og pikselkyllingen som går
