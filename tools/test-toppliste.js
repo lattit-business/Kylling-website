@@ -140,6 +140,12 @@ async function test(navn, fn) {
     return kall(fn, { body, ip: over.ip || nyIp() });
   };
 
+  await test('finner databasen også med et annet prefiks', async () => {
+    const annen = last({ STORAGE_KV_REST_API_URL: 'https://falsk.upstash.io', STORAGE_KV_REST_API_TOKEN: 'test-token' });
+    const r = await kall(annen, { method: 'GET', ip: '10.0.6.1' });
+    assert.strictEqual(r.status, 200);
+  });
+
   await test('GET på tom liste', async () => {
     const r = await kall(fn, { method: 'GET' });
     assert.strictEqual(r.status, 200);
@@ -214,10 +220,14 @@ async function test(navn, fn) {
 
   await test('kallenavn sjekkes', async () => {
     const { sjekkNavn } = fn;
-    for (const g of ['Kari', 'Ola N.', 'Åse_99', 'Thoresen', 'Kylling-Kåre', 'Bjørn Ståle']) { assert.ok(!sjekkNavn(g).feil, g); }
-    for (const d of ['a', 'x'.repeat(17), '<script>', '   ', '...', 'F u c k', 'N1gg3r', 'faen', 'Bare Kylling', 'ADMIN', 'h.o.r.e']) {
-      assert.ok(sjekkNavn(d).feil, d);
-    }
+    const ok = ['Kari', 'Ola N.', 'Åse_99', 'Thoresen', 'Thore', 'Kylling-Kåre', 'Bjørn Ståle', 'Glass', 'Bass', 'Nazir',
+      'Niger', 'Nigeria', 'Montenegro', 'Spikkestad', 'Analyse', 'Scunthorpe', 'Slutten', 'Horten', 'Mikkel', 'Assar', 'José'];
+    for (const g of ok) { assert.ok(!sjekkNavn(g).feil, 'stoppet ved en feil: ' + g); }
+    const stopp = ['a', 'x'.repeat(17), '<script>', '   ', '...', 'faen', 'Bare Kylling', 'ADMIN', 'h.o.r.e',
+      'neger', 'NEGER', 'n e g e r', 'n.e.g.e.r', 'n-e-g-e-r', 'neeeger', 'n3g3r', 'nëger', 'nègre', 'sandneger',
+      'nigger', 'N1gg3r', 'niggggerrr', 'nigga', 'нeгер', 'hitler88', 'heil hitler', '14 88', 'Drittsekk', 'kukhue',
+      'fuck you', 'Fuuuck', 'F u c k', 'fitte', 'H O R E', 'Kuk', 'K.u.k', 'p0rn0', 'montenegroneger'];
+    for (const d of stopp) { assert.ok(sjekkNavn(d).feil, 'slapp gjennom: ' + d); }
     assert.strictEqual(sjekkNavn('  Kari   Nord ').navn, 'Kari Nord');
     const r = await sendInn(await start(), { navn: '<b>hei</b>' });
     assert.strictEqual(r.status, 400);

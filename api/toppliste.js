@@ -27,8 +27,19 @@
 
 const crypto = require('crypto');
 
-const URL_DB = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
-const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+/* Finner databasen uansett hvilket prefiks Vercel ga variablene
+   (KV_REST_API_URL, UPSTASH_REDIS_REST_URL, STORAGE_KV_REST_API_URL …) */
+function finnDatabase(env) {
+  const kandidater = Object.keys(env)
+    .filter((k) => /(^|_)(KV_REST_API|UPSTASH_REDIS_REST)_URL$/.test(k))
+    .sort((a, b) => a.length - b.length);
+  for (const k of kandidater) {
+    const t = k.replace(/_URL$/, '_TOKEN');
+    if (env[k] && env[t]) { return { url: env[k], token: env[t] }; }
+  }
+  return { url: '', token: '' };
+}
+const { url: URL_DB, token: TOKEN } = finnDatabase(process.env);
 const HEMMELIG = process.env.TOPPLISTE_HEMMELIGHET ||
   (TOKEN ? crypto.createHash('sha256').update('bk-toppliste:' + TOKEN).digest('hex') : '');
 
@@ -101,30 +112,72 @@ async function forMange(hva, ip) {
   return Number(antall) > g.antall;
 }
 
-/* Kallenavn: { navn, nokkel } eller { feil } */
-const STYGT_DEL = ['nigger', 'nigga', 'neger', 'faggot', 'fitte', 'hitler', 'cunt', 'whore', 'voldta',
-  'pedofil', 'porno', 'fuck', 'motherf', 'rasshol', 'kukk', 'jævl', 'jaevl'];
-const STYGT_ORD = ['hore', 'kuk', 'pikk', 'nazi', 'sex', 'shit', 'faen', 'dritt', 'rape', 'fag', 'dick',
-  'cock', 'ass', 'tits', 'pule', 'homo', 'naziste', 'ræv', 'raev', 'piss'];
+/* ---------------------------------------------------------------------------
+   Kallenavn
+   Navnet sjekkes i en «vasket» form: små bokstaver uten aksenter (æ→ae, ø→o),
+   tall som bokstaver (n3g3r → neger, «1» både som i og l) og uten mellomrom
+   og tegn (n.e.g.e.r → neger). Hvert ord på listene blir et mønster der
+   bokstavene kan gjentas (neeeger), men der doble bokstaver må stå dobbelt,
+   så «Niger» ikke blir tatt for et skjellsord. Bare vanlige latinske bokstaver
+   er lov, så bokstaver fra andre alfabeter som ligner (кyrillisk е, о …) ikke
+   kan brukes til å lure filteret.
+   --------------------------------------------------------------------------- */
+/* Stoppes hvor som helst i navnet */
+const STYGT_DEL = [
+  /* rasisme */
+  'neger', 'nigg', 'negro', 'negre', 'pakkis', 'svarting', 'chink', 'wetback',
+  /* hat og nazisme */
+  'hitler', 'siegheil', 'nazist', 'whitepower', 'whitepride', 'rahowa', 'kkk',
+  /* homofobi og transfobi */
+  'faggot', 'tranny',
+  /* seksuelt og grovt */
+  'fitte', 'kukk', 'kukhue', 'kuksug', 'knull', 'horunge', 'porn', 'dildo', 'pedofil', 'voldt',
+  'incest', 'cunt', 'whore', 'bitch', 'fuck', 'motherf', 'wank', 'pussy', 'penis', 'vagina',
+  'dritt', 'jaevl', 'rasshol', 'raevhol', 'killyourself'
+];
+/* Stoppes når det er et eget ord eller hele navnet («Thoresen» og «Glass» går fint) */
+const STYGT_ORD = [
+  'hore', 'hora', 'kuk', 'pikk', 'pule', 'sex', 'anal', 'anus', 'tits', 'dick', 'cock', 'cum', 'ass',
+  'rape', 'pedo', 'fag', 'homo', 'homse', 'soper', 'dyke', 'coon', 'spic', 'gook', 'kike', 'nazi',
+  'faen', 'shit', 'piss', 'kys', 'slut', 'raev'
+];
 const RESERVERT = ['barekylling', 'admin', 'administrator', 'moderator', 'jobbsenteret'];
-const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', '@': 'a', $: 's', '!': 'i' };
+/* Ekte ord som inneholder noe fra lista over */
+const UNNTAK = ['montenegro', 'negroni', 'nigeria', 'scunthorpe'];
+const LEET = { 0: 'o', 3: 'e', 4: 'a', 5: 's', 6: 'g', 7: 't', 8: 'b', 9: 'g' };
 
+/* «nigger» → n+i+g{2,}e+r+ */
+const monster = (ord) => ord.replace(/(.)\1*/g, (rekke, b) => (rekke.length > 1 ? `${b}{${rekke.length},}` : `${b}+`));
+const DEL_RE = new RegExp(STYGT_DEL.map(monster).join('|'));
+const ORD_RE = new RegExp('^(?:' + STYGT_ORD.map(monster).join('|') + ')$');
+const RESERVERT_RE = new RegExp('^(?:' + RESERVERT.map(monster).join('|') + ')$');
+
+const utenAksenter = (t) => t.toLowerCase().replace(/æ/g, 'ae').replace(/ø/g, 'o').replace(/ß/g, 'ss')
+  .normalize('NFKD').replace(/\p{M}/gu, '');
+const vask = (t, en) => utenAksenter(t).replace(/[0-9]/g, (d) => (d === '1' ? en : LEET[d] || '')).replace(/[^a-z]/g, '');
+
+function stygt(navn) {
+  if (/1488/.test(navn.replace(/\D/g, ''))) { return true; }
+  const ord = navn.split(/[ ._-]+/).filter(Boolean);
+  return ['i', 'l'].some((en) => {
+    let hele = vask(navn, en);
+    for (const u of UNNTAK) { hele = hele.split(u).join(''); }
+    return DEL_RE.test(hele) || ORD_RE.test(hele) || ord.some((o) => ORD_RE.test(vask(o, en)));
+  });
+}
+
+/* { navn, nokkel } eller { feil } */
 function sjekkNavn(raa) {
   if (typeof raa !== 'string') { return { feil: 'Skriv inn et kallenavn.' }; }
   const navn = raa.normalize('NFC').replace(/\s+/g, ' ').trim();
   if (navn.length < 2 || navn.length > 16) { return { feil: 'Kallenavnet må ha 2–16 tegn.' }; }
-  if (!/^[\p{L}\p{N} ._-]+$/u.test(navn) || !/[\p{L}\p{N}]/u.test(navn)) {
-    return { feil: 'Bruk bare bokstaver, tall, mellomrom, punktum, bindestrek og understrek.' };
+  const enkel = navn.normalize('NFKD').replace(/\p{M}/gu, '');
+  if (!/^[A-Za-z0-9æøÆØß ._-]+$/.test(enkel) || !/[A-Za-z0-9æøÆØß]/.test(enkel)) {
+    return { feil: 'Bruk bare bokstaver (a–å), tall, mellomrom, punktum, bindestrek og understrek.' };
   }
-  const lav = navn.toLowerCase();
-  const vasket = lav.replace(/[0-9@$!]/g, (t) => LEET[t] || t);
-  const sammen = vasket.replace(/[^\p{L}]/gu, '');
-  const ord = vasket.split(/[ ._-]+/).filter(Boolean);
-  if (STYGT_DEL.some((s) => sammen.includes(s)) || ord.some((o) => STYGT_ORD.includes(o)) || STYGT_ORD.includes(sammen)) {
-    return { feil: 'Det kallenavnet går ikke. Prøv et annet!' };
-  }
-  if (RESERVERT.includes(sammen)) { return { feil: 'Det kallenavnet er reservert. Prøv et annet!' }; }
-  return { navn, nokkel: lav.replace(/\s+/g, ' ') };
+  if (stygt(navn)) { return { feil: 'Det kallenavnet går ikke. Prøv et annet!' }; }
+  if (['i', 'l'].some((en) => RESERVERT_RE.test(vask(navn, en)))) { return { feil: 'Det kallenavnet er reservert. Prøv et annet!' }; }
+  return { navn, nokkel: navn.toLowerCase() };
 }
 
 /* Spiller loggen av: gir { poeng, tidMs } eller { feil } */

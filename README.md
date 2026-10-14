@@ -111,13 +111,35 @@ Spillet har en global topp 10 som lagres i en ekte database. Koden er
 Vercel-funksjonen [`api/toppliste.js`](api/toppliste.js); Vercel finner
 `api/`-mappa av seg selv. Databasen er Upstash Redis (gratisnivået holder godt).
 
-1. Vercel → prosjektet → **Storage** (eller *Marketplace*) → **Upstash** →
-   *Redis* → opprett en database og **Connect** den til prosjektet.
-   Vercel legger da inn `KV_REST_API_URL` og `KV_REST_API_TOKEN` (eller
-   `UPSTASH_REDIS_REST_URL`/`_TOKEN`) som miljøvariabler.
-2. Valgfritt: legg inn `TOPPLISTE_HEMMELIGHET` (en lang tilfeldig tekst) som
-   miljøvariabel. Ellers lages signaturnøkkelen fra databasenøkkelen.
-3. Publiser på nytt. Ferdig – topplista viser seg på `spill.html`.
+### Slik kobler du til databasen (ca. 2 minutter, gjøres én gang)
+
+Nettsiden publiseres av seg selv: hver push til `main` på GitHub bygges og
+legges ut på barekylling.no av Vercel. Du trenger ikke laste opp noe. Det eneste
+som må gjøres for hånd, er å lage databasen:
+
+1. Logg inn på [vercel.com](https://vercel.com) og åpne prosjektet
+   **Kylling-website** (det som har domenet barekylling.no).
+2. Trykk på fanen **Storage** øverst.
+3. Trykk **Create Database** (eller *Connect Database*). Velg **Upstash** →
+   **Upstash for Redis** og trykk **Continue**.
+4. Velg gratisplanen (**Free**) og regionen **Frankfurt (eu-central-1)**, som
+   ligger nærmest Norge. Gi databasen et navn, f.eks. `bare-kylling-toppliste`,
+   og trykk **Create**.
+5. Når Vercel spør hvilket prosjekt databasen skal kobles til, velger du
+   **Kylling-website** og huker av alle miljøene (Production, Preview,
+   Development). Trykk **Connect**. Prefikset på variablene kan stå som det er –
+   funksjonen finner dem uansett.
+6. Gå til fanen **Deployments**, trykk **⋯** på den øverste og velg
+   **Redeploy**. Det trengs fordi nye miljøvariabler bare blir med i nye
+   publiseringer.
+7. Sjekk at det virker: åpne `barekylling.no/spill.html`. Under «Topp 10» skal
+   det stå «Ingen på lista ennå. Bli den første!» i stedet for «Den globale
+   topplista er ikke koblet til ennå». Eller åpne `barekylling.no/api/toppliste`
+   – der skal det stå `{"liste":[]}`.
+
+Valgfritt: legg inn `TOPPLISTE_HEMMELIGHET` (en lang tilfeldig tekst) under
+*Settings → Environment Variables*. Ellers lages signaturnøkkelen fra
+databasenøkkelen.
 
 Uten database svarer funksjonen 503, og spillet viser bare de beste rundene på
 enheten (det samme skjer på GitHub Pages og lokalt med `http.server`).
@@ -125,9 +147,28 @@ enheten (det samme skjer på GitHub Pages og lokalt med `http.server`).
 Vern mot juks: hver runde får en signert billett som bare kan brukes én gang,
 spillet sender en logg over hoppene som serveren regner etter (samme poeng,
 ingen hopp raskere enn mulig, ikke lenger runde enn billetten har levd),
-grenser per IP (bare en hash lagres) og sjekk av kallenavn (2–16 tegn og et
-lite filter mot stygge ord). Kallenavn er ikke kontoer – samme navn deler plass.
-Et nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
+grenser per IP (bare en hash lagres) og sjekk av kallenavn. Kallenavn er ikke
+kontoer – samme navn deler plass. Et nettleserspill kan aldri bli helt
+juksesikkert, men dette gjør det tungvint.
+
+### Kallenavn og stygge ord
+
+Kallenavn må ha 2–16 tegn: vanlige bokstaver (a–å, også é, ü osv.), tall,
+mellomrom, punktum, bindestrek og understrek. Bokstaver fra andre alfabeter er
+ikke lov, så ingen kan lure filteret med kyrilliske tegn som ligner.
+
+Filteret (`sjekkNavn` i `api/toppliste.js`) stopper rasisme, hatsymboler,
+homofobe ord, seksuelle ord og banning på norsk og engelsk – også når noen
+prøver å skjule dem: med mellomrom eller tegn mellom bokstavene («n.e.g.e.r»),
+tall i stedet for bokstaver («n3g3r»), gjentatte bokstaver («neeeger») eller
+aksenter («nëger»). Ord som også er vanlige navn eller ord (f.eks. «hore» i
+«Thoresen», «ass» i «Glass») stoppes bare når de står alene. Listene står
+øverst i avsnittet «Kallenavn» i filen; legg til ord der.
+
+Ingen filter er perfekt. Slipper et stygt navn gjennom, fjerner du det slik:
+Upstash-konsollen (Vercel → Storage → databasen → *Open in Upstash*) →
+**Data Browser** → nøkkelen `bk:topp` → slett navnet. Slett det også fra
+`bk:navn`.
 
 Testene kjøres uten database (fetch byttes ut med en Redis i minnet):
 
