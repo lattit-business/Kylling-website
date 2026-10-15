@@ -17,6 +17,19 @@ export const settRekord = (p) => skriv('bk-spill-rekord', p);
 export const sisteNavn = () => les('bk-spill-navn', '');
 export const lagreNavn = (n) => skriv('bk-spill-navn', n);
 
+/* Enhetsnøkkel: lages én gang og lagres i nettleseren. Kallenavnet ditt
+   tilhører denne nøkkelen på serveren, så ingen andre kan bruke det. */
+export function enhet() {
+  let e = les('bk-spill-enhet', '');
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(e)) {
+    const b = new Uint8Array(18);
+    (window.crypto || window.msCrypto).getRandomValues(b);
+    e = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+    skriv('bk-spill-enhet', e);
+  }
+  return e;
+}
+
 /* De ti beste rundene på denne enheten */
 export function lokalListe() { return les('bk-spill-liste', []); }
 export function leggTilLokal(poeng, navn) {
@@ -104,12 +117,21 @@ export async function startRunde() {
 
 /* { ok, plass, liste } eller { ok: false, melding } */
 export async function sendInn({ billett, navn, poeng, logg }) {
-  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, logg });
+  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, logg, enhet: enhet() });
   if (status === 200 && data && data.ok) { return { ok: true, plass: data.plass, liste: data.liste || [] }; }
   const meldinger = {
     429: 'Litt for mange forsøk akkurat nå. Prøv igjen om noen minutter.',
     400: (data && data.melding) || 'Poengsummen kunne ikke godkjennes.',
+    409: (data && data.melding) || 'Det kallenavnet er tatt av en annen spiller.',
     503: 'Den globale topplista er ikke koblet til ennå.'
   };
-  return { ok: false, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
+  return { ok: false, tatt: status === 409, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
+}
+
+/* Sjekker at et nytt kallenavn er lov og ikke tatt. { ok, navn } eller { ok: false, melding } */
+export async function sjekkNavn(navn) {
+  const { status, data } = await kall('POST', { handling: 'navn', navn, enhet: enhet() });
+  if (status === 200 && data && data.ok) { return { ok: true, navn: data.navn }; }
+  if (status === 400 || status === 409) { return { ok: false, melding: (data && data.melding) || 'Det kallenavnet går ikke.' }; }
+  return { ok: false, melding: status === 429 ? 'Litt for mange forsøk. Prøv igjen om litt.' : 'Fikk ikke kontakt med topplista. Prøv igjen.' };
 }

@@ -3,8 +3,10 @@
 
    GET  /api/toppliste                         → { liste: [{ navn, poeng, dato }] }
    POST /api/toppliste { handling: 'start' }   → { billett }
-   POST /api/toppliste { handling: 'send', billett, navn, poeng, logg }
+   POST /api/toppliste { handling: 'send', billett, navn, poeng, logg, enhet }
                                                → { ok, plass, liste }
+   POST /api/toppliste { handling: 'navn', navn, enhet }
+                                               → { ok, navn } eller 409 hvis tatt
 
    Databasen er Upstash Redis (koble til via Vercel Marketplace → Upstash →
    Redis). Funksjonen leser UPSTASH_REDIS_REST_URL/_TOKEN eller
@@ -50,6 +52,7 @@ const HEMMELIG = process.env.TOPPLISTE_HEMMELIGHET ||
 const NOKKEL = {
   topp: 'bk:topp',            /* sortert sett: navnenøkkel → poeng (+ tidsbrøk) */
   navn: 'bk:navn',            /* hash: navnenøkkel → { navn, poeng, dato } */
+  eier: 'bk:eier',            /* hash: navnenøkkel → hash av enheten som eier navnet */
   runde: (id) => 'bk:runde:' + id,
   fart: (hva, ip, vindu) => `bk:fart:${hva}:${ip}:${vindu}`
 };
@@ -66,6 +69,7 @@ const BEHOLD = 100;                  /* så mange plasser lagres */
 const GRENSER = {
   start: { antall: 800, vindu: 600 },
   send: { antall: 60, vindu: 600 },
+  navn: { antall: 60, vindu: 600 },
   hent: { antall: 600, vindu: 60 }
 };
 /* Lista caches i Vercels CDN i noen sekunder, så automatisk oppdatering hos
@@ -190,6 +194,24 @@ function sjekkNavn(raa) {
   return { navn, nokkel: navn.toLowerCase() };
 }
 
+/* ---------------------------------------------------------------------------
+   Eierskap til kallenavn
+   Spillet lager en tilfeldig enhetsnøkkel første gang og lagrer den i
+   nettleseren. Et kallenavn tilhører enheten som først kom på lista med det,
+   så ingen andre kan sende inn under ditt navn. Bare en hash av nøkkelen
+   lagres. (Enhet, ikke IP: en hel skole deler ofte én IP-adresse.)
+   --------------------------------------------------------------------------- */
+const enhetHash = (e) => (typeof e === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(e)
+  ? crypto.createHash('sha256').update(HEMMELIG + ':enhet:' + e).digest('hex').slice(0, 24)
+  : null);
+const TATT = 'Det kallenavnet er tatt av en annen spiller. Velg et annet!';
+
+/* 'ledig' | 'din' | 'tatt' */
+async function eierAv(nokkel, eier) {
+  const naa = await en('HGET', NOKKEL.eier, nokkel);
+  return naa === null ? 'ledig' : naa === eier ? 'din' : 'tatt';
+}
+
 /* Spiller loggen av: gir { poeng, tidMs } eller { feil } */
 function lesLogg(logg) {
   if (typeof logg !== 'string' || logg.length > MAKS_TREKK * 8) { return { feil: 'Ugyldig logg.' }; }
@@ -282,12 +304,27 @@ module.exports = async function toppliste(req, res) {
       return send(res, 200, { billett: `${id}.${t}.${hmac(id + '.' + t)}` });
     }
 
+    /* Sjekk et nytt kallenavn før det tas i bruk (lagrer ingenting) */
+    if (kropp.handling === 'navn') {
+      if (await forMange('navn', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
+      const navn = sjekkNavn(kropp.navn);
+      if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
+      const eier = enhetHash(kropp.enhet);
+      if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
+      if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
+      return send(res, 200, { ok: true, navn: navn.navn });
+    }
+
     if (kropp.handling !== 'send') { return send(res, 400, { melding: 'Ukjent handling.' }); }
     if (await forMange('send', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
 
-    /* 1. Kallenavnet */
+    /* 1. Kallenavnet, og at det tilhører denne enheten (før billetten brukes,
+       så et tatt navn ikke koster runden) */
     const navn = sjekkNavn(kropp.navn);
     if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
+    const eier = enhetHash(kropp.enhet);
+    if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
+    if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
 
     /* 2. Billetten: riktig signatur, og ikke brukt før */
     const deler = String(kropp.billett || '').split('.');
@@ -310,6 +347,10 @@ module.exports = async function toppliste(req, res) {
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
     const gikk = Date.now() - Number(deler[1]);
     if (logg.tidMs > gikk + SLINGRINGSMONN_MS) { return send(res, 400, { melding: 'Runden gikk for fort.' }); }
+
+    /* Navnet blir denne enhetens (HSETNX: den første vinner hvis to sender samtidig) */
+    const [, fikk] = await db([['HSETNX', NOKKEL.eier, navn.nokkel, eier], ['HGET', NOKKEL.eier, navn.nokkel]]);
+    if (fikk !== eier) { return send(res, 409, { melding: TATT }); }
 
     /* 4. Lagre beste resultat per kallenavn. Tidsbrøken (minker for hvert
        millisekund) gjør at den som kom først av to like poengsummer står øverst. */

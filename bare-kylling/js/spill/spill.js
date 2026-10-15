@@ -93,7 +93,7 @@ async function start() {
     navn: $('[data-navn]'), navnStatus: $('[data-navn-status]'), igjen: $('[data-igjen]'),
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'),
-    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), feiring: $('[data-feiring]')
+    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -473,25 +473,63 @@ async function start() {
     /* Kom poengsummen på den globale lista? Da kan du skrive kallenavn. */
     await oppdaterToppliste();
     if (listeModus === 'global') { T.forberedBillett(); }   /* klar til neste runde */
+    if (ui.byttNavn) { ui.byttNavn.hidden = !(listeModus === 'global' && T.sisteNavn()); }
     if (poeng > 0 && tilstand === 'over' && ui.navnSkjema) {
       if (listeModus === 'global') {
         const kvalifisert = globalListe.length < 10 || poeng > globalListe[globalListe.length - 1].poeng;
-        if (kvalifisert && billett) { visNavnSkjema('Du er på topp 10! Skriv inn et kallenavn:'); }
+        if (kvalifisert && billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }   /* husket navn: rett inn */
+        else if (kvalifisert && billett) { visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:'); }
         else if (kvalifisert && ui.sluttInfo) {
           ui.sluttInfo.textContent = 'Du kom på topp 10, men runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
         }
       } else if (listeModus === 'lokal' && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
         /* Uten global liste: gi runden et navn på enhetens egen liste */
-        visNavnSkjema('Gi runden et kallenavn på lista til denne enheten:');
+        visNavnSkjema('lokal', 'Gi runden et kallenavn på lista til denne enheten:');
       }
     }
   }
 
-  function visNavnSkjema(tekst) {
+  /* Skjemaet brukes til tre ting: 'send' (navngi og send inn runden),
+     'bytt' (velg nytt kallenavn til neste runde) og 'lokal' (enhetens liste) */
+  let navnModus = 'send';
+  function visNavnSkjema(modus, tekst, status = '') {
+    navnModus = modus;
     const etikett = $('label', ui.navnSkjema);
     if (etikett) { etikett.textContent = tekst; }
     ui.navnSkjema.hidden = false;
-    if (ui.navn) { ui.navn.value = T.sisteNavn(); }
+    if (ui.navnStatus) { ui.navnStatus.textContent = status; }
+    if (ui.navn) {
+      ui.navn.value = modus === 'bytt' ? '' : T.sisteNavn();
+      if (modus === 'bytt' || status) { ui.navn.focus({ preventScroll: true }); }
+    }
+  }
+
+  /* Sender inn runden under et kallenavn. Navnet huskes på enheten, så neste
+     topp 10-runde sendes inn av seg selv. */
+  async function sendRunde(navn) {
+    const knapp = $('button', ui.navnSkjema);
+    if (knapp) { knapp.disabled = true; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = `Lagrer som «${navn}» …`; }
+    const svar = await T.sendInn({ billett, navn, poeng, logg: logg.join(',') });
+    if (knapp) { knapp.disabled = false; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
+    if (svar.ok) {
+      T.lagreNavn(navn);
+      billett = null;
+      ui.navnSkjema.hidden = true;
+      if (ui.sluttInfo) { ui.sluttInfo.textContent = svar.plass ? `Lagret som «${navn}» – nummer ${svar.plass} på topplista!` : `Lagret som «${navn}».`; }
+      if (ui.byttNavn) { ui.byttNavn.hidden = false; }
+      melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
+      globalListe = svar.liste; listeFeil = '';
+      tegnListe();
+      oppdaterStartKort();
+      lyd.poeng();
+    } else if (svar.tatt && billett) {
+      /* Navnet er tatt av en annen enhet: velg et nytt, runden er ikke brukt opp */
+      visNavnSkjema('send', 'Velg et annet kallenavn:', svar.melding);
+    } else {
+      visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:', svar.melding);
+    }
   }
 
   /* Henter topplista (én forespørsel om gangen) og tegner den på nytt */
@@ -583,7 +621,7 @@ async function start() {
       e.preventDefault();
       const navn = (ui.navn.value || '').trim().replace(/\s+/g, ' ');
       if (navn.length < 2 || navn.length > 16) { ui.navnStatus.textContent = 'Kallenavnet må ha 2–16 tegn.'; ui.navn.focus(); return; }
-      if (listeModus !== 'global') {
+      if (navnModus === 'lokal') {
         T.lagreNavn(navn);
         T.navngiLokal(poeng, navn);
         tegnListe();
@@ -592,24 +630,28 @@ async function start() {
         lyd.poeng();
         return;
       }
-      const knapp = $('button', ui.navnSkjema);
-      knapp.disabled = true;
-      ui.navnStatus.textContent = 'Lagrer …';
-      const svar = await T.sendInn({ billett, navn, poeng, logg: logg.join(',') });
-      knapp.disabled = false;
-      if (svar.ok) {
-        T.lagreNavn(navn);
-        billett = null;
+      if (navnModus === 'bytt') {
+        const knapp = $('button', ui.navnSkjema);
+        knapp.disabled = true;
+        ui.navnStatus.textContent = 'Sjekker …';
+        const svar = await T.sjekkNavn(navn);
+        knapp.disabled = false;
+        if (!svar.ok) { ui.navnStatus.textContent = svar.melding; return; }
+        T.lagreNavn(svar.navn);
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
-        melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
-        globalListe = svar.liste; listeFeil = '';
+        if (ui.sluttInfo) { ui.sluttInfo.textContent = `Fra neste runde heter du «${svar.navn}».`; }
         tegnListe();
-        oppdaterStartKort();
-        lyd.poeng();
-      } else {
-        ui.navnStatus.textContent = svar.melding;
+        lyd.klikk();
+        return;
       }
+      ui.navnStatus.textContent = '';
+      await sendRunde(navn);
+    });
+  }
+  if (ui.byttNavn) {
+    ui.byttNavn.addEventListener('click', () => {
+      visNavnSkjema('bytt', `Nytt kallenavn (nå: «${T.sisteNavn()}»). Det brukes fra neste runde:`);
     });
   }
 

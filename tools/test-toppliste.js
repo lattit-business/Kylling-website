@@ -60,6 +60,12 @@ function kjor([cmd, ...a]) {
       const v = levende(a[0]) || { type: 'h', verdi: new Map() };
       v.verdi.set(a[1], a[2]); lager.set(a[0], v); return 1;
     }
+    case 'HSETNX': {
+      const v = levende(a[0]) || { type: 'h', verdi: new Map() };
+      if (v.verdi.has(a[1])) { return 0; }
+      v.verdi.set(a[1], a[2]); lager.set(a[0], v); return 1;
+    }
+    case 'HGET': { const v = levende(a[0]); return v && v.verdi.has(a[1]) ? v.verdi.get(a[1]) : null; }
     case 'HMGET': { const v = levende(a[0]); return a.slice(1).map((f) => (v && v.verdi.has(f) ? v.verdi.get(f) : null)); }
     case 'HDEL': { const v = levende(a[0]); let n = 0; a.slice(1).forEach((f) => { if (v && v.verdi.delete(f)) { n++; } }); return n; }
     default: throw new Error('ukjent kommando ' + cmd);
@@ -150,7 +156,9 @@ async function test(navn, fn) {
   const nyIp = () => `10.9.${Math.floor(++nr / 250)}.${nr % 250}`;
   const start = async (ip) => (await kall(fn, { body: { handling: 'start' }, ip: ip || nyIp() })).data.billett;
   const sendInn = (b, over = {}) => {
+    /* Hvert navn sendes fra sin egen «enhet» med mindre testen sier noe annet */
     const body = { handling: 'send', billett: b, navn: 'Kari', poeng: 12, logg: logg(12), ...over };
+    if (!('enhet' in over)) { body.enhet = 'enhet-' + String(body.navn).toLowerCase().replace(/[^a-z0-9]/g, '') + '-0000000000'; }
     delete body.ip;
     if (!over.utenSpoling && typeof body.logg === 'string') {
       spol(body.logg.split(',').reduce((s, t) => s + (parseInt(t.slice(1), 36) || 0) * 10, 0));
@@ -304,6 +312,39 @@ async function test(navn, fn) {
     assert.strictEqual(siste.status, 429);
     const annen = await sendInn(await start('10.0.2.1'), { navn: 'Annen', ip: '10.0.0.10' });
     assert.strictEqual(annen.status, 200);
+  });
+
+  await test('kallenavnet tilhører enheten som tok det først', async () => {
+    nyttVindu();
+    const min = 'min-enhet-1234567890', annen = 'annen-enhet-123456789';
+    const r1 = await sendInn(await start(), { navn: 'Eier', enhet: min, poeng: 5, logg: logg(5) });
+    assert.strictEqual(r1.status, 200, JSON.stringify(r1.data));
+    /* Samme enhet kan sende inn igjen under samme navn, uansett store/små bokstaver */
+    const r2 = await sendInn(await start(), { navn: 'eier', enhet: min, poeng: 6, logg: logg(6) });
+    assert.strictEqual(r2.status, 200, JSON.stringify(r2.data));
+    /* En annen enhet får ikke bruke navnet – og billetten brukes ikke opp */
+    const b = await start();
+    const r3 = await sendInn(b, { navn: 'Eier', enhet: annen, poeng: 9, logg: logg(9) });
+    assert.strictEqual(r3.status, 409);
+    assert.match(r3.data.melding, /tatt/);
+    const r4 = await sendInn(b, { navn: 'Fjerde', enhet: annen, poeng: 9, logg: logg(9) });
+    assert.strictEqual(r4.status, 200, 'samme billett skal kunne brukes med et ledig navn');
+    const eiere = [...lager.get('bk:eier').verdi.values()].join(' ');
+    assert.ok(!eiere.includes(min), 'enhetsnøkkelen lagres bare som hash');
+  });
+
+  await test('sjekk av nytt kallenavn: ledig, ditt eget, tatt', async () => {
+    const sjekk = (navn, enhet) => kall(fn, { body: { handling: 'navn', navn, enhet }, ip: nyIp() });
+    assert.strictEqual((await sjekk('Helt Ny', 'min-enhet-1234567890')).status, 200);
+    assert.strictEqual((await sjekk('Eier', 'min-enhet-1234567890')).status, 200);
+    assert.strictEqual((await sjekk('Eier', 'tredje-enhet-12345678')).status, 409);
+    assert.strictEqual((await sjekk('fuck', 'min-enhet-1234567890')).status, 400);
+    assert.ok(!lager.get('bk:eier').verdi.has('helt ny'), 'sjekken reserverer ikke navnet');
+  });
+
+  await test('innsending uten enhet avvises', async () => {
+    const r = await sendInn(await start(), { navn: 'Uten', enhet: undefined });
+    assert.strictEqual(r.status, 400);
   });
 
   await test('IP-adresser lagres aldri i klartekst', async () => {

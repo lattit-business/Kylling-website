@@ -1496,6 +1496,10 @@ kbd {
 .spill__navn-felt { min-height: 48px; padding: .6rem 1rem; }
 .spill__navn-status { font-size: .86rem; font-weight: 700; color: var(--paprika-deep); }
 .spill__navn-status:empty { display: none; }
+.spill__slutt-info { font-size: .9rem; font-weight: 700; line-height: 1.45; }
+.spill__slutt-info:empty { display: none; }
+.spill__bytt { background: none; border: 0; padding: 0; font: inherit; font-size: .86rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+.spill__bytt[hidden] { display: none; }
 .spill__feil p { max-width: 30ch; padding: 1.2rem; background: var(--cream-hi); border-radius: var(--r); box-shadow: 0 0 0 3px var(--ink); font-weight: 700; text-align: center; }
 .spill__hjelp { margin-top: .9rem; font-size: .88rem; color: var(--ink-soft); max-width: 70ch; }
 

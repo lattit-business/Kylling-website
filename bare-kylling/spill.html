@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261014c" />
+<link rel="stylesheet" href="css/style.css?v=20261015a" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -185,7 +185,8 @@
               </div>
               <p class="spill__navn-status" data-navn-status role="status" aria-live="polite"></p>
             </form>
-            <p class="spill__navn-status" data-slutt-info role="status" aria-live="polite"></p>
+            <p class="spill__slutt-info" data-slutt-info role="status" aria-live="polite"></p>
+            <button class="link spill__bytt" type="button" data-bytt-navn hidden>Bytt kallenavn</button>
             <button class="btn btn--honey btn--lg" type="button" data-igjen>Spill igjen</button>
           </div>
         </div>
@@ -265,6 +266,6 @@
 
 <script src="js/content.js?v=20261014c"></script>
 <script src="js/main.js?v=20261014c"></script>
-<script type="module" src="js/spill/spill.js?v=20261014d"></script>
+<script type="module" src="js/spill/spill.js?v=20261015a"></script>
 </body>
 </html>
