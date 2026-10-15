@@ -1392,6 +1392,11 @@ body.meny-apen .sticky-cta { display: none; }
   color: var(--ink); text-shadow: 0 2px 0 var(--cream-hi), 0 0 12px rgba(250, 248, 243, .8);
 }
 .hud__poeng > b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: clamp(2.8rem, 8vw, 4.2rem); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.hud__pakker { display: inline-flex; align-items: center; gap: .3rem; margin-top: .35rem; font-size: 1.15rem; }
+.hud__pakker b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-variant-numeric: tabular-nums; }
+.pakkeikon { width: .85em; height: auto; flex: none; }
+.toppliste__h3 { display: flex; align-items: center; gap: .45rem; margin: 1.6rem 0 .5rem; font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.5rem; }
+.toppliste__h3 .pakkeikon { width: .8em; }
 .hud__rekord { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-top: .3rem; }
 .hud__knapper { position: absolute; right: clamp(.6rem, 2vw, 1rem); top: clamp(.6rem, 2vw, 1rem); display: flex; gap: .45rem; pointer-events: auto; }
 .hud__knapp {
@@ -1666,6 +1671,9 @@ kbd {
 
 /* Pikselkyllingen langs kanten av footeren */
 .foot { position: relative; }
+/* Kyllingen går helt ut til kanten; klipp sidelengs så siden ikke kan scrolles
+   til siden på mobil (body { overflow-x: hidden } holder ikke i iOS Safari) */
+.foot { overflow-x: clip; }
 .pikselkylling {
   position: absolute; z-index: 5; left: 0; top: -24px;
   width: 26px; height: 24px; cursor: pointer;

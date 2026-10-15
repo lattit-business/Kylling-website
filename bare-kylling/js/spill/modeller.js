@@ -507,6 +507,26 @@ function lagMesh(geo, lengde) {
 }
 
 /* Måka som tar kyllinger som står for lenge stille (dette er tross alt Bergen) */
+/* En Bare Kylling-pakke å plukke opp: klar pose med kyllingfilet og etikett
+   i smakens farge (Original grønn, Sweet Paprika rød). Geometrien deles. */
+const PAKKE_GEO = {};
+export function pakke(smak) {
+  if (!PAKKE_GEO[smak]) {
+    const etikett = smak === 'paprika' ? F.paprika : F.forest;
+    PAKKE_GEO[smak] = bokser([
+      { x: 0, y: 0, z: 0, w: 0.46, h: 0.6, d: 0.06, c: F.creamHi },
+      { x: 0, y: 0.17, z: 0, w: 0.32, h: 0.24, d: 0.08, c: 0xD98A3D },
+      { x: 0.04, y: 0.25, z: 0, w: 0.1, h: 0.05, d: 0.085, c: 0x8E3D20 },
+      { x: 0, y: 0.02, z: 0, w: 0.47, h: 0.13, d: 0.08, c: etikett },
+      { x: 0, y: 0.45, z: 0, w: 0.24, h: 0.05, d: 0.08, c: F.ink },
+      { x: 0, y: 0.55, z: 0, w: 0.47, h: 0.06, d: 0.07, c: F.beige }
+    ]);
+  }
+  const m = new THREE.Mesh(PAKKE_GEO[smak], MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
 export function maake() {
   const g = new THREE.Group();
   g.add(modell([

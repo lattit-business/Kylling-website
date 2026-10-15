@@ -86,13 +86,14 @@ async function start() {
   const lyd = new Lyd();
 
   const ui = {
-    poeng: $('[data-poeng]'), rekord: $('[data-rekord]'), maal: $('[data-maal]'), maalFyll: $('[data-maal-fyll]'),
+    poeng: $('[data-poeng]'), pakker: $('[data-pakker]'), sluttPakker: $('[data-slutt-pakker]'), rekord: $('[data-rekord]'), maal: $('[data-maal]'), maalFyll: $('[data-maal-fyll]'),
     melding: $('[data-melding]'), start: $('[data-spill-start]'), slutt: $('[data-spill-slutt]'),
     sluttPoeng: $('[data-slutt-poeng]'), sluttRekord: $('[data-slutt-rekord]'), sluttTittel: $('[data-slutt-tittel]'),
     sluttTekst: $('[data-slutt-tekst]'), nyRekord: $('[data-ny-rekord]'), navnSkjema: $('[data-navn-skjema]'),
     navn: $('[data-navn]'), navnStatus: $('[data-navn-status]'), igjen: $('[data-igjen]'),
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'),
+    pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
     startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
@@ -174,6 +175,7 @@ async function start() {
   let verden = null;
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
+  let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
   let billett = null, logg = [], sisteTrekk = 0;
   let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0;
@@ -182,7 +184,7 @@ async function start() {
   /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
      enhetens egen liste) eller 'ukjent' (ikke fått svar ennå). listeFeil er
      satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
-  let listeModus = 'ukjent', globalListe = [], listeFeil = '';
+  let listeModus = 'ukjent', globalListe = [], globalPakker = [], listeFeil = '';
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -213,6 +215,7 @@ async function start() {
 
   function oppdaterHud() {
     if (ui.poeng) { ui.poeng.textContent = String(poeng); }
+    if (ui.pakker) { ui.pakker.textContent = String(pakker); }
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
     if (ui.maal) {
       ui.maal.textContent = jobbNaadd ? 'Uendelig modus' : `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`;
@@ -234,7 +237,7 @@ async function start() {
     spiller.snu.rotation.set(0, spiller.yaw, 0);
     spiller.kropp.scale.set(1, 1, 1);
     spiller.kropp.position.set(0, 0, 0);
-    poeng = 0; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
+    poeng = 0; pakker = 0; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = null; dodTog = dodBane = null; dodTekst = '';
     maake.visible = false;
@@ -335,6 +338,14 @@ async function start() {
         lyd.lande();
         sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
       } else { do_('vann'); return; }
+    }
+    if (verden.plukk(spiller.x, spiller.rad)) {
+      pakker++;
+      lyd.pakke();
+      sprut(spiller.x, 0.5, -spiller.rad, 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
+      if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
+      else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
+      oppdaterHud();
     }
     if (spiller.rad === JOBB && !jobbNaadd) { feirJobb(); }
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
@@ -443,7 +454,8 @@ async function start() {
     tilstand = 'over';
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
-    T.leggTilLokal(poeng, T.sisteNavn() || 'Deg');
+    T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
+    if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
     if (ui.sluttRekord) { ui.sluttRekord.textContent = String(rekord); }
     const TITLER = { bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!' };
@@ -476,7 +488,9 @@ async function start() {
     if (ui.byttNavn) { ui.byttNavn.hidden = !(listeModus === 'global' && T.sisteNavn()); }
     if (poeng > 0 && tilstand === 'over' && ui.navnSkjema) {
       if (listeModus === 'global') {
-        const kvalifisert = globalListe.length < 10 || poeng > globalListe[globalListe.length - 1].poeng;
+        /* Topp 10 på lengst, eller topp 10 på flest pakker */
+        const paaLista = (l, felt, v) => v > 0 && (l.length < 10 || v > l[l.length - 1][felt]);
+        const kvalifisert = paaLista(globalListe, 'poeng', poeng) || paaLista(globalPakker, 'pakker', pakker);
         if (kvalifisert && billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }   /* husket navn: rett inn */
         else if (kvalifisert && billett) { visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:'); }
         else if (kvalifisert && ui.sluttInfo) {
@@ -510,17 +524,19 @@ async function start() {
     const knapp = $('button', ui.navnSkjema);
     if (knapp) { knapp.disabled = true; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = `Lagrer som «${navn}» …`; }
-    const svar = await T.sendInn({ billett, navn, poeng, logg: logg.join(',') });
+    const svar = await T.sendInn({ billett, navn, poeng, pakker, logg: logg.join(',') });
     if (knapp) { knapp.disabled = false; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (svar.ok) {
       T.lagreNavn(navn);
       billett = null;
       ui.navnSkjema.hidden = true;
-      if (ui.sluttInfo) { ui.sluttInfo.textContent = svar.plass ? `Lagret som «${navn}» – nummer ${svar.plass} på topplista!` : `Lagret som «${navn}».`; }
+      const plasser = [svar.plass && svar.plass <= 10 ? `nummer ${svar.plass} på topplista` : '',
+        svar.pakkePlass && svar.pakkePlass <= 10 ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
+      if (ui.sluttInfo) { ui.sluttInfo.textContent = plasser ? `Lagret som «${navn}» – ${plasser}!` : `Lagret som «${navn}».`; }
       if (ui.byttNavn) { ui.byttNavn.hidden = false; }
-      melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
-      globalListe = svar.liste; listeFeil = '';
+      melding(plasser ? `Du er ${plasser}!` : 'Lagret!', 3);
+      globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = '';
       tegnListe();
       oppdaterStartKort();
       lyd.poeng();
@@ -539,7 +555,7 @@ async function start() {
       henterListe = T.hentListe().then((svar) => {
         henterListe = null;
         sistHentet = performance.now();
-        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; listeFeil = ''; }
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = ''; }
         else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
         else { listeFeil = svar.grunn; }
         tegnListe();
@@ -593,9 +609,18 @@ async function start() {
         s.textContent = 'Den felles topplista er ikke koblet til ennå, så her står bare rundene på denne enheten.';
       }
     }
+    tegnRader(ui.liste, liste, 'poeng');
+    /* Flest Bare Kylling-pakker */
+    const pliste = global ? globalPakker : T.lokalPakkeliste();
+    if (ui.pakkeStatus) { ui.pakkeStatus.textContent = pliste.length ? '' : 'Ingen har samlet pakker ennå. Plukk dem opp på veien!'; }
+    tegnRader(ui.pakkeliste, pliste, 'pakker');
+  }
+
+  function tegnRader(ol, liste, felt) {
+    if (!ol) { return; }
     /* Ditt kallenavn markeres (navn er like uansett store og små bokstaver) */
     const meg = T.sisteNavn().toLowerCase();
-    ui.liste.textContent = '';
+    ol.textContent = '';
     liste.slice(0, 10).forEach((rad, i) => {
       const li = document.createElement('li');
       const erDeg = meg && String(rad.navn).toLowerCase() === meg;
@@ -604,7 +629,7 @@ async function start() {
       if (i === 0) { plass.insertAdjacentHTML('beforeend', KRONE); }
       const navn = document.createElement('span'); navn.className = 'toppliste__navn'; navn.textContent = rad.navn;
       if (erDeg) { const sr = document.createElement('span'); sr.className = 'sr-only'; sr.textContent = ' (deg)'; navn.append(sr); }
-      const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad.poeng);
+      const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad[felt]);
       const dato = document.createElement('time'); dato.className = 'toppliste__dato';
       if (rad.dato) {
         dato.dateTime = rad.dato;
@@ -612,7 +637,7 @@ async function start() {
         dato.textContent = `${dd}.${mm}.${String(aa).slice(2)}`;
       }
       li.append(plass, navn, p, dato);
-      ui.liste.appendChild(li);
+      ol.appendChild(li);
     });
   }
 
@@ -881,14 +906,15 @@ async function start() {
      snarvei til en senere rad, så Jobbsenteret kan testes uten å spille dit. */
   if (/[?&]test\b/.test(location.search)) {
     window.__bkSpill = {
-      trekk, tilstand: () => tilstand, poeng: () => poeng, spiller: () => ({ x: spiller.x, rad: spiller.rad }),
+      trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
+      pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
       rad: (r) => { const d = verden.rad(r); return d ? { type: d.type, blokk: [...d.blokk], fart: d.fart, flytt: d.flytt.map((m) => ({ x: m.x, len: m.len })) } : null },
-      hoppTil: (n) => {
+      hoppTil: (n, x = 0) => {
         verden.sikre(-10, n + 28);
-        Object.assign(spiller, { x: 0, rad: n, tilX: 0, tilRad: n, hopp: 1, paa: null });
-        spiller.gruppe.position.set(0, 0, -n);
+        Object.assign(spiller, { x, rad: n, tilX: x, tilRad: n, hopp: 1, paa: null });
+        spiller.gruppe.position.set(x, 0, -n);
         poeng = n; rull = n - 1; oppdaterHud();
       }
     };

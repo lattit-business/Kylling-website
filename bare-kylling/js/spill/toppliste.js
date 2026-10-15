@@ -32,13 +32,21 @@ export function enhet() {
 
 /* De ti beste rundene på denne enheten */
 export function lokalListe() { return les('bk-spill-liste', []); }
-export function leggTilLokal(poeng, navn) {
+export function lokalPakkeliste() { return les('bk-spill-pakkeliste', []); }
+export function leggTilLokal(poeng, navn, pakker = 0) {
   if (!(poeng > 0)) { return lokalListe(); }
+  const dato = new Date().toISOString().slice(0, 10);
   const liste = lokalListe();
-  liste.push({ navn: navn || 'Deg', poeng, dato: new Date().toISOString().slice(0, 10) });
+  liste.push({ navn: navn || 'Deg', poeng, dato });
   liste.sort((a, b) => b.poeng - a.poeng);
   const topp = liste.slice(0, 10);
   skriv('bk-spill-liste', topp);
+  if (pakker > 0) {
+    const pl = lokalPakkeliste();
+    pl.push({ navn: navn || 'Deg', pakker, dato });
+    pl.sort((a, b) => b.pakker - a.pakker);
+    skriv('bk-spill-pakkeliste', pl.slice(0, 10));
+  }
   return topp;
 }
 
@@ -47,6 +55,9 @@ export function navngiLokal(poeng, navn) {
   const liste = lokalListe();
   const rad = liste.find((r) => r.navn === 'Deg' && r.poeng === poeng);
   if (rad) { rad.navn = navn; skriv('bk-spill-liste', liste); }
+  const pl = lokalPakkeliste();
+  const prad = pl.find((r) => r.navn === 'Deg');
+  if (prad) { prad.navn = navn; skriv('bk-spill-pakkeliste', pl); }
   return liste;
 }
 
@@ -71,13 +82,15 @@ async function kall(metode, kropp) {
   }
 }
 
-/* { ok: true, liste } eller { ok: false, grunn }
+/* { ok: true, liste, pakker } eller { ok: false, grunn }
    grunn: 'ikke-koblet' – ingen database, eller en side uten api/ (GitHub Pages, lokalt)
           'opptatt'     – for mange forespørsler akkurat nå
           'nett'        – fikk ikke svar; prøv igjen senere */
 export async function hentListe() {
   const { status, data } = await kall('GET');
-  if (status === 200 && data && Array.isArray(data.liste)) { return { ok: true, liste: data.liste }; }
+  if (status === 200 && data && Array.isArray(data.liste)) {
+    return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [] };
+  }
   if ([404, 405, 501, 503].includes(status)) { return { ok: false, grunn: 'ikke-koblet' }; }
   return { ok: false, grunn: status === 429 ? 'opptatt' : 'nett' };
 }
@@ -116,9 +129,11 @@ export async function startRunde() {
 }
 
 /* { ok, plass, liste } eller { ok: false, melding } */
-export async function sendInn({ billett, navn, poeng, logg }) {
-  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, logg, enhet: enhet() });
-  if (status === 200 && data && data.ok) { return { ok: true, plass: data.plass, liste: data.liste || [] }; }
+export async function sendInn({ billett, navn, poeng, pakker, logg }) {
+  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, pakker, logg, enhet: enhet() });
+  if (status === 200 && data && data.ok) {
+    return { ok: true, plass: data.plass, pakkePlass: data.pakkePlass, liste: data.liste || [], pakker: data.pakker || [] };
+  }
   const meldinger = {
     429: 'Litt for mange forsøk akkurat nå. Prøv igjen om noen minutter.',
     400: (data && data.melding) || 'Poengsummen kunne ikke godkjennes.',

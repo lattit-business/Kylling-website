@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261015a" />
+<link rel="stylesheet" href="css/style.css?v=20261015b" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -129,7 +129,7 @@
                 aria-label="Spillet Veien til Jobbsenteret: en kylling som hopper over veier, elver og bybaneskinner i en liten by. Bruk piltastene eller WASD for å hoppe."></canvas>
 
         <div class="hud">
-          <p class="hud__poeng"><span class="sr-only">Poeng: </span><b data-poeng>0</b><span class="hud__rekord">Rekord <b data-rekord>0</b></span></p>
+          <p class="hud__poeng"><span class="sr-only">Poeng: </span><b data-poeng>0</b><span class="hud__rekord">Rekord <b data-rekord>0</b></span><span class="hud__pakker" title="Bare Kylling-pakker"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg><span class="sr-only">Pakker: </span><b data-pakker>0</b></span></p>
           <div class="hud__knapper">
             <button class="hud__knapp" type="button" data-lyd aria-pressed="true" aria-label="Lydeffekter">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="hud__paa" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /><path class="hud__av" d="M16 9l5 6M21 9l-5 6" /></svg>
@@ -160,7 +160,7 @@
               </svg>
             </p>
             <h2 class="spill__start-tittel">Veien til Jobbsenteret</h2>
-            <p class="spill__start-tekst">Hopp fra Bare Kylling-butikken til Jobbsenteret. Pass deg for biler, bybanen og vannet – og ikke stå stille for lenge. Måkene følger med.</p>
+            <p class="spill__start-tekst">Hopp fra Bare Kylling-butikken til Jobbsenteret. Pass deg for biler, bybanen og vannet – og ikke stå stille for lenge. Måkene følger med. Plukk opp Bare Kylling-pakker på veien!</p>
             <button class="btn btn--honey btn--lg spill__startknapp" type="button">Start spillet</button>
             <ul class="spill__styring">
               <li><span class="spill__taster" aria-hidden="true"><kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span> eller <kbd>WASD</kbd> på PC</li>
@@ -175,7 +175,7 @@
           <div class="spill__kort">
             <p class="spill__ny-rekord" data-ny-rekord hidden><svg class="krone" viewBox="0 0 11 8" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#F1B240" d="M0 0h1v1H0zM5 0h1v1H5zM10 0h1v1h-1zM0 1h2v1H0zM4 1h3v1H4zM9 1h2v1H9zM0 2h3v1H0zM4 2h3v1H4zM8 2h3v1H8zM0 3h11v3H0z"/><path fill="#11110F" d="M0 6h11v2H0z"/><path fill="#A8492A" d="M2 4h1v1H2zM5 4h1v1H5zM8 4h1v1H8z"/></svg> NY BARE KYLLING-REKORD!</p>
             <h2 class="spill__slutt-tittel" data-slutt-tittel>Runden er over</h2>
-            <p class="spill__tall"><span><b data-slutt-poeng>0</b> poeng</span><span>Rekord <b data-slutt-rekord>0</b></span></p>
+            <p class="spill__tall"><span><b data-slutt-poeng>0</b> poeng</span><span>Rekord <b data-slutt-rekord>0</b></span><span><b data-slutt-pakker>0</b> pakker</span></p>
             <p class="spill__slutt-tekst" data-slutt-tekst></p>
             <form class="spill__navn" data-navn-skjema hidden novalidate>
               <label class="spill__navn-tekst" for="kallenavn">Du er på topp 10! Skriv inn et kallenavn:</label>
@@ -205,6 +205,9 @@
       <h2 class="display toppliste__h2" id="toppliste-tittel">Topp 10</h2>
       <p class="toppliste__status" data-toppliste-status role="status">Henter topplista …</p>
       <ol class="toppliste__liste" data-toppliste></ol>
+      <h3 class="toppliste__h3" id="pakkeliste-tittel"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg> Flest pakker</h3>
+      <p class="toppliste__status" data-pakkeliste-status></p>
+      <ol class="toppliste__liste toppliste__liste--pakker" data-pakkeliste aria-labelledby="pakkeliste-tittel"></ol>
       <p class="toppliste__info" data-toppliste-info>Topplista er felles for alle som spiller, og oppdaterer seg selv. Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over.</p>
     </aside>
   </div>
@@ -266,6 +269,6 @@
 
 <script src="js/content.js?v=20261014c"></script>
 <script src="js/main.js?v=20261014c"></script>
-<script type="module" src="js/spill/spill.js?v=20261015a"></script>
+<script type="module" src="js/spill/spill.js?v=20261015b"></script>
 </body>
 </html>

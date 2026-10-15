@@ -8,6 +8,10 @@
    Rettferdighet: det finnes alltid en åpen sti gjennom hindringene, det er
    alltid luft mellom bilene, og hullene mellom stokkene er aldri for store.
    Vanskeligheten øker jevnt med avstanden (vanske()).
+
+   Bare Kylling-pakker: noen rader på land har en pakke som kan plukkes opp.
+   Det er aldri mer enn én pakke per rad, så antall pakker kan aldri bli
+   høyere enn hvor langt du kom (serveren sjekker det).
    ============================================================================= */
 import * as THREE from '../vendor/three.module.min.js';
 import { F, modell } from './voxel.js';
@@ -40,6 +44,8 @@ export class Verden {
     this.tex = teksturer;
     this.reklame = reklame;
     this.rng = lagRng(frø);
+    /* Egen tilfeldighet for pakkene, så de ikke endrer resten av verdenen */
+    this.pakkeRng = lagRng((frø ^ 0x9E3779B9) >>> 0);
     this.rader = new Map();
     this.plan = [];            /* kommende rader (spesifikasjoner) */
     this.neste = -10;          /* neste rad som skal planlegges */
@@ -374,6 +380,8 @@ export class Verden {
       default: break;
     }
 
+    this.leggPakke(rad);
+
     if (l.length) {
       rad.statisk = modell(l);
       rad.gruppe.add(rad.statisk);
@@ -381,6 +389,32 @@ export class Verden {
     this.scene.add(rad.gruppe);
     this.rader.set(r, rad);
     return rad;
+  }
+
+  /* En pakke på en ledig rute i noen av radene på land */
+  leggPakke(rad) {
+    const r = rad.rad, rng = this.pakkeRng;
+    if (r < 4 || r === JOBB - 3 || !['gress', 'park', 'fortau', 'vei'].includes(rad.type)) { return; }
+    if (rng() > (rad.type === 'vei' ? 0.16 : 0.24)) { return; }
+    const ledige = [];
+    for (let x = -KOL; x <= KOL; x++) { if (!rad.blokk.has(x)) { ledige.push(x); } }
+    if (!ledige.length) { return; }
+    const x = ledige[Math.floor(rng() * ledige.length)];
+    const mesh = M.pakke(rng() < 0.5 ? 'original' : 'paprika');
+    mesh.scale.setScalar(1.45);
+    mesh.position.set(x, 0.2, -r);
+    rad.gruppe.add(mesh);
+    rad.pakke = { x, mesh, fase: rng() * 6, tatt: false };
+  }
+
+  /* Plukker pakken på (x, r) hvis det ligger en der. Gir true én gang. */
+  plukk(x, r) {
+    const rad = this.rader.get(r);
+    const p = rad && rad.pakke;
+    if (!p || p.tatt || Math.round(x) !== p.x || Math.abs(x - p.x) > 0.3) { return false; }
+    p.tatt = true;
+    p.mesh.visible = false;
+    return true;
   }
 
   /* ---------------------------------------------------------------------------
@@ -391,6 +425,11 @@ export class Verden {
     this.tid += dt;
     const hendelser = [];
     for (const rad of this.rader.values()) {
+      if (rad.pakke && !rad.pakke.tatt) {
+        const p = rad.pakke;
+        p.mesh.rotation.y = this.tid * 1.8 + p.fase;
+        p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
+      }
       if (rad.bane) { this.oppdaterBane(rad, dt, hendelser); continue; }
       for (const m of rad.flytt) {
         m.x += rad.fart * dt * (m.skum ? 1.1 : 1);

@@ -347,6 +347,31 @@ async function test(navn, fn) {
     assert.strictEqual(r.status, 400);
   });
 
+  await test('pakker: egen liste, beste per navn, og aldri flere enn poengene', async () => {
+    const r0 = await kall(fn, { method: 'GET', ip: nyIp() });
+    assert.ok(Array.isArray(r0.data.pakker), 'GET gir også pakkelista');
+    const r1 = await sendInn(await start(), { navn: 'Samler', poeng: 10, pakker: 7, logg: logg(10) });
+    assert.strictEqual(r1.status, 200, JSON.stringify(r1.data));
+    assert.strictEqual(r1.data.pakkePlass, 1);
+    assert.deepStrictEqual(r1.data.pakker[0], { navn: 'Samler', pakker: 7, dato: r1.data.pakker[0].dato });
+    /* Lengre runde, men færre pakker: poengene oppdateres, pakkene beholdes */
+    const r2 = await sendInn(await start(), { navn: 'Samler', poeng: 14, pakker: 2, logg: logg(14) });
+    assert.strictEqual(r2.status, 200);
+    assert.strictEqual(r2.data.pakker.find((x) => x.navn === 'Samler').pakker, 7);
+    assert.strictEqual(r2.data.liste.find((x) => x.navn === 'Samler').poeng, 14);
+    /* Flere pakker enn rader er umulig */
+    const r3 = await sendInn(await start(), { navn: 'Juksemaker', poeng: 5, pakker: 6, logg: logg(5) });
+    assert.strictEqual(r3.status, 400);
+    assert.match(r3.data.melding, /pakker/);
+    for (const feil of [-1, 1.5, '3', null]) {
+      assert.strictEqual((await sendInn(await start(), { navn: 'Rar', poeng: 5, pakker: feil, logg: logg(5) })).status, 400);
+    }
+    /* Runder uten pakker havner ikke på pakkelista */
+    await sendInn(await start(), { navn: 'Ingen Pakker', poeng: 8, pakker: 0, logg: logg(8) });
+    const r4 = await kall(fn, { method: 'GET', ip: nyIp() });
+    assert.ok(!r4.data.pakker.some((x) => x.navn === 'Ingen Pakker'));
+  });
+
   await test('IP-adresser lagres aldri i klartekst', async () => {
     const nokler = [...lager.keys()].join(' ');
     assert.ok(!nokler.includes('10.0.0.'), nokler.slice(0, 200));

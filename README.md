@@ -173,6 +173,25 @@ grenser per IP (bare en hash lagres) og sjekk av kallenavn. Kallenavn er ikke
 kontoer – samme navn deler plass. Et nettleserspill kan aldri bli helt
 juksesikkert, men dette gjør det tungvint.
 
+### Kallenavn huskes, og tilhører én enhet
+
+Første gang du kommer på lista, skriver du et kallenavn. Det huskes i
+nettleseren, så senere topp 10-runder sendes inn av seg selv. «Bytt
+kallenavn» på sluttkortet lar deg velge et nytt.
+
+Hver nettleser får en tilfeldig enhetsnøkkel (`bk-spill-enhet` i
+localStorage). Et kallenavn tilhører enheten som først kom på lista med det
+(`bk:eier` i databasen, bare en hash av nøkkelen lagres), så ingen andre kan
+sende inn under ditt navn. Det er enhet og ikke IP-adresse fordi en hel skole
+ofte deler én IP. Tømmer noen nettleseren, mister de navnet sitt; slett da
+navnet fra `bk:eier` i Upstash-konsollen så de kan ta det igjen.
+
+### Bare Kylling-pakker
+
+Noen rader har en Bare Kylling-pakke som kan plukkes opp. Pakkene har sin
+egen topp 10 («Flest pakker», `bk:pakker` og `bk:pnavn`). Det er maks én pakke
+per rad, så serveren godtar aldri flere pakker enn poeng.
+
 ### Kallenavn og stygge ord
 
 Kallenavn må ha 2–16 tegn: vanlige bokstaver (a–å, også é, ü osv.), tall,

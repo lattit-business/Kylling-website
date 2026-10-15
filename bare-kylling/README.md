@@ -140,7 +140,11 @@ langs footerkanten.
   `api/toppliste.js` i repo-rota og «Global toppliste» i README-en der). Den
   oppdaterer seg selv hvert 20. sekund, og startkortet viser rekorden å slå.
   Er den ikke koblet til, viser siden bare enhetens egen liste, merket
-  «Bare denne enheten».
+  «Bare denne enheten». Kallenavnet huskes på enheten og sendes inn av seg
+  selv neste gang du kommer på topp 10.
+- **Pakker:** noen rader har en Bare Kylling-pakke (`leggPakke`/`plukk` i
+  `verden.js`, modellen `pakke()` i `modeller.js`). Telleren står under
+  rekorden, og «Flest pakker» er en egen topp 10.
 
 | Fil | Innhold |
 |---|---|
