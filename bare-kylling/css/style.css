@@ -1427,6 +1427,16 @@ body.meny-apen .sticky-cta { display: none; }
 .butikk__knapp { grid-row: 1 / 3; grid-column: 2; min-height: 40px; padding-inline: 1rem; }
 .butikk__knapp:disabled { opacity: .4; cursor: not-allowed; }
 .butikk__info { font-size: .8rem; color: var(--ink-soft); line-height: 1.45; }
+.butikk__faner { margin: .6rem 0 .2rem; }
+.butikk__panel { width: 100%; }
+.butikk__panel[hidden] { display: none; }
+.butikk__gruppe { margin-top: .5rem; font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); list-style: none; }
+.merker { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: .45rem; text-align: left; }
+.merke { display: flex; align-items: center; gap: .7rem; padding: .45rem .6rem; border-radius: 12px; background: var(--cream); }
+.merke__ikon { width: 27px; height: 36px; flex: none; }
+.merke__tekst { display: grid; gap: .1rem; }
+.merke__tekst small { font-size: .78rem; color: var(--ink-soft); }
+.merke:not(.er-opplast) b { color: var(--ink-soft); }
 .toppliste__meg { margin: -.2rem 0 .8rem; font-size: .88rem; line-height: 1.5; }
 .toppliste__meg[hidden] { display: none; }
 .toppliste__meg b { font-weight: 800; }

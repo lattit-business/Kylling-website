@@ -1148,7 +1148,19 @@ async function start() {
     const liste = $('[data-varer]', butikk);
     const paa = B.paaDeg();
     liste.textContent = '';
-    for (const v of B.VARER) {
+    /* Varene gruppert etter plass, premiene til slutt */
+    const GRUPPER = [['hode', 'Hode'], ['ansikt', 'Ansikt'], ['kropp', 'Kropp'], ['rygg', 'Rygg'], ['bein', 'Bein'], ['farge', 'Farge'], ['spor', 'Spor'], ['premie', 'Premier']];
+    const gruppe = (v) => (v.rad ? 'premie' : v.type);
+    const sortert = GRUPPER.flatMap(([g]) => B.VARER.filter((v) => gruppe(v) === g));
+    let forrigeGruppe = '';
+    for (const v of sortert) {
+      if (gruppe(v) !== forrigeGruppe) {
+        forrigeGruppe = gruppe(v);
+        const h = document.createElement('li');
+        h.className = 'butikk__gruppe';
+        h.textContent = GRUPPER.find(([g]) => g === forrigeGruppe)[1];
+        liste.appendChild(h);
+      }
       const li = document.createElement('li');
       li.className = 'butikk__vare';
       const eier = B.eier(v.id), har = paa[v.type] === v.id;
@@ -1182,8 +1194,25 @@ async function start() {
     const m = $('[data-butikk-melding]', butikk);
     if (m) { m.textContent = melding; }
   }
+  /* Faner: Varer og Merker */
+  function visFane(navn, fokus = false) {
+    butikk.querySelectorAll('[data-fane]').forEach((k) => k.setAttribute('aria-pressed', String(k.dataset.fane === navn)));
+    butikk.querySelectorAll('[data-fanepanel]').forEach((p) => { p.hidden = p.dataset.fanepanel !== navn; });
+    if (navn === 'merker') { ME.tegn($('[data-merker]', butikk)); }
+    if (fokus) { const k = $(`[data-fane="${navn}"]`, butikk); if (k) { k.focus(); } }
+  }
+  if (butikk) {
+    butikk.querySelectorAll('[data-fane]').forEach((k) => {
+      k.addEventListener('click', () => { lyd.klikk(); visFane(k.dataset.fane); });
+      k.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); visFane(k.dataset.fane === 'varer' ? 'merker' : 'varer', true); }
+      });
+    });
+  }
+
   function apneButikk() {
     lyd.vekk(); lyd.klikk();
+    visFane('varer');
     kortForButikk = [ui.start, ui.slutt].find((k) => k && !k.hidden) || null;
     if (kortForButikk) { kortForButikk.hidden = true; }
     butikkApen = true;
