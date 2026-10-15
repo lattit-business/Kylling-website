@@ -410,6 +410,12 @@ async function start() {
     const radStoev = radNa ? radNa.type : 'gress';
     const stoev = radStoev === 'vei' ? [F.veiMork, F.stein] : radStoev === 'fortau' || radStoev === 'start' ? [F.fortauMork, F.creamHi] : radStoev === 'elv' ? [F.skum, F.vann] : [F.gressMork, F.lov];
     sprut(spiller.x, 0.05, -spiller.rad, 3, stoev, { fart: 0.9, opp: 1.2, liv: 0.35, str: 0.07 });
+    /* Spor fra butikken (bare pynt; ikke med «redusert bevegelse») */
+    const spor = ristSkala > 0 && B.vare(B.paaDeg().spor);
+    if (spor) {
+      sprut(spiller.x, 0.25, -spiller.rad, spor.glitter ? 7 : 5, spor.farger,
+        spor.glitter ? { fart: 0.5, opp: 1.6, liv: 0.9, str: 0.05, tyngde: 0.6 } : { fart: 0.7, opp: 1.1, liv: 0.55, str: 0.05 });
+    }
 
     const naa = performance.now();
     if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
