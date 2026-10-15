@@ -14,6 +14,7 @@ import * as M from './modeller.js';
 import { Verden, KOL, JOBB, KV, iKV, vanske } from './verden.js';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
+import * as B from './butikk.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -100,7 +101,7 @@ async function start() {
   /* -------------------------------------------------------------------------
      KYLLINGEN – logoen som voxelfigur
      ------------------------------------------------------------------------- */
-  const kyllingGeo = logoKylling();
+  const kyllingGeo = logoKylling(B.kroppsfarge());
   const spiller = {
     gruppe: new THREE.Group(), snu: new THREE.Group(), kropp: new THREE.Mesh(kyllingGeo, MATERIALE),
     x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null,
@@ -111,6 +112,21 @@ async function start() {
   spiller.gruppe.add(spiller.snu);
   scene.add(spiller.gruppe);
   const HOPP = 0.135;   /* sekunder per hopp */
+
+  /* Pynt og farge fra butikken */
+  const kroppGeo = new Map([[B.kroppsfarge(), kyllingGeo]]);
+  function kleKylling() {
+    const farge = B.kroppsfarge();
+    if (!kroppGeo.has(farge)) { kroppGeo.set(farge, logoKylling(farge)); }
+    spiller.kropp.geometry = kroppGeo.get(farge);
+    for (const barn of [...spiller.kropp.children]) { spiller.kropp.remove(barn); }
+    const paa = B.paaDeg();
+    for (const id of [paa.hode, paa.ansikt]) {
+      const m = id && M.pynt(id);
+      if (m) { spiller.kropp.add(m); }
+    }
+  }
+  kleKylling();
 
   /* Måka */
   const maake = M.maake();
@@ -271,6 +287,7 @@ async function start() {
   const YAW = { u: Math.PI / 2, d: -Math.PI / 2, l: Math.PI, r: 0 };
 
   function trekk(r) {
+    if (butikkApen) { return; }
     if (tilstand === 'meny') { startSpill(); }
     if (tilstand === 'over') { return; }
     if (tilstand !== 'spill') { return; }
@@ -461,6 +478,8 @@ async function start() {
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
+    B.leggTil(pakker);
+    visSaldo();
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
     if (ui.sluttRekord) { ui.sluttRekord.textContent = String(rekord); }
@@ -712,6 +731,7 @@ async function start() {
   document.addEventListener('keydown', (e) => {
     const iFelt = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
     if (iFelt || e.altKey || e.ctrlKey || e.metaKey) { return; }
+    if (butikkApen) { if (e.key === 'Escape') { lukkButikk(); } return; }
     const r = TAST[e.key];
     if (r && synlig) {
       e.preventDefault();
@@ -752,7 +772,72 @@ async function start() {
   const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(); tilstand = 'meny'; startSpill(); };
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
-  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a')) { trekk('u'); } });
+  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk]')) { trekk('u'); } });
+
+  /* -------------------------------------------------------------------------
+     BUTIKKEN – bruk pakkene på pynt til kyllingen
+     ------------------------------------------------------------------------- */
+  const butikk = $('[data-butikk]', scene_);
+  let butikkApen = false, kortForButikk = null;
+  function visSaldo() {
+    const n = B.saldo();
+    document.querySelectorAll('[data-saldo]').forEach((el) => { el.textContent = String(n); });
+  }
+  function tegnButikk(melding = '') {
+    const liste = $('[data-varer]', butikk);
+    const paa = B.paaDeg();
+    liste.textContent = '';
+    for (const v of B.VARER) {
+      const li = document.createElement('li');
+      li.className = 'butikk__vare';
+      const eier = B.eier(v.id), har = paa[v.type] === v.id;
+      if (har) { li.classList.add('er-paa'); }
+      const navn = document.createElement('span'); navn.className = 'butikk__navn'; navn.textContent = v.navn;
+      const pris = document.createElement('span'); pris.className = 'butikk__pris';
+      pris.textContent = eier ? (har ? 'På deg' : 'Din') : `${v.pris} pakker`;
+      const knapp = document.createElement('button');
+      knapp.type = 'button';
+      knapp.className = 'btn ' + (eier ? 'btn--ghost' : 'btn--ink') + ' butikk__knapp';
+      knapp.textContent = eier ? (har ? 'Ta av' : 'Bruk') : 'Kjøp';
+      if (!eier && B.saldo() < v.pris) { knapp.disabled = true; knapp.title = `Du trenger ${v.pris - B.saldo()} pakker til`; }
+      knapp.addEventListener('click', () => {
+        let tekst = '';
+        if (eier) { B.bruk(v.id); lyd.klikk(); }
+        else {
+          const svar = B.kjop(v.id);
+          if (svar.ok) { tekst = `Du kjøpte ${v.navn.toLowerCase()}!`; lyd.pakke(); }
+          else { tekst = svar.melding; lyd.bonk(); }
+        }
+        kleKylling(); visSaldo(); tegnButikk(tekst);
+        const ny = $(`[data-vare="${v.id}"] button`, butikk);
+        if (ny) { ny.focus(); }
+      });
+      li.dataset.vare = v.id;
+      li.append(navn, pris, knapp);
+      liste.appendChild(li);
+    }
+    const m = $('[data-butikk-melding]', butikk);
+    if (m) { m.textContent = melding; }
+  }
+  function apneButikk() {
+    lyd.vekk(); lyd.klikk();
+    kortForButikk = [ui.start, ui.slutt].find((k) => k && !k.hidden) || null;
+    if (kortForButikk) { kortForButikk.hidden = true; }
+    butikkApen = true;
+    butikk.hidden = false;
+    visSaldo(); tegnButikk();
+    const f = $('button:not([disabled])', butikk); if (f) { f.focus({ preventScroll: true }); }
+  }
+  function lukkButikk() {
+    butikkApen = false;
+    butikk.hidden = true;
+    if (kortForButikk) { kortForButikk.hidden = false; const k = $('[data-apne-butikk]', kortForButikk); if (k) { k.focus({ preventScroll: true }); } }
+  }
+  if (butikk) {
+    document.querySelectorAll('[data-apne-butikk]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); apneButikk(); }));
+    $('[data-lukk-butikk]', butikk).addEventListener('click', lukkButikk);
+  }
+  visSaldo();
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { lyd.pause(true); } else { lyd.pause(false); forrige = performance.now(); }

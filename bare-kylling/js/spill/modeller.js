@@ -546,6 +546,42 @@ export function halmBokser(x, z) {
   ];
 }
 
+/* ---------------------------------------------------------------------------
+   PYNT FRA BUTIKKEN – festes på kyllingen (hodet er rundt x 0,23, y 0,85;
+   nebbet peker mot +x). Gir en modell eller null.
+   --------------------------------------------------------------------------- */
+const PYNT = {
+  kokkelue: [
+    { x: 0.23, y: 0.8, z: 0, w: 0.36, h: 0.16, d: 0.36, c: F.creamHi },
+    { x: 0.23, y: 0.96, z: 0, w: 0.46, h: 0.2, d: 0.46, c: F.hvit },
+    { x: 0.23, y: 1.16, z: 0, w: 0.3, h: 0.07, d: 0.3, c: F.hvit }
+  ],
+  caps: [
+    { x: 0.2, y: 0.82, z: 0, w: 0.42, h: 0.16, d: 0.42, c: F.honey },
+    { x: 0.2, y: 0.98, z: 0, w: 0.22, h: 0.05, d: 0.22, c: F.honeyDeep },
+    { x: 0.5, y: 0.82, z: 0, w: 0.24, h: 0.04, d: 0.36, c: F.honeyDeep }
+  ],
+  krone: [
+    { x: 0.23, y: 0.86, z: 0, w: 0.4, h: 0.1, d: 0.4, c: F.honey },
+    { x: 0.07, y: 0.96, z: 0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.39, y: 0.96, z: 0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.07, y: 0.96, z: -0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.39, y: 0.96, z: -0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.44, y: 0.88, z: 0, w: 0.02, h: 0.06, d: 0.08, c: F.paprika }
+  ],
+  briller: [
+    { x: 0.27, y: 0.7, z: 0.255, w: 0.2, h: 0.11, d: 0.03, c: F.ink },
+    { x: 0.27, y: 0.7, z: -0.255, w: 0.2, h: 0.11, d: 0.03, c: F.ink },
+    { x: 0.38, y: 0.79, z: 0, w: 0.04, h: 0.03, d: 0.54, c: F.ink }
+  ]
+};
+export function pynt(id) {
+  if (!PYNT[id]) { return null; }
+  const m = new THREE.Mesh(bokser(PYNT[id]), MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
 /* En Bare Kylling-pakke å plukke opp: klar pose med kyllingfilet og etikett
    i smakens farge (Original grønn, Sweet Paprika rød). Geometrien deles. */
 const PAKKE_GEO = {};

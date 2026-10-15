@@ -192,6 +192,23 @@ Noen rader har en Bare Kylling-pakke som kan plukkes opp. Pakkene har sin
 egen topp 10 («Flest pakker», `bk:pakker` og `bk:pnavn`). Det er maks én pakke
 per rad, så serveren godtar aldri flere pakker enn poeng.
 
+### Topp 10 og topp 100
+
+Alle runder sendes inn (med kallenavnet du har valgt), ikke bare de som kommer
+på topp 10. Databasen beholder de 100 beste per liste; når den er full, slettes
+den svakeste. Bryteren «Topp 10 / Topp 100» over lista velger hvor mange som
+vises (`GET /api/toppliste?antall=100`), og valget huskes på enheten.
+
+### Butikken og Kylling Verden
+
+- **Butikken** (`js/spill/butikk.js`): pakkene du plukker opp, legges i en
+  lommebok på enheten (`bk-spill-lommebok`). For dem kjøper du pynt
+  (kokkelue, solbriller, caps, krone) og farger (Paprika, Original, Gull) til
+  kyllingen. Alt lagres i nettleseren og gir ingen fordel på topplista.
+- **Kylling Verden** (rad 63–250, `KV` i `verden.js`): honningbakke,
+  hønsehus, kornsiloer, eggkartonger, sausebekker, Bare Kylling-biler og
+  flere pakker. Port inn, skilt ut, og vanlig by igjen etter 250.
+
 ### Kallenavn og stygge ord
 
 Kallenavn må ha 2–16 tegn: vanlige bokstaver (a–å, også é, ü osv.), tall,
