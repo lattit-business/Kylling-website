@@ -16,6 +16,7 @@ import { Bane, dagFrø, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
+import * as O from './oppdrag.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -352,6 +353,7 @@ async function start() {
     ui.slutt && (ui.slutt.hidden = true);
     melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute! Samme bane for alle i dag.' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     if (dagensRunde) { T.registrerDag(osloDato()); }
+    O.fyllPaa(); tegnOppdrag();
     lyd.startMusikk();
     sisteTrekk = performance.now();
   }
@@ -411,7 +413,7 @@ async function start() {
 
     const naa = performance.now();
     if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
-    if (kombo === KOMBO) { melding('Kombo! Doble pakker i lommeboka.', 2); lyd.kraft(); runde.kombo = true; }
+    if (kombo === KOMBO) { melding('Kombo! Doble pakker i lommeboka.', 2); lyd.kraft(); runde.kombo = true; sjekkOppdrag(); }
     logg.push(r + Math.max(0, Math.round((naa - sisteTrekk) / 10)).toString(36));
     sisteTrekk = naa;
 
@@ -436,6 +438,7 @@ async function start() {
         sprut(spiller.x, 1.2, -spiller.rad, 30, [F.honey, F.creamHi, F.paprika], { fart: 2.4, opp: 4, liv: 1.2, str: 0.09, tyngde: 5 });
       }
       if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
+      sjekkOppdrag();
       oppdaterHud();
     }
   }
@@ -464,6 +467,7 @@ async function start() {
       lyd.kraft();
       sprut(spiller.x, 0.6, -spiller.rad, 22, [F.honey, F.creamHi, kraft.slag === 'fart' ? F.paprika : F.forest], { fart: 2, opp: 3.4, liv: 0.8, str: 0.08, tyngde: 5 });
       runde.kraft++;
+      sjekkOppdrag();
     }
     const tattPakke = verden.plukk(spiller.x, spiller.rad);
     if (tattPakke) { taPakke(tattPakke, spiller.rad); }
@@ -497,6 +501,19 @@ async function start() {
     }
   }
 
+  /* OPPDRAG: sjekkes når noe skjer i runden; klare oppdrag gir pakker i lommeboka */
+  const tegnOppdrag = () => document.querySelectorAll('[data-oppdrag]').forEach((ul) => O.tegn(ul));
+  function sjekkOppdrag() {
+    if (tilstand !== 'spill' && tilstand !== 'over') { return; }
+    for (const o of O.sjekk({ poeng, pakker, ...runde, dagens: dagensRunde })) {
+      B.leggTil(O.BELONNING);
+      visSaldo();
+      melding(`Oppdrag klart: ${o.tekst}! +${O.BELONNING} pakker`, 2.6);
+      lyd.poeng();
+      tegnOppdrag();
+    }
+  }
+
   /* Kraft og kombo vises i HUD-en; kyllingen blinker mens den er uskadelig */
   let sisteEffekt = '';
   function visEffekt() {
@@ -515,6 +532,7 @@ async function start() {
     pakker++;
     if (p.levering) { runde.levering++; }
     if (komboAktiv()) { bonus++; }
+    queueMicrotask(sjekkOppdrag);
     logg.push(`p${r.toString(36)}.${p.x + KOL}`);
     lyd.pakke();
     sprut(p.x, 0.5, -r, langt ? 8 : 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
@@ -709,6 +727,7 @@ async function start() {
     if (ui.navnStatus) { ui.navnStatus.textContent = ''; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (ui.slutt) { ui.slutt.hidden = false; }
+    tegnOppdrag();
     oppdaterHud();
     if (nyRekord && poeng > 0) {
       lyd.rekord();
@@ -1179,6 +1198,7 @@ async function start() {
     maakeHarStjaalet = true;
     pakker--;
     runde.stjalet = true;
+    sjekkOppdrag();
     logg.push('m');                         /* serveren trekker fra pakken */
     oppdaterHud();
     rull = spillerRad - 1;                  /* måka er mett en stund */
@@ -1457,6 +1477,7 @@ async function start() {
      I GANG
      ------------------------------------------------------------------------- */
   nyVerden();
+  O.fyllPaa(); tegnOppdrag();
   oppdaterStartKort();
   oppdaterGud();
   /* Første billett hentes med en gang (samtidig med lista), og verdenen bygges
