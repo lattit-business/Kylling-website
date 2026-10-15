@@ -135,7 +135,7 @@ async function start() {
     spiller.kropp.geometry = kroppGeo.get(farge);
     for (const barn of [...spiller.kropp.children]) { spiller.kropp.remove(barn); }
     const paa = B.paaDeg();
-    for (const id of [paa.hode, paa.ansikt]) {
+    for (const id of [paa.hode, paa.ansikt, paa.kropp, paa.rygg, paa.bein]) {
       const m = id && M.pynt(id);
       if (m) { spiller.kropp.add(m); }
     }
