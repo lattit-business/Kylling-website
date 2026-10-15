@@ -635,3 +635,398 @@ export function maake() {
   g.add(g.userData.venstre, g.userData.hoyre);
   return g;
 }
+
+/* ---------------------------------------------------------------------------
+   SKILT SOM KOMMER IGJEN (porter, reklamevegger, plakater)
+   Samme tekst deler tekstur, geometri og materiale, så nye rader ikke lager
+   nye lerreter.
+   --------------------------------------------------------------------------- */
+const skiltCache = new Map();
+export function skiltCachet(tekst, bakgrunn, forgrunn, b, h) {
+  const k = [tekst, bakgrunn, forgrunn, b, h].join('|');
+  if (!skiltCache.has(k)) {
+    skiltCache.set(k, { geo: new THREE.PlaneGeometry(b, h), mat: new THREE.MeshLambertMaterial({ map: lappSkilt(tekst, bakgrunn, forgrunn) }) });
+  }
+  const { geo, mat } = skiltCache.get(k);
+  const m = new THREE.Mesh(geo, mat);
+  m.receiveShadow = true;
+  return m;
+}
+
+/* Kjøretøy som ruller (vektskiver, treningsballer): en ytre gruppe som
+   flyttes, og en indre modell som snurrer rundt aksen (z). */
+function rullende(navn, lag, radius, lengde, slag) {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(cachet(navn, lag), MATERIALE);
+  m.castShadow = true;
+  m.position.y = radius;
+  g.add(m);
+  Object.assign(g.userData, { lengde, slag, rull: m, radius });
+  return g;
+}
+const medSlag = (m, slag) => { m.userData.slag = slag; return m; };
+
+/* ---------------------------------------------------------------------------
+   KYLLING VERDEN – traktor, kyllingfilet i sausebekken, høner og kyllingtoget
+   --------------------------------------------------------------------------- */
+export function traktor() {
+  const geo = cachet('traktor', () => bokser([
+    { x: 0.25, y: 0.2, z: 0, w: 0.9, h: 0.36, d: 0.5, c: F.forest },
+    { x: -0.3, y: 0.2, z: 0, w: 0.5, h: 0.62, d: 0.6, c: F.forest },
+    { x: -0.3, y: 0.82, z: 0, w: 0.56, h: 0.06, d: 0.66, c: F.ink },
+    { x: -0.06, y: 0.46, z: 0, w: 0.04, h: 0.32, d: 0.5, c: F.glass },
+    { x: 0.5, y: 0.56, z: 0.1, w: 0.06, h: 0.3, d: 0.06, c: F.ink },
+    { x: 0.7, y: 0.26, z: 0, w: 0.04, h: 0.16, d: 0.4, c: F.honey },
+    { x: -0.35, y: 0, z: 0.36, w: 0.56, h: 0.56, d: 0.16, c: F.ink },
+    { x: -0.35, y: 0, z: -0.36, w: 0.56, h: 0.56, d: 0.16, c: F.ink },
+    { x: -0.35, y: 0.2, z: 0.45, w: 0.2, h: 0.16, d: 0.02, c: F.honey },
+    { x: -0.35, y: 0.2, z: -0.45, w: 0.2, h: 0.16, d: 0.02, c: F.honey },
+    { x: 0.5, y: 0, z: 0.3, w: 0.3, h: 0.3, d: 0.12, c: F.ink },
+    { x: 0.5, y: 0, z: -0.3, w: 0.3, h: 0.3, d: 0.12, c: F.ink }
+  ]));
+  return medSlag(lagMesh(geo, 1.6), 'traktor');
+}
+
+/* En stekt kyllingfilet som flyter i sausen, med grillstriper */
+export function kyllingfilet(lengde) {
+  const geo = cachet('filet' + lengde, () => {
+    const l = [
+      { x: 0, y: -0.12, z: 0, w: lengde, h: 0.26, d: 0.7, c: 0xD98A3D },
+      { x: 0, y: 0.14, z: 0, w: lengde - 0.3, h: 0.06, d: 0.54, c: 0xE6A257 },
+      { x: lengde / 2 - 0.08, y: -0.1, z: 0, w: 0.16, h: 0.22, d: 0.5, c: 0xC9772F },
+      { x: -lengde / 2 + 0.08, y: -0.1, z: 0, w: 0.16, h: 0.22, d: 0.5, c: 0xC9772F }
+    ];
+    for (let x = -lengde / 2 + 0.35; x < lengde / 2 - 0.2; x += 0.42) {
+      l.push({ x, y: 0.2, z: 0, w: 0.07, h: 0.01, d: 0.5, c: 0x8E3D20 });
+    }
+    return bokser(l);
+  });
+  return lagMesh(geo, lengde);
+}
+
+/* En høne som titter ut av hønsehuset (hodet flyttes opp og ned) */
+export function hone() {
+  const geo = cachet('hone', () => bokser([
+    { x: 0, y: 0, z: 0, w: 0.26, h: 0.22, d: 0.22, c: F.creamHi },
+    { x: 0.04, y: 0.22, z: 0, w: 0.16, h: 0.16, d: 0.16, c: F.creamHi },
+    { x: 0.04, y: 0.38, z: 0, w: 0.1, h: 0.06, d: 0.04, c: F.paprika },
+    { x: 0.14, y: 0.28, z: 0, w: 0.06, h: 0.04, d: 0.05, c: F.honey },
+    { x: 0.08, y: 0.32, z: 0.081, w: 0.03, h: 0.03, d: 0.01, c: F.ink },
+    { x: 0.08, y: 0.32, z: -0.081, w: 0.03, h: 0.03, d: 0.01, c: F.ink }
+  ]));
+  const m = new THREE.Mesh(geo, MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
+export function kyllingtog() {
+  const geo = cachet('kyllingtog', () => {
+    const l = [];
+    for (let i = 0; i < 3; i++) {
+      const x = -2.3 + i * 2.3;
+      l.push({ x, y: 0.12, z: 0, w: 2.2, h: 0.9, d: 0.84, c: i % 2 ? F.creamHi : F.honey });
+      l.push({ x, y: 0.5, z: 0.43, w: 1.7, h: 0.3, d: 0.02, c: F.glass });
+      l.push({ x, y: 0.5, z: -0.43, w: 1.7, h: 0.3, d: 0.02, c: F.glass });
+      l.push({ x, y: 1.02, z: 0, w: 2.22, h: 0.1, d: 0.86, c: F.paprika });
+      l.push({ x, y: 0.12, z: 0.43, w: 2.2, h: 0.1, d: 0.02, c: F.paprikaDeep });
+    }
+    /* en stor kam på taket av lokomotivet */
+    l.push({ x: 2.3, y: 1.12, z: 0, w: 0.5, h: 0.22, d: 0.12, c: F.paprika });
+    l.push({ x: 3.42, y: 0.4, z: 0, w: 0.06, h: 0.45, d: 0.7, c: F.glass });
+    l.push({ x: 3.5, y: 0.3, z: 0, w: 0.16, h: 0.08, d: 0.2, c: F.honeyDeep });
+    return bokser(l);
+  });
+  return lagMesh(geo, 6.9);
+}
+
+/* ---------------------------------------------------------------------------
+   BRYGGEN – trehus, fiskekasser, fiskevogner, båter, ferger og Fløibanen
+   --------------------------------------------------------------------------- */
+/* Et smalt trehus med gavl mot kameraet, slik husene på Bryggen ser ut */
+export function bryggehusBokser(x, z, farge, h) {
+  const b = 1.25, d = 0.9;
+  const l = [{ x, y: 0, z, w: b, h, d, c: farge }];
+  for (let i = 0; i < 4; i++) {
+    l.push({ x, y: h + i * 0.16, z, w: b * (1 - i * 0.24), h: 0.16, d: d + 0.06, c: i === 3 ? F.ink : farge });
+  }
+  l.push({ x, y: h - 0.04, z: z + d / 2 + 0.02, w: b + 0.06, h: 0.06, d: 0.04, c: F.creamHi });
+  for (const vx of [-0.3, 0.3]) {
+    for (const vy of [0.3, 0.9, 1.5].filter((y) => y < h - 0.35)) {
+      l.push({ x: x + vx, y: vy, z: z + d / 2 + 0.01, w: 0.24, h: 0.3, d: 0.03, c: F.creamHi });
+      l.push({ x: x + vx, y: vy + 0.04, z: z + d / 2 + 0.02, w: 0.16, h: 0.22, d: 0.03, c: F.glassMork });
+    }
+  }
+  return l;
+}
+
+export function fiskekasseBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.72, h: 0.24, d: 0.52, c: F.creamHi },
+    { x, y: 0.24, z, w: 0.62, h: 0.03, d: 0.42, c: 0xDDEFF2 },
+    { x: x - 0.12, y: 0.27, z: z - 0.06, w: 0.36, h: 0.07, d: 0.1, c: 0xB8C3CB },
+    { x: x + 0.1, y: 0.27, z: z + 0.08, w: 0.36, h: 0.07, d: 0.1, c: 0xA3AFB8 },
+    { x: x + 0.05, y: 0.29, z: z - 0.1, w: 0.08, h: 0.03, d: 0.04, c: F.ink },
+    { x: x + 0.04, y: 0.34, z, w: 0.6, h: 0.18, d: 0.44, c: F.blaa, t: 0.9 },
+    { x: x + 0.04, y: 0.52, z, w: 0.5, h: 0.03, d: 0.34, c: 0xDDEFF2 }
+  ];
+}
+
+export function tonneBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.44, h: 0.56, d: 0.44, c: F.bark },
+    { x, y: 0.08, z, w: 0.48, h: 0.05, d: 0.48, c: F.inkSoft },
+    { x, y: 0.42, z, w: 0.48, h: 0.05, d: 0.48, c: F.inkSoft }
+  ];
+}
+
+export function pullertBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.26, h: 0.36, d: 0.26, c: F.inkSoft },
+    { x, y: 0.36, z, w: 0.34, h: 0.08, d: 0.34, c: F.ink }
+  ];
+}
+
+/* Torgbod med stripete tak (utenfor spillflaten på Fisketorget) */
+export function torgbodBokser(x, z, farge) {
+  const l = [
+    { x: x - 0.55, y: 0, z: z + 0.3, w: 0.06, h: 1.0, d: 0.06, c: F.inkSoft },
+    { x: x + 0.55, y: 0, z: z + 0.3, w: 0.06, h: 1.0, d: 0.06, c: F.inkSoft },
+    { x, y: 0, z, w: 1.2, h: 0.5, d: 0.5, c: F.bark },
+    { x, y: 0.5, z, w: 1.1, h: 0.04, d: 0.42, c: 0xDDEFF2 }
+  ];
+  for (let i = 0; i < 4; i++) { l.push({ x: x - 0.45 + i * 0.3, y: 1.0, z, w: 0.3, h: 0.08, d: 0.8, c: i % 2 ? F.creamHi : farge }); }
+  return l;
+}
+
+export function fiskevogn() {
+  const geo = cachet('fiskevogn', () => bokser([
+    { x: 0, y: 0.2, z: 0, w: 1.1, h: 0.1, d: 0.62, c: F.bark },
+    { x: 0, y: 0.3, z: 0, w: 1.1, h: 0.16, d: 0.06, c: F.barkMork },
+    { x: -0.15, y: 0.3, z: 0, w: 0.5, h: 0.22, d: 0.44, c: F.creamHi },
+    { x: -0.15, y: 0.52, z: 0, w: 0.4, h: 0.03, d: 0.34, c: 0xDDEFF2 },
+    { x: 0.32, y: 0.3, z: 0, w: 0.34, h: 0.18, d: 0.44, c: F.blaa },
+    { x: -0.62, y: 0.3, z: 0.2, w: 0.3, h: 0.04, d: 0.04, c: F.bark },
+    { x: -0.62, y: 0.3, z: -0.2, w: 0.3, h: 0.04, d: 0.04, c: F.bark },
+    { x: 0, y: 0, z: 0.34, w: 0.34, h: 0.34, d: 0.06, c: F.ink },
+    { x: 0, y: 0, z: -0.34, w: 0.34, h: 0.34, d: 0.06, c: F.ink }
+  ]));
+  return medSlag(lagMesh(geo, 1.2), 'fiskevogn');
+}
+
+/* Båter å hoppe på i havna: små trebåter og ferger */
+export function baat(lengde) {
+  const geo = cachet('baat' + lengde, () => {
+    const l = [
+      { x: 0, y: -0.14, z: 0, w: lengde, h: 0.3, d: 0.74, c: F.creamHi },
+      { x: 0, y: -0.14, z: 0, w: lengde + 0.02, h: 0.08, d: 0.76, c: F.roed },
+      { x: 0, y: 0.15, z: 0, w: lengde - 0.2, h: 0.04, d: 0.6, c: 0xC9A574 },
+      { x: lengde / 2 - 0.06, y: -0.04, z: 0, w: 0.12, h: 0.22, d: 0.5, c: F.creamHi }
+    ];
+    if (lengde >= 2.5) {
+      l.push({ x: -lengde / 2 + 0.45, y: 0.19, z: 0, w: 0.5, h: 0.34, d: 0.46, c: F.creamHi });
+      l.push({ x: -lengde / 2 + 0.45, y: 0.4, z: 0.235, w: 0.36, h: 0.1, d: 0.01, c: F.glass });
+      l.push({ x: -lengde / 2 + 0.45, y: 0.53, z: 0, w: 0.56, h: 0.04, d: 0.52, c: F.roed });
+    }
+    return bokser(l);
+  });
+  return lagMesh(geo, lengde);
+}
+export function ferge(lengde) {
+  const geo = cachet('ferge' + lengde, () => bokser([
+    { x: 0, y: -0.16, z: 0, w: lengde, h: 0.34, d: 0.8, c: F.creamHi },
+    { x: 0, y: -0.05, z: 0, w: lengde + 0.02, h: 0.07, d: 0.82, c: F.blaa },
+    { x: 0, y: 0.18, z: 0, w: lengde - 0.1, h: 0.03, d: 0.74, c: 0xBDB4A3 },
+    { x: 0, y: 0.21, z: -0.3, w: lengde * 0.5, h: 0.3, d: 0.16, c: F.creamHi },
+    { x: 0, y: 0.3, z: -0.215, w: lengde * 0.45, h: 0.1, d: 0.01, c: F.glass },
+    { x: lengde * 0.15, y: 0.51, z: -0.3, w: 0.16, h: 0.26, d: 0.16, c: F.roed }
+  ]));
+  return lagMesh(geo, lengde);
+}
+
+/* Fløibanen: en rød vogn med trappetrinn-form (den går tross alt opp en fjellside) */
+export function floibane() {
+  const geo = cachet('floibane', () => {
+    const l = [];
+    for (let i = 0; i < 4; i++) {
+      const x = -0.9 + i * 0.6;
+      l.push({ x, y: 0.12 + i * 0.08, z: 0, w: 0.62, h: 0.92, d: 0.84, c: F.roed });
+      l.push({ x, y: 0.5 + i * 0.08, z: 0.43, w: 0.44, h: 0.32, d: 0.02, c: F.glass });
+      l.push({ x, y: 0.5 + i * 0.08, z: -0.43, w: 0.44, h: 0.32, d: 0.02, c: F.glass });
+      l.push({ x, y: 1.04 + i * 0.08, z: 0, w: 0.64, h: 0.07, d: 0.86, c: F.creamHi });
+    }
+    l.push({ x: 1.22, y: 0.5, z: 0, w: 0.04, h: 0.4, d: 0.7, c: F.glass });
+    l.push({ x: 0, y: 0.06, z: 0, w: 2.4, h: 0.08, d: 0.6, c: F.ink });
+    return bokser(l);
+  });
+  return lagMesh(geo, 2.5);
+}
+
+/* ---------------------------------------------------------------------------
+   FABRIKKEN – maskiner, paller, trucker, trillebord, brett og stempelet
+   --------------------------------------------------------------------------- */
+export function maskinBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.84, h: 0.8, d: 0.66, c: 0xA9ADB2 },
+    { x, y: 0.8, z, w: 0.6, h: 0.18, d: 0.5, c: 0x8E9196 },
+    { x, y: 0.05, z: z + 0.34, w: 0.84, h: 0.1, d: 0.02, c: F.honey },
+    { x: x + 0.2, y: 0.42, z: z + 0.335, w: 0.24, h: 0.2, d: 0.02, c: F.ink },
+    { x: x + 0.14, y: 0.5, z: z + 0.345, w: 0.05, h: 0.05, d: 0.01, c: F.roed },
+    { x: x + 0.26, y: 0.5, z: z + 0.345, w: 0.05, h: 0.05, d: 0.01, c: F.lovLys }
+  ];
+}
+
+export function pallBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.8, h: 0.1, d: 0.62, c: 0xC9A574 },
+    { x: x - 0.18, y: 0.1, z, w: 0.38, h: 0.3, d: 0.5, c: 0xC69A6B },
+    { x: x + 0.2, y: 0.1, z, w: 0.36, h: 0.3, d: 0.5, c: 0xBF925F },
+    { x, y: 0.4, z, w: 0.4, h: 0.26, d: 0.46, c: 0xC69A6B },
+    { x, y: 0.47, z: z + 0.235, w: 0.4, h: 0.06, d: 0.01, c: F.honey },
+    { x: x - 0.18, y: 0.2, z: z + 0.255, w: 0.38, h: 0.06, d: 0.01, c: F.honey }
+  ];
+}
+
+/* En lang vegg med reklame på (tekstur legges på av verdenen) */
+export function reklameveggBokser(x, z) {
+  return [
+    { x: x - 0.9, y: 0, z, w: 0.12, h: 1.9, d: 0.12, c: F.inkSoft },
+    { x: x + 0.9, y: 0, z, w: 0.12, h: 1.9, d: 0.12, c: F.inkSoft },
+    { x, y: 0.9, z: z - 0.06, w: 2.0, h: 0.95, d: 0.1, c: F.ink }
+  ];
+}
+
+export function truck() {
+  const geo = cachet('truck', () => bokser([
+    { x: -0.15, y: 0.14, z: 0, w: 0.9, h: 0.4, d: 0.64, c: F.honey },
+    { x: -0.42, y: 0.54, z: 0, w: 0.34, h: 0.2, d: 0.6, c: F.honeyDeep },
+    { x: -0.1, y: 0.54, z: 0.27, w: 0.05, h: 0.56, d: 0.05, c: F.ink },
+    { x: -0.1, y: 0.54, z: -0.27, w: 0.05, h: 0.56, d: 0.05, c: F.ink },
+    { x: -0.15, y: 1.1, z: 0, w: 0.5, h: 0.05, d: 0.6, c: F.ink },
+    { x: 0.36, y: 0.1, z: 0, w: 0.08, h: 1.2, d: 0.5, c: F.inkSoft },
+    { x: 0.58, y: 0.14, z: 0.16, w: 0.44, h: 0.04, d: 0.08, c: F.inkSoft },
+    { x: 0.58, y: 0.14, z: -0.16, w: 0.44, h: 0.04, d: 0.08, c: F.inkSoft },
+    { x: 0.62, y: 0.18, z: 0, w: 0.36, h: 0.3, d: 0.46, c: 0xC69A6B },
+    hjul(0.18, 0.33), hjul(0.18, -0.33), hjul(-0.45, 0.33), hjul(-0.45, -0.33)
+  ]));
+  return medSlag(lagMesh(geo, 1.6), 'truck');
+}
+
+export function trillebord() {
+  const geo = cachet('trillebord', () => bokser([
+    { x: 0, y: 0.1, z: 0, w: 0.04, h: 0.6, d: 0.04, c: 0xA9ADB2 },
+    { x: -0.4, y: 0.06, z: 0.24, w: 0.04, h: 0.64, d: 0.04, c: 0xA9ADB2 },
+    { x: 0.4, y: 0.06, z: 0.24, w: 0.04, h: 0.64, d: 0.04, c: 0xA9ADB2 },
+    { x: -0.4, y: 0.06, z: -0.24, w: 0.04, h: 0.64, d: 0.04, c: 0xA9ADB2 },
+    { x: 0.4, y: 0.06, z: -0.24, w: 0.04, h: 0.64, d: 0.04, c: 0xA9ADB2 },
+    { x: 0, y: 0.2, z: 0, w: 0.9, h: 0.04, d: 0.56, c: 0xC9CDD2 },
+    { x: 0, y: 0.66, z: 0, w: 0.9, h: 0.04, d: 0.56, c: 0xC9CDD2 },
+    { x: -0.15, y: 0.7, z: 0, w: 0.36, h: 0.08, d: 0.3, c: 0xD98A3D },
+    { x: 0.22, y: 0.7, z: 0.05, w: 0.28, h: 0.08, d: 0.24, c: F.paprika },
+    { x: -0.4, y: 0, z: 0.24, w: 0.08, h: 0.08, d: 0.08, c: F.ink },
+    { x: 0.4, y: 0, z: 0.24, w: 0.08, h: 0.08, d: 0.08, c: F.ink },
+    { x: -0.4, y: 0, z: -0.24, w: 0.08, h: 0.08, d: 0.08, c: F.ink },
+    { x: 0.4, y: 0, z: -0.24, w: 0.08, h: 0.08, d: 0.08, c: F.ink }
+  ]));
+  return medSlag(lagMesh(geo, 1.0), 'trillebord');
+}
+
+/* Stålbrett på samlebåndet (kyllingen kan stå på dem) */
+export function brett(lengde) {
+  const geo = cachet('brett' + lengde, () => {
+    const l = [
+      { x: 0, y: -0.12, z: 0, w: lengde, h: 0.22, d: 0.72, c: 0xB9BDC2 },
+      { x: 0, y: 0.1, z: 0.33, w: lengde, h: 0.06, d: 0.06, c: 0xD5D8DC },
+      { x: 0, y: 0.1, z: -0.33, w: lengde, h: 0.06, d: 0.06, c: 0xD5D8DC }
+    ];
+    for (let x = -lengde / 2 + 0.4; x < lengde / 2 - 0.2; x += 0.7) {
+      l.push({ x, y: 0.1, z: 0, w: 0.34, h: 0.06, d: 0.26, c: 0xD98A3D });
+    }
+    return bokser(l);
+  });
+  return lagMesh(geo, lengde);
+}
+
+/* Stempelet: et tungt hode over hele raden (spillflaten) */
+export function stempelHode(bredde) {
+  const geo = cachet('stempel' + bredde, () => bokser([
+    { x: 0, y: 0, z: 0, w: bredde, h: 0.36, d: 0.9, c: 0x8E9196 },
+    { x: 0, y: 0.36, z: 0, w: bredde - 0.3, h: 0.12, d: 0.7, c: 0x6E7176 },
+    { x: 0, y: 0.08, z: 0.455, w: bredde, h: 0.1, d: 0.01, c: F.honey },
+    { x: -bredde / 4, y: 0.48, z: 0, w: 0.16, h: 1.6, d: 0.16, c: 0xA9ADB2 },
+    { x: bredde / 4, y: 0.48, z: 0, w: 0.16, h: 1.6, d: 0.16, c: 0xA9ADB2 }
+  ]));
+  const m = new THREE.Mesh(geo, MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
+/* ---------------------------------------------------------------------------
+   TRENINGSSENTERET – manualer, benker, baller, vektskiver og vektstang
+   --------------------------------------------------------------------------- */
+export function manualBokser(x, z) {
+  const l = [
+    { x, y: 0, z, w: 0.8, h: 0.08, d: 0.36, c: F.ink },
+    { x: x - 0.36, y: 0.08, z, w: 0.06, h: 0.24, d: 0.3, c: F.inkSoft },
+    { x: x + 0.36, y: 0.08, z, w: 0.06, h: 0.24, d: 0.3, c: F.inkSoft }
+  ];
+  for (const dx of [-0.2, 0.08]) {
+    l.push({ x: x + dx + 0.06, y: 0.12, z, w: 0.04, h: 0.04, d: 0.3, c: 0xA9ADB2 });
+    l.push({ x: x + dx + 0.06, y: 0.06, z: z - 0.13, w: 0.14, h: 0.16, d: 0.07, c: F.ink });
+    l.push({ x: x + dx + 0.06, y: 0.06, z: z + 0.13, w: 0.14, h: 0.16, d: 0.07, c: F.ink });
+  }
+  return l;
+}
+
+export function treningsbenkBokser(x, z) {
+  return [
+    { x: x - 0.3, y: 0, z, w: 0.08, h: 0.26, d: 0.3, c: 0xA9ADB2 },
+    { x: x + 0.3, y: 0, z, w: 0.08, h: 0.26, d: 0.3, c: 0xA9ADB2 },
+    { x, y: 0.26, z, w: 0.86, h: 0.12, d: 0.3, c: F.ink },
+    { x: x - 0.1, y: 0.38, z, w: 0.6, h: 0.02, d: 0.26, c: F.inkSoft }
+  ];
+}
+
+export function ballBokser(x, z, farge) {
+  return [
+    { x, y: 0.02, z, w: 0.44, h: 0.6, d: 0.44, c: farge },
+    { x, y: 0.1, z, w: 0.6, h: 0.44, d: 0.6, c: farge },
+    { x: x - 0.06, y: 0.5, z: z + 0.1, w: 0.12, h: 0.08, d: 0.12, c: F.creamHi, t: 1.1 }
+  ];
+}
+
+/* Vektskive som triller: en skive i x/y-planet, snurrer rundt z */
+export function vektskive(farge) {
+  const R = 0.42;
+  return rullende('skive' + farge, () => bokser([
+    { x: 0, y: -R, z: 0, w: R * 0.8, h: R * 2, d: 0.18, c: farge },
+    { x: 0, y: -R * 0.8, z: 0, w: R * 1.6, h: R * 1.6, d: 0.18, c: farge },
+    { x: 0, y: -R * 0.4, z: 0, w: R * 2, h: R * 0.8, d: 0.18, c: farge },
+    { x: 0, y: -R * 0.55, z: 0, w: R * 0.3, h: R * 1.1, d: 0.2, c: F.creamHi, t: 0.9 },
+    { x: 0, y: -0.08, z: 0, w: 0.16, h: 0.16, d: 0.3, c: 0xA9ADB2 }
+  ]), R, R * 2 + 0.05, 'vektskive');
+}
+
+export function treningsball(farge) {
+  const R = 0.46;
+  return rullende('ball' + farge, () => bokser([
+    { x: 0, y: -R, z: 0, w: R, h: R * 2, d: R, c: farge },
+    { x: 0, y: -R * 0.75, z: 0, w: R * 1.7, h: R * 1.5, d: R * 1.7, c: farge },
+    { x: 0, y: -R * 0.35, z: 0, w: R * 2, h: R * 0.7, d: R * 2, c: farge },
+    { x: 0, y: -0.05, z: 0, w: R * 2.02, h: 0.1, d: R * 0.4, c: F.creamHi }
+  ]), R, R * 2, 'ball');
+}
+
+/* Vektstanga som sklir over gulvet (Treningssenterets bybane) */
+export function vektstang() {
+  const geo = cachet('vektstang', () => {
+    const l = [{ x: 0, y: 0.42, z: 0, w: 4.4, h: 0.08, d: 0.08, c: 0xC9CDD2 }];
+    for (const s of [-1, 1]) {
+      l.push({ x: s * 1.75, y: 0, z: 0, w: 0.2, h: 0.92, d: 0.92, c: F.roed });
+      l.push({ x: s * 1.95, y: 0.06, z: 0, w: 0.16, h: 0.8, d: 0.8, c: F.blaa });
+      l.push({ x: s * 2.1, y: 0.12, z: 0, w: 0.12, h: 0.68, d: 0.68, c: F.gul });
+      l.push({ x: s * 1.6, y: 0.36, z: 0, w: 0.1, h: 0.2, d: 0.2, c: 0xA9ADB2 });
+    }
+    return bokser(l);
+  });
+  return lagMesh(geo, 4.4);
+}

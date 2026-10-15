@@ -29,8 +29,14 @@ const AKKORD = [  /* grunntone (bass) og akkord (arpeggio) per takt */
   [48, [60, 64, 67]], [45, [57, 60, 64]], [41, [53, 57, 60]], [43, [55, 59, 62]],
   [41, [53, 57, 60]], [43, [55, 59, 62]], [40, [52, 55, 59]], [45, [57, 60, 64]]
 ];
-const TEMPO = 128;
-const STEG = 60 / TEMPO / 4;
+/* Hver verden spiller sin egen variant av sangen: annen toneart, tempo og klang */
+const VARIANTER = {
+  by: { trans: 0, tempo: 128, melodi: 'puls' },
+  kylling: { trans: 2, tempo: 136, melodi: 'puls' },
+  brygge: { trans: -3, tempo: 118, melodi: 'triangle' },
+  fabrikk: { trans: 5, tempo: 140, melodi: 'square' },
+  trening: { trans: 7, tempo: 150, melodi: 'puls', firer: true }
+};
 
 export class Lyd {
   constructor() {
@@ -41,7 +47,11 @@ export class Lyd {
     this.steg = 0;
     this.nesteTid = 0;
     this.klokke = 0;
+    this.variant = VARIANTER.by;
   }
+
+  /* Bytter musikkvariant (skjer på neste slag, så sangen ikke hakker) */
+  settVerden(id) { this.variant = VARIANTER[id] || VARIANTER.by; }
 
   /* Må kalles fra et brukertrykk første gang */
   vekk() {
@@ -165,6 +175,18 @@ export class Lyd {
     [72, 76, 79, 84, 88, 91].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.07, varighet: 0.18, styrke: 0.08 }));
     for (let i = 0; i < 6; i++) { this.tone({ type: 'triangle', f0: hz(96 + (i % 3) * 2), t: 0.5 + i * 0.08, varighet: 0.1, styrke: 0.05 }); }
   }
+  kakle() {
+    [0, 0.09, 0.2].forEach((t, i) => this.tone({ type: 'square', f0: 620 + i * 90, f1: 480, t, varighet: 0.07, styrke: 0.04 }));
+  }
+  alarm() {
+    for (let i = 0; i < 3; i++) { this.tone({ type: 'square', f0: 880, t: i * 0.22, varighet: 0.12, styrke: 0.05 }); }
+  }
+  stempel(styrke = 1) {
+    this.tone({ type: 'sine', f0: 120, f1: 40, varighet: 0.25, styrke: 0.35 * styrke });
+    this.stoy({ varighet: 0.2, styrke: 0.25 * styrke, filter: 'lowpass', f0: 1800, f1: 200, q: 0.7 });
+  }
+  fres(styrke = 1) { this.stoy({ varighet: 0.7, styrke: 0.12 * styrke, filter: 'highpass', f0: 3500, q: 0.5 }); }
+  molle() { this.tone({ type: 'sawtooth', f0: 90, f1: 70, varighet: 0.3, styrke: 0.05 }); }
   tapt() {
     [67, 64, 60, 55].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: 0.25 + i * 0.13, varighet: 0.16, styrke: 0.06 }));
   }
@@ -185,22 +207,24 @@ export class Lyd {
     const c = this.ctx;
     while (this.nesteTid < c.currentTime + 0.14) {
       this.spillSteg(this.steg, this.nesteTid - c.currentTime);
-      this.nesteTid += STEG;
+      this.nesteTid += 60 / this.variant.tempo / 4;
       this.steg = (this.steg + 1) % (MELODI.length * 16);
     }
   }
   spillSteg(steg, t) {
     const takt = Math.floor(steg / 16), i = steg % 16, ut = this.musikk;
-    const note = MELODI[takt][i];
-    if (note) { this.tone({ type: 'puls', f0: hz(note), t, varighet: STEG * 1.7, styrke: 0.07, ut }); }
-    const [bass, akkord] = AKKORD[takt];
+    const v = this.variant, STEG = 60 / v.tempo / 4, tr = v.trans;
+    const note = MELODI[takt][i] && MELODI[takt][i] + tr;
+    if (note) { this.tone({ type: v.melodi, f0: hz(note), t, varighet: STEG * 1.7, styrke: v.melodi === 'triangle' ? 0.12 : v.melodi === 'square' ? 0.045 : 0.07, ut }); }
+    let [bass, akkord] = AKKORD[takt];
+    bass += tr; akkord = akkord.map((n) => n + tr);
     if (i % 2 === 0) {
       const b = (i % 8 === 6) ? bass + 12 : bass;
       this.tone({ type: 'triangle', f0: hz(b), t, varighet: STEG * 1.6, styrke: 0.16, ut });
     }
     this.tone({ type: 'puls', f0: hz(akkord[i % 3] + 12), t, varighet: STEG * 0.8, styrke: 0.018, ut });
     /* trommer: stortromme på 1 og 3, skarptromme på 2 og 4, hi-hat på offbeat */
-    if (i === 0 || i === 8 || (i === 10 && takt % 2)) { this.tone({ type: 'sine', f0: 140, f1: 45, t, varighet: 0.14, styrke: 0.3, ut }); }
+    if (i === 0 || i === 8 || (i === 10 && takt % 2) || (v.firer && i % 4 === 0)) { this.tone({ type: 'sine', f0: 140, f1: 45, t, varighet: 0.14, styrke: 0.3, ut }); }
     if (i === 4 || i === 12) { this.stoy({ t, varighet: 0.1, styrke: 0.12, filter: 'bandpass', f0: 1800, q: 0.8, ut }); }
     if (i % 4 === 2) { this.stoy({ t, varighet: 0.035, styrke: 0.05, filter: 'highpass', f0: 7000, ut }); }
   }

@@ -456,6 +456,28 @@ async function test(navn, fn) {
     assert.strictEqual(r.data.pakker.find((x) => x.navn === 'Måkeoffer').pakker, run.pakker - 1);
   });
 
+  await test('tredemølla (b) godtas bare på en tredemølle', async () => {
+    const { lesLogg, Bane: B2 } = await import('../bare-kylling/js/spill/bane.mjs');
+    let frø = 1, molle = -1;
+    for (; frø < 200 && molle < 0; frø++) {
+      const bane = new B2(frø);
+      for (let r = 271; r <= 340; r++) { if (bane.spek(r).type === 'mølle') { molle = r; break; } }
+    }
+    frø--;
+    const opp = Array.from({ length: molle }, (_, k) => 'u' + (k ? 20 : 30).toString(36));
+    const ok = lesLogg([...opp, 'b', 'u14'].join(','), frø);
+    assert.strictEqual(ok.feil, undefined, JSON.stringify(ok));
+    assert.strictEqual(ok.poeng, molle, 'å bli dyttet bakover gir ikke poeng');
+    assert.ok(lesLogg([...opp.slice(0, 5), 'b'].join(','), frø).feil, 'b utenfor en tredemølle avvises');
+  });
+
+  await test('verdenene ligger i ring etter Treningssenteret', async () => {
+    const { verdenFor } = await import('../bare-kylling/js/spill/bane.mjs');
+    assert.deepStrictEqual([10, 63, 131, 201, 271, 341, 618, 619].map((r) => verdenFor(r).id),
+      ['by', 'kylling', 'brygge', 'fabrikk', 'trening', 'kylling', 'trening', 'kylling']);
+    assert.strictEqual(verdenFor(341).runde, 1);
+  });
+
   await test('runder uten pakker havner ikke på pakkelista', async () => {
     await sendInn(await start(), { navn: 'Ingen Pakker', poeng: 8, logg: logg(8) });
     const r4 = await kall(fn, { method: 'GET', ip: nyIp() });
