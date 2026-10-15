@@ -17,6 +17,7 @@ import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
 import * as O from './oppdrag.js';
+import * as ME from './merker.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -507,10 +508,21 @@ async function start() {
     }
   }
 
+  /* MERKER: låses opp for godt (første gang på jobb, hver verden, 100 pakker,
+     ti dager med dagens rute) */
+  const dagerSpilt = () => { try { return (JSON.parse(localStorage.getItem('bk-spill-dager') || '[]') || []).length; } catch (e) { return 0; } };
+  function sjekkMerker(ekstraPakker = pakker) {
+    for (const m of ME.sjekk({ poeng, pakkerTotalt: ME.pakkerTotalt() + ekstraPakker, dager: dagerSpilt() })) {
+      melding(`Nytt merke: ${m.navn}!`, 3);
+      lyd.seier();
+    }
+  }
+
   /* OPPDRAG: sjekkes når noe skjer i runden; klare oppdrag gir pakker i lommeboka */
   const tegnOppdrag = () => document.querySelectorAll('[data-oppdrag]').forEach((ul) => O.tegn(ul));
   function sjekkOppdrag() {
     if (tilstand !== 'spill' && tilstand !== 'over') { return; }
+    sjekkMerker();
     for (const o of O.sjekk({ poeng, pakker, ...runde, dagens: dagensRunde })) {
       B.leggTil(O.BELONNING);
       visSaldo();
@@ -713,6 +725,8 @@ async function start() {
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
     B.leggTil(pakker + bonus);
+    ME.leggTilPakker(pakker);
+    sjekkMerker(0);
     visSaldo();
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
