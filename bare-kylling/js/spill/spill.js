@@ -96,7 +96,7 @@ async function start() {
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
     pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
-    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
+    startRekord: $('[data-start-rekord]'), effekt: $('[data-effekt]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -113,6 +113,7 @@ async function start() {
   spiller.gruppe.add(spiller.snu);
   scene.add(spiller.gruppe);
   const HOPP = 0.135;   /* sekunder per hopp */
+  const HOPP_FART = 0.08;   /* med Sweet Paprika-fart */
 
   /* GUD-MODUS: kallenavnet «barefjær» gjør kyllingen udødelig. Slike runder
      sendes ikke til topplista (serveren har også navnet som reservert). */
@@ -139,6 +140,9 @@ async function start() {
     }
   }
   kleKylling();
+  const skjold = M.skjoldRamme();
+  skjold.visible = false;
+  spiller.gruppe.add(skjold);
 
   /* Måka */
   const maake = M.maake();
@@ -204,6 +208,14 @@ async function start() {
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
   let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
+  /* Kraftpakker: tidene er i ekte millisekunder (som trekkloggen), så de
+     slutter på samme tid som serveren regner med */
+  const effekt = { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 };
+  /* Det som skjedde i runden (til oppdragene) */
+  let runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+  const fartAktiv = () => performance.now() < effekt.fartTil;
+  const magnetAktiv = () => performance.now() < effekt.magnetTil;
+  const komboAktiv = () => false;
   let gudIRunden = false;            /* gud-modus var på en gang i runden: sendes ikke inn */
   const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
@@ -247,6 +259,10 @@ async function start() {
     driftBrygge: ['Du drev ut Vågen. Neste stopp: Nordsjøen.'],
     krydret: ['Du ble krydret!'],
     molle: ['Tredemølla vant den runden.', 'Ikke stå stille på mølla!'],
+    skjold: ['Original-skjold! Du tåler én smell.'],
+    fart: ['Sweet Paprika! Full fart i fem sekunder.'],
+    magnet: ['Matboks-magnet! Pakkene kommer til deg.'],
+    reddet: ['Skjoldet tok støyten!', 'Puh! Skjoldet reddet deg.'],
     tyveri: ['Måka stjal en pakke! Neste gang tar den deg.', 'Typisk Bergen: måka tok matpakka.', 'Måka fikk lunsj. Du får ikke ny sjanse.'],
     rekord: ['Du er offisielt en legendekylling!'],
     jobb: ['Gratulerer! Du kom deg på jobb!']
@@ -307,6 +323,9 @@ async function start() {
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
+    Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
+    runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+    skjold.visible = false;
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     if (pakketKylling) { pakketKylling.visible = false; }
@@ -423,18 +442,58 @@ async function start() {
         sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
       } else { do_('vann'); return; }
     }
-    const tattPakke = verden.plukk(spiller.x, spiller.rad);
-    if (tattPakke) {
-      pakker++;
-      logg.push(`p${spiller.rad.toString(36)}.${tattPakke.x + KOL}`);   /* serveren kontrollerer pakken */
-      lyd.pakke();
-      sprut(spiller.x, 0.5, -spiller.rad, 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
-      if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
-      else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
-      oppdaterHud();
+    const kraft = verden.plukkKraft(spiller.x, spiller.rad);
+    if (kraft) {
+      logg.push(`k${spiller.rad.toString(36)}.${kraft.x + KOL}`);      /* serveren kontrollerer kraftpakken */
+      const naa = performance.now();
+      if (kraft.slag === 'skjold') { effekt.skjold = true; skjold.visible = true; }
+      if (kraft.slag === 'fart') { effekt.fartTil = naa + 4800; }
+      if (kraft.slag === 'magnet') { effekt.magnetTil = naa + 5800; }
+      melding(MELDINGER[kraft.slag][0], 2.4);
+      lyd.kraft();
+      sprut(spiller.x, 0.6, -spiller.rad, 22, [F.honey, F.creamHi, kraft.slag === 'fart' ? F.paprika : F.forest], { fart: 2, opp: 3.4, liv: 0.8, str: 0.08, tyngde: 5 });
+      runde.kraft++;
     }
+    const tattPakke = verden.plukk(spiller.x, spiller.rad);
+    if (tattPakke) { taPakke(tattPakke, spiller.rad); }
+    trekkMagnet();
     if (spiller.rad === JOBB && !jobbNaadd) { feirJobb(); }
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
+  }
+
+  /* Kraft og kombo vises i HUD-en; kyllingen blinker mens den er uskadelig */
+  let sisteEffekt = '';
+  function visEffekt() {
+    const naa = performance.now(), deler = [];
+    if (effekt.skjold) { deler.push('Skjold'); }
+    if (naa < effekt.fartTil) { deler.push(`Fart ${Math.ceil((effekt.fartTil - naa) / 1000)}`); }
+    if (naa < effekt.magnetTil) { deler.push(`Magnet ${Math.ceil((effekt.magnetTil - naa) / 1000)}`); }
+    if (komboAktiv()) { deler.push('Kombo ×2'); }
+    const tekst = deler.join(' · ');
+    if (tekst !== sisteEffekt && ui.effekt) { sisteEffekt = tekst; ui.effekt.textContent = tekst; ui.effekt.hidden = !tekst; }
+    spiller.kropp.visible = !(naa < effekt.uskadeligTil && Math.floor(naa / 90) % 2);
+  }
+
+  /* En pakke er plukket (rad r). Serveren får vite det i loggen. */
+  function taPakke(p, r, langt = false) {
+    pakker++;
+    logg.push(`p${r.toString(36)}.${p.x + KOL}`);
+    lyd.pakke();
+    sprut(p.x, 0.5, -r, langt ? 8 : 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
+    if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
+    else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
+    oppdaterHud();
+  }
+
+  /* Magneten trekker inn pakker i raden og raden foran (to kolonner til hver side) */
+  function trekkMagnet() {
+    if (!magnetAktiv() || tilstand !== 'spill' || spiller.hopp < 1) { return; }
+    for (const r of [spiller.rad, spiller.rad + 1]) {
+      for (const p of verden.pakkerNaer(spiller.x, r, 2)) {
+        p.tatt = true; p.mesh.visible = false;
+        taPakke(p, r, true);
+      }
+    }
   }
 
   function feirJobb() {
@@ -457,6 +516,17 @@ async function start() {
   function do_(aarsak, kjoretoy, r) {
     if (tilstand !== 'spill') { return; }
     if (gud()) { return; }   /* gud-modus: ingenting tar livet av kyllingen */
+    if (performance.now() < effekt.uskadeligTil && aarsak !== 'maake' && aarsak !== 'vann' && aarsak !== 'drift') { return; }
+    if (effekt.skjold && ['bil', 'bane', 'stempel', 'grill'].includes(aarsak)) {
+      /* Skjoldet tar smellen, og kyllingen er uskadelig et lite øyeblikk */
+      effekt.skjold = false; skjold.visible = false;
+      effekt.uskadeligTil = performance.now() + 1200;
+      melding(velg(MELDINGER.reddet), 2);
+      lyd.bonk(); lyd.kraft();
+      risting = 0.2 * ristSkala;
+      sprut(spiller.gruppe.position.x, 0.6, spiller.gruppe.position.z, 18, [F.lovLys, F.forest, F.creamHi], { fart: 2.4, opp: 2.6, liv: 0.6, str: 0.08 });
+      return;
+    }
     tilstand = 'dod';
     dodTid = 0;
     dodAarsak = aarsak;
@@ -1016,6 +1086,7 @@ async function start() {
   function stjelPakke(spillerRad) {
     maakeHarStjaalet = true;
     pakker--;
+    runde.stjalet = true;
     logg.push('m');                         /* serveren trekker fra pakken */
     oppdaterHud();
     rull = spillerRad - 1;                  /* måka er mett en stund */
@@ -1111,6 +1182,7 @@ async function start() {
     if (tilstand === 'spill' || tilstand === 'meny') { oppdaterSpiller(dt); }
     if (tilstand === 'dod') { oppdaterDod(dt); }
     oppdaterTyveri(dt);
+    visEffekt();
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1214,7 +1286,7 @@ async function start() {
   function oppdaterSpiller(dt) {
     const s = spiller, g = s.gruppe;
     if (s.hopp < 1) {
-      s.hopp = Math.min(1, s.hopp + dt / (s.glid ? 0.3 : HOPP));
+      s.hopp = Math.min(1, s.hopp + dt / (s.glid ? 0.3 : fartAktiv() ? HOPP_FART : HOPP));
       const t = s.hopp;
       const x = s.fraX + (s.tilX - s.fraX) * t;
       const zRad = s.fraRad + (s.tilRad - s.fraRad) * t;
@@ -1232,6 +1304,7 @@ async function start() {
       }
       g.position.set(s.x, s.paa ? s.paa.mesh.position.y : 0, -s.rad);
       s.tomgang += dt;
+      if (magnetAktiv()) { trekkMagnet(); }
       /* Tredemølla: står du stille i ett sekund, blir du dyttet én rad bakover */
       const radHer = verden.rad(s.rad);
       if (tilstand === 'spill' && radHer && radHer.type === 'mølle') {
@@ -1317,7 +1390,9 @@ async function start() {
       trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
-      pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
+      pakkeRader: (fra = 0, til = 80) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); if (d) { d.pakker.forEach((p) => u.push({ rad: r, x: p.x, tatt: p.tatt })); } } return u; },
+      kraft: (fra = 0, til = 400) => { const u = []; for (let r = fra; r <= til; r++) { const k = verden.bane.kraft(r); if (k) { u.push({ rad: r, ...k }); } } return u; },
+      effekt: () => ({ skjold: effekt.skjold, fart: fartAktiv(), magnet: magnetAktiv() }), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
       rad: (r) => { const d = verden.rad(r); return d ? { type: d.type, blokk: [...d.blokk], fart: d.fart, flytt: d.flytt.map((m) => ({ x: m.x, len: m.len })) } : null },

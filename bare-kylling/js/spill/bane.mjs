@@ -79,6 +79,21 @@ const MIN_RADER = { gress: 1, park: 1, by: 3, vei: 1, elv: 2, bane: 1, grill: 1,
 /* Radtyper der det kan ligge pakker */
 const PAKKELAND = ['gress', 'park', 'fortau', 'vei'];
 const SALT_PAKKE = 0x50414B;
+const SALT_KRAFT = 0x4B5246;
+
+/* ---------------------------------------------------------------------------
+   KRAFTPAKKER
+   Original gir skjold (tåler én smell), Sweet Paprika gir fart i 5 s og
+   matboksen gir magnet i 6 s. De er sjeldne, og det er alltid minst 40 rader
+   mellom dem, så det aldri er mer enn én på skjermen. Frøet bestemmer alt.
+   Varighetene er i hundredeler (samme enhet som trekkloggen).
+   --------------------------------------------------------------------------- */
+export const KRAFT = { skjold: 0, fart: 500, magnet: 600 };
+export const FART_MIN_HOPP_CS = 6;     /* raskeste hopp med fart */
+export const MAGNET_REKKEVIDDE = 2;    /* kolonner til hver side, i raden og raden foran */
+const KRAFT_LUKE = 70;                 /* én mulig kraftpakke per 70 rader */
+const KRAFTLAND = ['gress', 'park', 'fortau'];
+const iTryggSone = (r) => Math.abs(r - JOBB) <= 3;
 
 export class Bane {
   constructor(frø) {
@@ -88,6 +103,7 @@ export class Bane {
     this.neste = -10;             /* neste rad som skal planlegges */
     this.forrigeBlokk = '';
     this.pakkeCache = new Map();
+    this.kraftCache = new Map();
   }
 
   /* Spesifikasjonen for rad r: { rad, type, verden, ... } */
@@ -182,6 +198,35 @@ export class Bane {
     this.pakkeCache.set(r, liste);
     return liste;
   }
+
+  /* Kraftpakken i luke k (eller null): { rad, x, slag } */
+  kraftLuke(k) {
+    if (this.kraftCache.has(k)) { return this.kraftCache.get(k); }
+    const rng = lagRng(bland(this.frø, k, SALT_KRAFT));
+    let svar = null;
+    if (rng() < 0.6) {
+      const fra = 15 + k * KRAFT_LUKE + Math.floor(rng() * 20);
+      const v = rng(), slag = v < 0.4 ? 'skjold' : v < 0.7 ? 'fart' : 'magnet';
+      const xr = rng();
+      for (let r = fra; r < fra + 10; r++) {
+        if (iTryggSone(r) || !KRAFTLAND.includes(this.spek(r).type) || this.spek(r).port) { continue; }
+        const opptatt = new Set(this.pakker(r).map((p) => p.x));
+        let x = Math.floor(xr * (KOL * 2 + 1)) - KOL;
+        while (opptatt.has(x)) { x = x >= KOL ? -KOL : x + 1; }
+        svar = { rad: r, x, slag };
+        break;
+      }
+    }
+    this.kraftCache.set(k, svar);
+    return svar;
+  }
+
+  /* Kraftpakken i rad r: { x, slag } eller null */
+  kraft(r) {
+    if (r < 15) { return null; }
+    const k = this.kraftLuke(Math.floor((r - 15) / KRAFT_LUKE));
+    return k && k.rad === r ? k : null;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -191,6 +236,8 @@ export class Bane {
      p1f.5                plukket pakke på rad 0x1f (base 36), kolonne 5 (x + 4)
      m                    måka stjal en pakke
      b                    tredemølla dyttet kyllingen én rad bakover
+     k1f.5                tok kraftpakken på rad 0x1f, kolonne 5 (fart og magnet
+                          gir raskere hopp / pakker på avstand i en kort tid)
    lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs } eller
    { feil }. Samme funksjon brukes av serveren og testene.
    --------------------------------------------------------------------------- */
@@ -205,11 +252,14 @@ export function lesLogg(logg, frø) {
   const tatt = new Set();
   let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false;
   let kol = 0;                     /* kolonnen kyllingen står i (null = ukjent etter elv) */
+  let fartTil = -1, magnetTil = -1;   /* når kraftene slutter (hundredeler, med litt slingring) */
+  const kraftTatt = new Set();
   for (const bit of biter) {
     let m;
     if ((m = /^([udlr])([0-9a-z]{1,6})$/.exec(bit))) {
       const d = parseInt(m[2], 36);
-      if (hopp > 0 && d < MIN_HOPP_CS) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
+      const min = cs + d <= fartTil ? FART_MIN_HOPP_CS : MIN_HOPP_CS;
+      if (hopp > 0 && d < min) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
       hopp++;
       cs += d;
       if (m[1] === 'u') { rad += 1; } else if (m[1] === 'd') { rad -= 1; }
@@ -220,13 +270,25 @@ export function lesLogg(logg, frø) {
       if (spek && spek.type === 'elv') { kol = null; }
     } else if ((m = /^p([0-9a-z]{1,4})\.([0-8])$/.exec(bit))) {
       const pr = parseInt(m[1], 36), px = Number(m[2]) - KOL;
-      if (pr !== rad) { return { feil: 'En pakke ble tatt på en rad kyllingen ikke sto på.' }; }
+      /* Med magnet kan pakker i raden og raden foran, to kolonner unna, trekkes inn */
+      const magnet = cs <= magnetTil;
+      if (pr !== rad && !(magnet && pr === rad + 1)) { return { feil: 'En pakke ble tatt på en rad kyllingen ikke sto på.' }; }
       const nokkel = pr + ':' + px;
       if (tatt.has(nokkel) || !bane.pakker(pr).some((p) => p.x === px)) { return { feil: 'Den pakken fantes ikke.' }; }
-      if (kol !== null && kol !== px) { return { feil: 'Kyllingen sto ikke ved pakken.' }; }
-      kol = px;
+      if (kol !== null && (magnet ? Math.abs(kol - px) > MAGNET_REKKEVIDDE : kol !== px)) { return { feil: 'Kyllingen sto ikke ved pakken.' }; }
+      if (!magnet) { kol = px; }
       tatt.add(nokkel);
       pakker++;
+    } else if ((m = /^k([0-9a-z]{1,4})\.([0-8])$/.exec(bit))) {
+      /* Kraftpakke: må ligge der kyllingen står, og tas bare én gang */
+      const pr = parseInt(m[1], 36), px = Number(m[2]) - KOL;
+      const k = bane.kraft(pr);
+      if (pr !== rad || !k || k.x !== px || kraftTatt.has(pr)) { return { feil: 'Den kraftpakken fantes ikke.' }; }
+      if (kol !== null && kol !== px) { return { feil: 'Kyllingen sto ikke ved kraftpakken.' }; }
+      kol = px;
+      kraftTatt.add(pr);
+      if (k.slag === 'fart') { fartTil = cs + KRAFT.fart + 50; }
+      if (k.slag === 'magnet') { magnetTil = cs + KRAFT.magnet + 50; }
     } else if (bit === 'b') {
       /* Bare lov på en tredemølle. Kolonnen er den samme (mølla går rett bakover). */
       const spek = bane.spek(rad);

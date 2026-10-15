@@ -471,6 +471,47 @@ async function test(navn, fn) {
     assert.ok(lesLogg([...opp.slice(0, 5), 'b'].join(','), frø).feil, 'b utenfor en tredemølle avvises');
   });
 
+  await test('kraftpakker: kontrolleres av serveren, og fart/magnet gjelder bare en kort stund', async () => {
+    const { lesLogg, Bane: B2, KOL: K } = await import('../bare-kylling/js/spill/bane.mjs');
+    /* Finn et frø med en kraftpakke av ønsket slag tidlig, uten elv før den */
+    const finn = (slag) => {
+      for (let frø = 1; frø < 5000; frø++) {
+        const bane = new B2(frø), k = bane.kraftLuke(0);
+        if (k && k.slag === slag && ![...Array(k.rad + 3).keys()].some((r) => bane.spek(r).type === 'elv')) { return { frø, k, bane }; }
+      }
+      throw new Error('fant ikke ' + slag);
+    };
+    const til = (k, cs = 20) => {
+      const l = Array.from({ length: k.rad }, (_, i) => 'u' + (i ? cs : 30).toString(36));
+      let kol = 0;
+      while (kol !== k.x) { l.push((k.x > kol ? 'r' : 'l') + cs.toString(36)); kol += k.x > kol ? 1 : -1; }
+      l.push(`k${k.rad.toString(36)}.${k.x + K}`);
+      return l;
+    };
+    const f = finn('fart');
+    assert.strictEqual(lesLogg(til(f.k).join(','), f.frø).feil, undefined);
+    assert.ok(lesLogg([...til(f.k), 'k' + f.k.rad.toString(36) + '.' + (f.k.x + K)].join(','), f.frø).feil, 'samme kraftpakke to ganger');
+    const feilX = ((f.k.x + K + 1) % 9);
+    assert.ok(lesLogg([...til(f.k).slice(0, -1), `k${f.k.rad.toString(36)}.${feilX}`].join(','), f.frø).feil, 'kraftpakke på feil sted');
+    assert.ok(lesLogg([...til(f.k).slice(0, f.k.rad - 1), `k${(f.k.rad).toString(36)}.${f.k.x + K}`].join(','), f.frø).feil, 'kraftpakke på feil rad');
+    /* Med fart er 7 hundredeler mellom hopp lov, men bare de neste 5 sekundene */
+    const raske = Array.from({ length: 10 }, () => 'u7');
+    assert.strictEqual(lesLogg([...til(f.k), ...raske].join(','), f.frø).feil, undefined, 'raske hopp med fart');
+    assert.ok(lesLogg([...til(f.k), 'u' + (700).toString(36), ...raske].join(','), f.frø).feil, 'raske hopp etter at farten er slutt');
+    assert.ok(lesLogg(['u30', ...raske].join(','), f.frø).feil, 'raske hopp uten fart');
+    /* Magnet: pakker opptil to kolonner unna, i raden og raden foran */
+    const m = finn('magnet');
+    let pk = null;
+    for (let r = m.k.rad; r <= m.k.rad + 8 && !pk; r++) { pk = m.bane.pakker(r).find((p) => Math.abs(p.x - m.k.x) <= 2) ? { r, p: m.bane.pakker(r).find((p) => Math.abs(p.x - m.k.x) <= 2) } : null; }
+    if (pk) {
+      const opp = Array.from({ length: Math.max(0, pk.r - 1 - m.k.rad) }, () => 'u14');
+      const p = `p${pk.r.toString(36)}.${pk.p.x + K}`;
+      const ok = lesLogg([...til(m.k), ...opp, p].join(','), m.frø);
+      assert.strictEqual(ok.feil, undefined, JSON.stringify(ok));
+      assert.strictEqual(ok.pakker, 1);
+    }
+  });
+
   await test('verdenene ligger i ring etter Treningssenteret', async () => {
     const { verdenFor } = await import('../bare-kylling/js/spill/bane.mjs');
     assert.deepStrictEqual([10, 63, 131, 201, 271, 341, 618, 619].map((r) => verdenFor(r).id),
