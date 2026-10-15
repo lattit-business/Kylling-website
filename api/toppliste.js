@@ -209,28 +209,32 @@ function sjekkNavn(raa) {
   return { navn, nokkel: navn.toLowerCase() };
 }
 
-/* ---------------------------------------------------------------------------
-   Eierskap til kallenavn
-   Spillet lager en tilfeldig enhetsnøkkel første gang og lagrer den i
-   nettleseren. Et kallenavn tilhører enheten som først kom på lista med det,
-   så ingen andre kan sende inn under ditt navn. Bare en hash av nøkkelen
-   lagres. (Enhet, ikke IP: en hel skole deler ofte én IP-adresse.)
-   --------------------------------------------------------------------------- */
-const enhetHash = (e) => (typeof e === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(e)
-  ? crypto.createHash('sha256').update(HEMMELIG + ':enhet:' + e).digest('hex').slice(0, 24)
-  : null);
-const TATT = 'Det kallenavnet er tatt av en annen spiller. Velg et annet!';
-
-/* 'ledig' | 'din' | 'tatt' */
-async function eierAv(nokkel, eier) {
-  const naa = await en('HGET', NOKKEL.eier, nokkel);
-  return naa === null ? 'ledig' : naa === eier ? 'din' : 'tatt';
-}
-
 /* Banen og trekkloggen er felles med spillet (bare-kylling/js/spill/bane.mjs),
    så serveren regner ut nøyaktig samme rader og pakker som nettleseren. */
 let baneModul = null;
 const hentBane = async () => baneModul || (baneModul = await import('../bare-kylling/js/spill/bane.mjs'));
+
+/* Spiller av loggen. Kan ikke banefilen lastes (feil i oppsettet), sjekkes
+   bare hoppene, så ingen runder går tapt; pakkene telles da ikke. */
+async function spillAv(logg, frø) {
+  try {
+    return (await hentBane()).lesLogg(logg, frø);
+  } catch (e) {
+    console.error('toppliste: fikk ikke lastet bane.mjs:', e && e.message);
+    if (typeof logg !== 'string' || logg.length > 300000) { return { feil: 'Ugyldig logg.' }; }
+    let rad = 0, beste = 0, cs = 0, n = 0;
+    for (const bit of logg ? logg.split(',') : []) {
+      const m = /^([udlr])([0-9a-z]{1,6})$/.exec(bit);
+      if (!m) { if (bit === 'b') { rad -= 1; } continue; }
+      const d = parseInt(m[2], 36);
+      if (n++ > 0 && d < 6) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
+      cs += d;
+      rad += m[1] === 'u' ? 1 : m[1] === 'd' ? -1 : 0;
+      if (rad > beste) { beste = rad; }
+    }
+    return { poeng: beste, pakker: 0, tidMs: cs * 10 };
+  }
+}
 
 async function hentListe(antall = 10, sett = NOKKEL.topp, info = NOKKEL.navn, felt = 'poeng') {
   const par = await en('ZRANGE', sett, '0', String(antall - 1), 'REV', 'WITHSCORES');
@@ -356,22 +360,16 @@ module.exports = async function toppliste(req, res) {
       if (await forMange('navn', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
       const navn = sjekkNavn(kropp.navn);
       if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
-      const eier = enhetHash(kropp.enhet);
-      if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
-      if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
       return send(res, 200, { ok: true, navn: navn.navn });
     }
 
     if (kropp.handling !== 'send') { return send(res, 400, { melding: 'Ukjent handling.' }); }
     if (await forMange('send', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
 
-    /* 1. Kallenavnet, og at det tilhører denne enheten (før billetten brukes,
-       så et tatt navn ikke koster runden) */
+    /* 1. Kallenavnet (alle kan bruke hvilket navn de vil; samme navn deler
+       én plass på lista, og den beste runden står) */
     const navn = sjekkNavn(kropp.navn);
     if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
-    const eier = enhetHash(kropp.enhet);
-    if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
-    if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
 
     /* 2. Billetten: riktig signatur, og ikke brukt før */
     const deler = String(kropp.billett || '').split('.');
@@ -392,20 +390,17 @@ module.exports = async function toppliste(req, res) {
     }
     /* Loggen spilles av mot banen fra frøet: poeng fra hoppene, og hver pakke
        må ha ligget der kyllingen sto (minus den måka stjal) */
-    const { lesLogg } = await hentBane();
-    const logg = lesLogg(kropp.logg, Number(lagretFrø));
+    const logg = await spillAv(kropp.logg, Number(lagretFrø));
     if (logg.feil) { return send(res, 400, { melding: logg.feil }); }
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
+    /* Pakkene regnes av serveren. En pakke som ikke stemmer, telles bare ikke
+       (runden og poengene godtas likevel). */
     const pakker = logg.pakker;
-    if (kropp.pakker !== undefined && kropp.pakker !== pakker) {
-      return send(res, 400, { melding: 'Antall pakker stemmer ikke med runden.' });
-    }
+    if (logg.forkastet) { console.warn(`toppliste: ${logg.forkastet} pakkehendelse(r) forkastet (${navn.nokkel})`); }
     const gikk = Date.now() - Number(deler[1]);
     if (logg.tidMs > gikk + SLINGRINGSMONN_MS) { return send(res, 400, { melding: 'Runden gikk for fort.' }); }
 
     /* Navnet blir denne enhetens (HSETNX: den første vinner hvis to sender samtidig) */
-    const [, fikk] = await db([['HSETNX', NOKKEL.eier, navn.nokkel, eier], ['HGET', NOKKEL.eier, navn.nokkel]]);
-    if (fikk !== eier) { return send(res, 409, { melding: TATT }); }
 
     /* 4. Lagre beste resultat per kallenavn: lengst og flest pakker hver for seg */
     const naa = new Date(Date.now());

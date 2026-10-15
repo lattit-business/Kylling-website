@@ -344,32 +344,23 @@ async function test(navn, fn) {
     assert.strictEqual(annen.status, 200);
   });
 
-  await test('kallenavnet tilhører enheten som tok det først', async () => {
+  await test('alle kan bruke hvilket kallenavn de vil, og den beste runden står', async () => {
     nyttVindu();
-    const min = 'min-enhet-1234567890', annen = 'annen-enhet-123456789';
-    const r1 = await sendInn(await start(), { navn: 'Eier', enhet: min, poeng: 5, logg: logg(5) });
+    const r1 = await sendInn(await start(), { navn: 'Delt', enhet: 'min-enhet-1234567890', poeng: 5, logg: logg(5) });
     assert.strictEqual(r1.status, 200, JSON.stringify(r1.data));
-    /* Samme enhet kan sende inn igjen under samme navn, uansett store/små bokstaver */
-    const r2 = await sendInn(await start(), { navn: 'eier', enhet: min, poeng: 6, logg: logg(6) });
+    /* En annen enhet kan bruke samme navn, og en bedre runde oppdaterer lista */
+    const r2 = await sendInn(await start(), { navn: 'delt', enhet: 'annen-enhet-123456789', poeng: 9, logg: logg(9) });
     assert.strictEqual(r2.status, 200, JSON.stringify(r2.data));
-    /* En annen enhet får ikke bruke navnet – og billetten brukes ikke opp */
-    const b = await start();
-    const r3 = await sendInn(b, { navn: 'Eier', enhet: annen, poeng: 9, logg: logg(9) });
-    assert.strictEqual(r3.status, 409);
-    assert.match(r3.data.melding, /tatt/);
-    const r4 = await sendInn(b, { navn: 'Fjerde', enhet: annen, poeng: 9, logg: logg(9) });
-    assert.strictEqual(r4.status, 200, 'samme billett skal kunne brukes med et ledig navn');
-    const eiere = [...lager.get('bk:eier').verdi.values()].join(' ');
-    assert.ok(!eiere.includes(min), 'enhetsnøkkelen lagres bare som hash');
-  });
-
-  await test('sjekk av nytt kallenavn: ledig, ditt eget, tatt', async () => {
-    const sjekk = (navn, enhet) => kall(fn, { body: { handling: 'navn', navn, enhet }, ip: nyIp() });
-    assert.strictEqual((await sjekk('Helt Ny', 'min-enhet-1234567890')).status, 200);
-    assert.strictEqual((await sjekk('Eier', 'min-enhet-1234567890')).status, 200);
-    assert.strictEqual((await sjekk('Eier', 'tredje-enhet-12345678')).status, 409);
-    assert.strictEqual((await sjekk('fuck', 'min-enhet-1234567890')).status, 400);
-    assert.ok(!lager.get('bk:eier').verdi.has('helt ny'), 'sjekken reserverer ikke navnet');
+    assert.strictEqual(r2.data.liste.filter((x) => x.navn.toLowerCase() === 'delt').length, 1, 'samme navn står én gang');
+    assert.strictEqual(r2.data.liste.find((x) => x.navn.toLowerCase() === 'delt').poeng, 9, 'ny rekord oppdaterer lista');
+    /* En dårligere runde tar ikke bort rekorden */
+    const r3 = await sendInn(await start(), { navn: 'Delt', poeng: 3, logg: logg(3) });
+    assert.strictEqual(r3.status, 200);
+    assert.strictEqual(r3.data.liste.find((x) => x.navn.toLowerCase() === 'delt').poeng, 9);
+    /* Sjekk av nytt navn: bare filteret */
+    const sjekk = (navn) => kall(fn, { body: { handling: 'navn', navn, enhet: 'tredje-enhet-12345678' }, ip: nyIp() });
+    assert.strictEqual((await sjekk('Delt')).status, 200);
+    assert.strictEqual((await sjekk('fuck')).status, 400);
   });
 
   await test('gud-modus-navnet «barefjær» kommer aldri på lista', async () => {
@@ -380,9 +371,9 @@ async function test(navn, fn) {
     }
   });
 
-  await test('innsending uten enhet avvises', async () => {
+  await test('innsending uten enhet godtas', async () => {
     const r = await sendInn(await start(), { navn: 'Uten', enhet: undefined });
-    assert.strictEqual(r.status, 400);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
   });
 
   await test('billetten har et frø, og banen er lik hos server og spill', async () => {
@@ -404,14 +395,15 @@ async function test(navn, fn) {
     const st2 = await startMedFrø(), run2 = samleLogg(st2.frø, 30);
     const r2 = await sendInn(st2.billett, { navn: 'Teller', poeng: 30, logg: run2.logg });
     assert.strictEqual(r2.status, 200, JSON.stringify(r2.data));
-    /* Påstått antall som ikke stemmer med loggen */
+    /* Påstått antall som ikke stemmer: serveren bruker sitt eget */
     const st3 = await startMedFrø(), run3 = samleLogg(st3.frø, 30);
     const r3 = await sendInn(st3.billett, { navn: 'Juksemaker', poeng: 30, pakker: run3.pakker + 5, logg: run3.logg });
-    assert.strictEqual(r3.status, 400);
-    assert.match(r3.data.melding, /pakker/i);
+    assert.strictEqual(r3.status, 200);
+    const jp = r3.data.pakker.find((x) => x.navn === 'Juksemaker');
+    assert.strictEqual(jp ? jp.pakker : 0, run3.pakker, 'bare ekte pakker telles');
   });
 
-  await test('juks med pakker avvises: feil rad, pakke som ikke finnes, to ganger, feil kolonne', async () => {
+  await test('juks med pakker gir ingen ekstra pakker (men poengene står)', async () => {
     let st, run;
     do { st = await startMedFrø(); run = samleLogg(st.frø, 25); } while (run.pakker < 1);
     const r0 = run.rader[0], bane = new Bane(st.frø), p = bane.pakker(r0)[0];
@@ -419,33 +411,35 @@ async function test(navn, fn) {
     const biter = run.logg.split(',');
     const i = biter.indexOf(tok);
     const varianter = {
-      'feil rad': [...biter.slice(0, i), `p${(r0 + 1).toString(36)}.${p.x + KOL}`, ...biter.slice(i + 1)],
-      'finnes ikke': [...biter.slice(0, i), `p${r0.toString(36)}.${((p.x + KOL + 3) % 9)}`, ...biter.slice(i + 1)],
-      'to ganger': [...biter.slice(0, i + 1), tok, ...biter.slice(i + 1)],
-      'to måker': [...biter.slice(0, i + 1), 'm', 'm', ...biter.slice(i + 1)],
-      'måke uten pakker': ['m', ...biter]
+      'feil rad': [[...biter.slice(0, i), `p${(r0 + 1).toString(36)}.${p.x + KOL}`, ...biter.slice(i + 1)], run.pakker - 1],
+      'finnes ikke': [[...biter.slice(0, i), `p${r0.toString(36)}.${((p.x + KOL + 3) % 9)}`, ...biter.slice(i + 1)], run.pakker - 1],
+      'to ganger': [[...biter.slice(0, i + 1), tok, ...biter.slice(i + 1)], run.pakker],
+      'to måker': [[...biter.slice(0, i + 1), 'm', 'm', ...biter.slice(i + 1)], run.pakker - 1],
+      'måke uten pakker': [['m', ...biter], run.pakker]
     };
-    for (const [hva, liste] of Object.entries(varianter)) {
+    for (const [hva, [liste, forventet]] of Object.entries(varianter)) {
       const b = await startMedFrø();
       /* Samme frø som loggen ble laget for: bytt frøet i databasen */
       const id = b.billett.split('.')[0], t = b.billett.split('.')[1];
       lager.set('bk:runde:' + id, { verdi: `${t}:${st.frø}`, utloper: 0 });
+      const { lesLogg } = await import('../bare-kylling/js/spill/bane.mjs');
+      const svar = lesLogg(liste.join(','), st.frø);
+      assert.strictEqual(svar.poeng, 25, hva);
+      assert.ok(svar.pakker <= forventet, `${hva}: ${svar.pakker} > ${forventet}`);
       const r = await sendInn(b.billett, { navn: 'Juks ' + hva.slice(0, 9), poeng: 25, logg: liste.join(',') });
-      assert.strictEqual(r.status, 400, hva + ': ' + JSON.stringify(r.data));
+      assert.strictEqual(r.status, 200, hva + ': ' + JSON.stringify(r.data));
     }
-    /* Feil kolonne: står i kolonne 0 og påstår en pakke lenger bort (før rad 8
-       finnes ingen elv, så serveren vet nøyaktig hvor kyllingen står) */
+    /* Feil kolonne: står i kolonne 0 og påstår en pakke lenger bort */
     let b, rr = 0;
     while (!rr) {
       b = await startMedFrø();
-      const bane = new Bane(b.frø);
-      for (let r = 4; r < 8 && !rr; r++) { if (bane.pakker(r).length && bane.pakker(r)[0].x !== 0) { rr = r; } }
+      const bane2 = new Bane(b.frø);
+      for (let r = 4; r < 8 && !rr; r++) { if (bane2.pakker(r).length && bane2.pakker(r)[0].x !== 0) { rr = r; } }
     }
     const px = new Bane(b.frø).pakker(rr)[0].x;
     const ups = Array.from({ length: rr }, (_, k) => 'u' + (k ? 20 : 30).toString(36));
-    const r = await sendInn(b.billett, { navn: 'Langt Unna', poeng: rr, logg: [...ups, `p${rr.toString(36)}.${px + KOL}`].join(',') });
-    assert.strictEqual(r.status, 400, JSON.stringify(r.data));
-    assert.match(r.data.melding, /sto ikke ved pakken/);
+    const { lesLogg } = await import('../bare-kylling/js/spill/bane.mjs');
+    assert.strictEqual(lesLogg([...ups, `p${rr.toString(36)}.${px + KOL}`].join(','), b.frø).pakker, 0);
   });
 
   await test('måka stjeler: pakken trekkes fra, og loggen godtas', async () => {
@@ -456,19 +450,11 @@ async function test(navn, fn) {
     assert.strictEqual(r.data.pakker.find((x) => x.navn === 'Måkeoffer').pakker, run.pakker - 1);
   });
 
-  await test('tredemølla (b) godtas bare på en tredemølle', async () => {
-    const { lesLogg, Bane: B2 } = await import('../bare-kylling/js/spill/bane.mjs');
-    let frø = 1, molle = -1;
-    for (; frø < 200 && molle < 0; frø++) {
-      const bane = new B2(frø);
-      for (let r = 271; r <= 340; r++) { if (bane.spek(r).type === 'mølle') { molle = r; break; } }
-    }
-    frø--;
-    const opp = Array.from({ length: molle }, (_, k) => 'u' + (k ? 20 : 30).toString(36));
-    const ok = lesLogg([...opp, 'b', 'u14'].join(','), frø);
+  await test('tredemølla (b) flytter kyllingen bakover og gir aldri poeng', async () => {
+    const { lesLogg } = await import('../bare-kylling/js/spill/bane.mjs');
+    const ok = lesLogg(['u30', 'u14', 'u14', 'b', 'u14'].join(','), 1);
     assert.strictEqual(ok.feil, undefined, JSON.stringify(ok));
-    assert.strictEqual(ok.poeng, molle, 'å bli dyttet bakover gir ikke poeng');
-    assert.ok(lesLogg([...opp.slice(0, 5), 'b'].join(','), frø).feil, 'b utenfor en tredemølle avvises');
+    assert.strictEqual(ok.poeng, 3, 'å bli dyttet bakover gir ikke poeng');
   });
 
   await test('verdenene ligger i ring etter Treningssenteret', async () => {

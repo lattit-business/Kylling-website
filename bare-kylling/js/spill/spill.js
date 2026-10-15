@@ -565,8 +565,18 @@ async function start() {
   /* -------------------------------------------------------------------------
      SLUTT – poengsum, rekord og toppliste
      ------------------------------------------------------------------------- */
+  /* Runden som er ferdig: tas vare på med en gang, så den kan sendes inn
+     selv om spilleren starter en ny runde før topplista har svart */
+  let innsending = null;
+
   async function visSlutt() {
     tilstand = 'over';
+    innsending = { billett, poeng, pakker, logg: logg.join(','), gud: gud() || gudIRunden };
+    billett = null;
+    const egen = innsending;
+    /* Kjent kallenavn: send inn med en gang (vent ikke på topplista) */
+    const sender = poeng > 0 && egen.billett && T.sisteNavn() && !egen.gud && listeModus !== 'lokal'
+      ? sendRunde(T.sisteNavn(), egen) : null;
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
@@ -610,9 +620,10 @@ async function start() {
         /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
            den svakeste når lista er full. Med husket navn skjer det av seg selv. */
         const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
-        if (gud() || gudIRunden) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
-        else if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
-        else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
+        if (egen.gud) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
+        else if (sender) { await sender; }
+        else if (egen.billett && T.sisteNavn()) { await sendRunde(T.sisteNavn(), egen); }
+        else if (egen.billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
         else if (ui.sluttInfo) {
           ui.sluttInfo.textContent = 'Runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
         }
@@ -640,16 +651,18 @@ async function start() {
 
   /* Sender inn runden under et kallenavn. Navnet huskes på enheten, så neste
      topp 10-runde sendes inn av seg selv. */
-  async function sendRunde(navn) {
+  async function sendRunde(navn, r = innsending) {
+    if (!r || !r.billett) { return; }
     const knapp = $('button', ui.navnSkjema);
     if (knapp) { knapp.disabled = true; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = `Lagrer som «${navn}» …`; }
-    const svar = await T.sendInn({ billett, navn, poeng, pakker, logg: logg.join(',') });
+    const billettNaa = r.billett;
+    r.billett = null;   /* sendes bare én gang */
+    const svar = await T.sendInn({ billett: billettNaa, navn, poeng: r.poeng, pakker: r.pakker, logg: r.logg });
     if (knapp) { knapp.disabled = false; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (svar.ok) {
       T.lagreNavn(navn);
-      billett = null;
       ui.navnSkjema.hidden = true;
       const plasser = [svar.plass ? `nummer ${svar.plass} på topplista` : '',
         svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
@@ -660,9 +673,14 @@ async function start() {
       tegnListe();
       oppdaterStartKort();
       lyd.poeng();
-    } else if (svar.tatt && billett) {
-      /* Navnet er tatt av en annen enhet: velg et nytt, runden er ikke brukt opp */
+    } else if (svar.status === 400 && /kallenavn|navn/i.test(svar.melding || '')) {
+      /* Navnet gikk ikke gjennom filteret: billetten er ikke brukt, prøv et annet */
+      r.billett = billettNaa;
       visNavnSkjema('send', 'Velg et annet kallenavn:', svar.melding);
+    } else if (svar.status === 0 || svar.status === 429 || svar.status >= 500) {
+      /* Fikk ikke kontakt: billetten er ikke brukt, så den kan sendes igjen */
+      r.billett = billettNaa;
+      visNavnSkjema('send', 'Fikk ikke lagret runden. Prøv igjen:', svar.melding);
     } else {
       visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:', svar.melding);
     }
@@ -1285,10 +1303,12 @@ async function start() {
   nyVerden();
   oppdaterStartKort();
   oppdaterGud();
-  /* Første billett: bygg verdenen på nytt fra frøet hvis spillet ikke har startet */
+  /* Første billett hentes med en gang (samtidig med lista), og verdenen bygges
+     på nytt fra frøet hvis spillet ikke har startet */
+  const forsteBillett = T.nesteBillett();
   oppdaterToppliste().then(async (svar) => {
     if (!svar.ok) { return; }
-    const b = await T.nesteBillett();
+    const b = await forsteBillett;
     if (!b) { return; }
     if (tilstand === 'meny') { nyVerden(b); } else { T.leggTilbake(b); }
   });

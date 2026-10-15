@@ -191,10 +191,11 @@ export class Bane {
      p1f.5                plukket pakke på rad 0x1f (base 36), kolonne 5 (x + 4)
      m                    måka stjal en pakke
      b                    tredemølla dyttet kyllingen én rad bakover
-   lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs } eller
-   { feil }. Samme funksjon brukes av serveren og testene.
+   lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs,
+   forkastet } eller { feil }. Bare hoppene kan stoppe en runde (for raske
+   hopp eller ødelagt logg). Pakker som ikke stemmer, telles bare ikke. Samme funksjon brukes av serveren og testene.
    --------------------------------------------------------------------------- */
-export const MIN_HOPP_CS = 10;   /* et hopp tar 0,135 s – raskere er ikke mulig */
+export const MIN_HOPP_CS = 8;    /* et hopp tar 0,135 s – litt slingring for klokka */
 export const MAKS_TREKK = 30000;
 
 export function lesLogg(logg, frø) {
@@ -203,7 +204,7 @@ export function lesLogg(logg, frø) {
   if (biter.length > MAKS_TREKK) { return { feil: 'Ugyldig logg.' }; }
   const bane = new Bane(frø);
   const tatt = new Set();
-  let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false;
+  let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false, forkastet = 0;
   let kol = 0;                     /* kolonnen kyllingen står i (null = ukjent etter elv) */
   for (const bit of biter) {
     let m;
@@ -220,25 +221,23 @@ export function lesLogg(logg, frø) {
       if (spek && spek.type === 'elv') { kol = null; }
     } else if ((m = /^p([0-9a-z]{1,4})\.([0-8])$/.exec(bit))) {
       const pr = parseInt(m[1], 36), px = Number(m[2]) - KOL;
-      if (pr !== rad) { return { feil: 'En pakke ble tatt på en rad kyllingen ikke sto på.' }; }
+      /* En pakke som ikke stemmer, telles ikke – men runden godtas likevel */
       const nokkel = pr + ':' + px;
-      if (tatt.has(nokkel) || !bane.pakker(pr).some((p) => p.x === px)) { return { feil: 'Den pakken fantes ikke.' }; }
-      if (kol !== null && kol !== px) { return { feil: 'Kyllingen sto ikke ved pakken.' }; }
+      if (pr !== rad || tatt.has(nokkel) || !bane.pakker(pr).some((p) => p.x === px)) { forkastet++; continue; }
+      if (kol !== null && kol !== px) { forkastet++; kol = null; continue; }
       kol = px;
       tatt.add(nokkel);
       pakker++;
     } else if (bit === 'b') {
-      /* Bare lov på en tredemølle. Kolonnen er den samme (mølla går rett bakover). */
-      const spek = bane.spek(rad);
-      if (!spek || spek.type !== 'mølle') { return { feil: 'Ugyldig logg.' }; }
+      /* Tredemølla: kyllingen flyttes én rad bakover (gir aldri poeng). */
       rad -= 1;
     } else if (bit === 'm') {
-      if (stjalet || pakker < 1) { return { feil: 'Ugyldig logg.' }; }
+      if (stjalet || pakker < 1) { forkastet++; continue; }
       stjalet = true;
       pakker--;
     } else {
-      return { feil: 'Ugyldig logg.' };
+      forkastet++;   /* ukjent hendelse (f.eks. fra en nyere versjon av spillet) */
     }
   }
-  return { poeng: beste, pakker, tidMs: cs * 10 };
+  return { poeng: beste, pakker, tidMs: cs * 10, forkastet };
 }
