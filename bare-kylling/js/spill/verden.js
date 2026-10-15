@@ -8,6 +8,10 @@
    Rettferdighet: det finnes alltid en åpen sti gjennom hindringene, det er
    alltid luft mellom bilene, og hullene mellom stokkene er aldri for store.
    Vanskeligheten øker jevnt med avstanden (vanske()).
+
+   Bare Kylling-pakker: noen rader på land har en pakke som kan plukkes opp.
+   Det er aldri mer enn én pakke per rad, så antall pakker kan aldri bli
+   høyere enn hvor langt du kom (serveren sjekker det).
    ============================================================================= */
 import * as THREE from '../vendor/three.module.min.js';
 import { F, modell } from './voxel.js';
@@ -30,6 +34,11 @@ export function lagRng(frø) {
   };
 }
 
+/* Kylling Verden: en egen kyllingby fra rett etter Jobbsenteret til rad 250 */
+export const KV = { fra: JOBB + 3, til: 250 };
+export const iKV = (r) => r >= KV.fra && r <= KV.til;
+const KV_BILER = [F.honey, F.paprika, F.forest, F.creamHi, F.honeyDeep];
+
 export const vanske = (r) => Math.max(0, Math.min(1, (r - 4) / 130));
 const mellom = (a, b, t) => a + (b - a) * t;
 const BILFARGER = [F.roed, F.blaa, F.gul, F.creamHi, F.sage, F.paprika, F.inkSoft, F.oransje, F.lilla];
@@ -40,6 +49,8 @@ export class Verden {
     this.tex = teksturer;
     this.reklame = reklame;
     this.rng = lagRng(frø);
+    /* Egen tilfeldighet for pakkene, så de ikke endrer resten av verdenen */
+    this.pakkeRng = lagRng((frø ^ 0x9E3779B9) >>> 0);
     this.rader = new Map();
     this.plan = [];            /* kommende rader (spesifikasjoner) */
     this.neste = -10;          /* neste rad som skal planlegges */
@@ -134,7 +145,7 @@ export class Verden {
      BYGGING AV EN RAD
      --------------------------------------------------------------------------- */
   bygg(spek) {
-    const r = spek.rad, z = -r, rng = this.rng, d = vanske(r);
+    const r = spek.rad, z = -r, rng = this.rng, d = vanske(r), kv = iKV(r);
     const rad = { rad: r, type: spek.type, blokk: new Set(), flytt: [], fart: 0, gruppe: new THREE.Group(), spek };
     const l = [];                         /* klosser som slås sammen */
     const lys = r % 2 === 0;
@@ -152,6 +163,11 @@ export class Verden {
       }
     };
     const hindring = (x, v) => {
+      if (kv) {
+        l.push(...(v < 0.4 ? M.honsehusBokser(x, z) : v < 0.62 ? M.siloBokser(x, z) : v < 0.82 ? M.halmBokser(x, z) : M.eggBokser(x, z)));
+        rad.blokk.add(x);
+        return;
+      }
       if (v < 0.52) { l.push(...M.treBokser(x, z, Math.floor(rng() * 3))); }
       else if (v < 0.8) { l.push(...M.buskBokser(x, z)); }
       else { l.push(...M.steinBokser(x, z)); }
@@ -210,8 +226,13 @@ export class Verden {
       case 'gress':
       case 'park': {
         const park = spek.type === 'park';
-        bakke(park ? (lys ? F.park : F.gress) : (lys ? F.gress : F.gressMork), 0, 0.6);
+        if (kv) { bakke(park ? (lys ? 0xF0CF7A : 0xE9C36A) : (lys ? 0xE9C36A : 0xDDB55A), 0, 0.6, 0xD7AD52); }
+        else { bakke(park ? (lys ? F.park : F.gress) : (lys ? F.gress : F.gressMork), 0, 0.6); }
         kantPynt((x, v) => {
+          if (kv) {
+            l.push(...(v < 0.3 ? M.siloBokser(x, z) : v < 0.55 ? M.honsehusBokser(x, z) : v < 0.8 ? M.halmBokser(x, z) : M.eggBokser(x, z)));
+            return;
+          }
           if (park && v < 0.25) { l.push(...M.benkBokser(x, z)); }
           else if (v < 0.6) { l.push(...M.treBokser(x, z, Math.floor(rng() * 3))); }
           else if (v < 0.85) { l.push(...M.buskBokser(x, z)); }
@@ -224,7 +245,7 @@ export class Verden {
         for (let x = -KOL; x <= KOL; x++) {
           if (Math.abs(x - this.sti) <= 0 || antall >= 4) { continue; }
           if (rng() < tetthet) { hindring(x, rng()); antall++; }
-          else if (park && rng() < 0.3) { l.push(...M.blomsterBokser(x, z, rng)); }
+          else if (park && !kv && rng() < 0.3) { l.push(...M.blomsterBokser(x, z, rng)); }
         }
         if (park && !this.harEgg && r > 14 && rng() < 0.5) {
           /* Påskeegget: et kjempeegg med et skilt (hva kom først?) */
@@ -241,7 +262,7 @@ export class Verden {
       }
 
       case 'fortau': {
-        bakke(lys ? F.fortau : F.fortauMork, 0, 0.6);
+        bakke(kv ? (lys ? F.creamHi : F.beige) : (lys ? F.fortau : F.fortauMork), 0, 0.6);
         for (let x = -VID + 1; x < VID; x += 1) { l.push({ x: x + 0.5, y: 0, z, w: 0.04, h: 0.01, d: 1, c: F.fortauMork }); }
         const kz = spek.kant === 'foran' ? z - 0.46 : z + 0.46;   /* kantstein mot veien */
         if (spek.kant) { l.push({ x: 0, y: 0, z: kz, w: VID * 2, h: 0.06, d: 0.08, c: F.stein }); }
@@ -252,7 +273,8 @@ export class Verden {
           for (let x = KOL + 2.5; x < VID; x += 2.6) {
             if (rng() < 0.7) {
               l.push(...M.husBokser(s * x, z - 0.1, 2.2, 0.8, 1.2 + rng() * 1.0,
-                [F.creamHi, F.roed, F.gul, F.beige, F.sage, F.blaa][Math.floor(rng() * 6)], F.inkSoft));
+                kv ? [F.honey, F.paprika, F.forest, F.creamHi][Math.floor(rng() * 4)] : [F.creamHi, F.roed, F.gul, F.beige, F.sage, F.blaa][Math.floor(rng() * 6)],
+                kv ? F.ink : F.inkSoft));
             }
           }
         }
@@ -293,10 +315,10 @@ export class Verden {
         while (true) {
           const v = rng();
           let mesh;
-          if (v < 0.12) { mesh = M.varebil(this.tex); }
+          if (v < (kv ? 0.45 : 0.12)) { mesh = M.varebil(this.tex); }
           else if (v < 0.24 + d * 0.12) { mesh = M.lastebil(); }
           else if (v < 0.32 + d * 0.16) { mesh = M.buss(); }
-          else { mesh = M.bil(BILFARGER[Math.floor(rng() * BILFARGER.length)]); }
+          else { const farger = kv ? KV_BILER : BILFARGER; mesh = M.bil(farger[Math.floor(rng() * farger.length)]); }
           const len = mesh.userData.lengde;
           if (x + len > SYKLUS / 2 - minGap) { break; }
           const m = { mesh, x: x + len / 2, len, lyd: 0, horn: mesh.userData.lengde === 1.75 };
@@ -310,7 +332,8 @@ export class Verden {
       }
 
       case 'elv': {
-        bakke(lys ? F.vann : F.vannMork, -0.18, 0.42);
+        /* I Kylling Verden er elvene sausebekker */
+        bakke(kv ? (lys ? 0xC8653A : 0xB45730) : (lys ? F.vann : F.vannMork), -0.18, 0.42);
         /* Bredden langs elva */
         for (const s of [-1, 1]) { l.push({ x: s * (VID - 0.5), y: -0.18, z, w: 1, h: 0.1, d: 1, c: F.stein }); }
         const fart = mellom(0.75, 1.45, d) * (0.8 + rng() * 0.4) * spek.retning;
@@ -332,7 +355,7 @@ export class Verden {
         }
         /* litt skum som driver med strømmen */
         for (let i = 0; i < 3; i++) {
-          const mesh = modell([{ x: 0, y: -0.17, z: 0, w: 0.3, h: 0.02, d: 0.08, c: F.skum }], false);
+          const mesh = modell([{ x: 0, y: -0.17, z: 0, w: 0.3, h: 0.02, d: 0.08, c: kv ? F.honey : F.skum }], false);
           const m = { mesh, x: (rng() - 0.5) * SYKLUS, len: 0, skum: true };
           mesh.position.set(m.x, 0, z + (rng() - 0.5) * 0.7);
           rad.gruppe.add(mesh);
@@ -374,6 +397,21 @@ export class Verden {
       default: break;
     }
 
+    /* Port inn til Kylling Verden, og skilt når den slutter */
+    if (r === KV.fra || r === KV.til + 1) {
+      const inn = r === KV.fra;
+      for (const sx of [-1, 1]) {
+        l.push({ x: sx * (KOL + 0.9), y: 0, z, w: 0.36, h: 2.5, d: 0.36, c: inn ? F.honeyDeep : F.inkSoft });
+        l.push({ x: sx * (KOL + 0.9), y: 2.5, z, w: 0.5, h: 0.14, d: 0.5, c: inn ? F.paprika : F.ink });
+      }
+      l.push({ x: 0, y: 2.38, z: z - 0.05, w: KOL * 2 + 2.2, h: 0.12, d: 0.2, c: inn ? F.paprika : F.ink });
+      const skilt = M.skiltPlate(M.lappSkilt(inn ? 'KYLLING VERDEN' : 'Tilbake til byen', inn ? F.honey : F.forest, inn ? F.ink : F.creamHi), 3.4, 1.28);
+      skilt.position.set(0, 1.85, z + 0.07);
+      rad.gruppe.add(skilt);
+    }
+
+    this.leggPakke(rad);
+
     if (l.length) {
       rad.statisk = modell(l);
       rad.gruppe.add(rad.statisk);
@@ -381,6 +419,33 @@ export class Verden {
     this.scene.add(rad.gruppe);
     this.rader.set(r, rad);
     return rad;
+  }
+
+  /* En pakke på en ledig rute i noen av radene på land */
+  leggPakke(rad) {
+    const r = rad.rad, rng = this.pakkeRng;
+    if (r < 4 || r === JOBB - 3 || !['gress', 'park', 'fortau', 'vei'].includes(rad.type)) { return; }
+    const sjanse = (rad.type === 'vei' ? 0.16 : 0.24) * (iKV(r) ? 1.7 : 1);
+    if (rng() > sjanse) { return; }
+    const ledige = [];
+    for (let x = -KOL; x <= KOL; x++) { if (!rad.blokk.has(x)) { ledige.push(x); } }
+    if (!ledige.length) { return; }
+    const x = ledige[Math.floor(rng() * ledige.length)];
+    const mesh = M.pakke(rng() < 0.5 ? 'original' : 'paprika');
+    mesh.scale.setScalar(1.45);
+    mesh.position.set(x, 0.2, -r);
+    rad.gruppe.add(mesh);
+    rad.pakke = { x, mesh, fase: rng() * 6, tatt: false };
+  }
+
+  /* Plukker pakken på (x, r) hvis det ligger en der. Gir true én gang. */
+  plukk(x, r) {
+    const rad = this.rader.get(r);
+    const p = rad && rad.pakke;
+    if (!p || p.tatt || Math.round(x) !== p.x || Math.abs(x - p.x) > 0.3) { return false; }
+    p.tatt = true;
+    p.mesh.visible = false;
+    return true;
   }
 
   /* ---------------------------------------------------------------------------
@@ -391,6 +456,11 @@ export class Verden {
     this.tid += dt;
     const hendelser = [];
     for (const rad of this.rader.values()) {
+      if (rad.pakke && !rad.pakke.tatt) {
+        const p = rad.pakke;
+        p.mesh.rotation.y = this.tid * 1.8 + p.fase;
+        p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
+      }
       if (rad.bane) { this.oppdaterBane(rad, dt, hendelser); continue; }
       for (const m of rad.flytt) {
         m.x += rad.fart * dt * (m.skum ? 1.1 : 1);

@@ -1,10 +1,13 @@
 /* =============================================================================
    BARE KYLLING: VEIEN TIL JOBBSENTERET — GLOBAL TOPPLISTE (Vercel-funksjon)
 
-   GET  /api/toppliste                         → { liste: [{ navn, poeng, dato }] }
+   GET  /api/toppliste[?antall=100]            → { liste: [{ navn, poeng, dato }],
+                                                   pakker: [{ navn, pakker, dato }] }
    POST /api/toppliste { handling: 'start' }   → { billett }
-   POST /api/toppliste { handling: 'send', billett, navn, poeng, logg }
-                                               → { ok, plass, liste }
+   POST /api/toppliste { handling: 'send', billett, navn, poeng, pakker, logg, enhet }
+                                               → { ok, plass, pakkePlass, liste, pakker }
+   POST /api/toppliste { handling: 'navn', navn, enhet }
+                                               → { ok, navn } eller 409 hvis tatt
 
    Databasen er Upstash Redis (koble til via Vercel Marketplace → Upstash →
    Redis). Funksjonen leser UPSTASH_REDIS_REST_URL/_TOKEN eller
@@ -40,12 +43,19 @@ function finnDatabase(env) {
   return { url: '', token: '' };
 }
 const { url: URL_DB, token: TOKEN } = finnDatabase(process.env);
+/* Er en annen database koblet til (f.eks. «Redis» fra Redis Cloud, som bare gir
+   REDIS_URL)? Da sier 503-svaret fra hva som er galt, uten å vise verdiene. */
+const ANNEN_DATABASE = !URL_DB &&
+  Object.keys(process.env).some((k) => /(^|_)(REDIS_URL|KV_URL|POSTGRES_URL|DATABASE_URL|BLOB_READ_WRITE_TOKEN)$/.test(k));
 const HEMMELIG = process.env.TOPPLISTE_HEMMELIGHET ||
   (TOKEN ? crypto.createHash('sha256').update('bk-toppliste:' + TOKEN).digest('hex') : '');
 
 const NOKKEL = {
   topp: 'bk:topp',            /* sortert sett: navnenøkkel → poeng (+ tidsbrøk) */
   navn: 'bk:navn',            /* hash: navnenøkkel → { navn, poeng, dato } */
+  eier: 'bk:eier',
+  pakker: 'bk:pakker',        /* sortert sett: navnenøkkel → flest pakker (+ tidsbrøk) */
+  pnavn: 'bk:pnavn',          /* hash: navnenøkkel → { navn, pakker, dato } */            /* hash: navnenøkkel → hash av enheten som eier navnet */
   runde: (id) => 'bk:runde:' + id,
   fart: (hva, ip, vindu) => `bk:fart:${hva}:${ip}:${vindu}`
 };
@@ -56,11 +66,19 @@ const MAKS_POENG = 5000;
 const MAKS_TREKK = 30000;
 const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
+/* Grensene gjelder per IP-adresse. En hel skole eller et kontor deler ofte én
+   adresse, så de må tåle en klasse som spiller samtidig (30 elever, en runde
+   hvert halvminutt ≈ 600 runder på 10 minutter). Alle runder sendes inn, ikke
+   bare de som kommer på topp 10, så «send» må tåle like mange som «start». */
 const GRENSER = {
-  start: { antall: 40, vindu: 600 },
-  send: { antall: 12, vindu: 600 },
-  hent: { antall: 120, vindu: 60 }
+  start: { antall: 800, vindu: 600 },
+  send: { antall: 800, vindu: 600 },
+  navn: { antall: 60, vindu: 600 },
+  hent: { antall: 600, vindu: 60 }
 };
+/* Lista caches i Vercels CDN i noen sekunder, så automatisk oppdatering hos
+   mange spillere ikke blir mange databasekall. Nettleseren cacher aldri. */
+const LISTE_CACHE = 'public, max-age=0, s-maxage=5, stale-while-revalidate=10';
 
 /* ---------------------------------------------------------------------------
    Upstash REST
@@ -83,10 +101,10 @@ const en = async (...k) => (await db([k]))[0];
 /* ---------------------------------------------------------------------------
    Hjelpere
    --------------------------------------------------------------------------- */
-function send(res, status, data) {
+function send(res, status, data, cache = 'no-store') {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', cache);
   res.end(JSON.stringify(data));
 }
 
@@ -180,6 +198,24 @@ function sjekkNavn(raa) {
   return { navn, nokkel: navn.toLowerCase() };
 }
 
+/* ---------------------------------------------------------------------------
+   Eierskap til kallenavn
+   Spillet lager en tilfeldig enhetsnøkkel første gang og lagrer den i
+   nettleseren. Et kallenavn tilhører enheten som først kom på lista med det,
+   så ingen andre kan sende inn under ditt navn. Bare en hash av nøkkelen
+   lagres. (Enhet, ikke IP: en hel skole deler ofte én IP-adresse.)
+   --------------------------------------------------------------------------- */
+const enhetHash = (e) => (typeof e === 'string' && /^[A-Za-z0-9_-]{16,64}$/.test(e)
+  ? crypto.createHash('sha256').update(HEMMELIG + ':enhet:' + e).digest('hex').slice(0, 24)
+  : null);
+const TATT = 'Det kallenavnet er tatt av en annen spiller. Velg et annet!';
+
+/* 'ledig' | 'din' | 'tatt' */
+async function eierAv(nokkel, eier) {
+  const naa = await en('HGET', NOKKEL.eier, nokkel);
+  return naa === null ? 'ledig' : naa === eier ? 'din' : 'tatt';
+}
+
 /* Spiller loggen av: gir { poeng, tidMs } eller { feil } */
 function lesLogg(logg) {
   if (typeof logg !== 'string' || logg.length > MAKS_TREKK * 8) { return { feil: 'Ugyldig logg.' }; }
@@ -198,17 +234,37 @@ function lesLogg(logg) {
   return { poeng: beste, tidMs: cs * 10 };
 }
 
-async function hentListe(antall = 10) {
-  const par = await en('ZRANGE', NOKKEL.topp, '0', String(antall - 1), 'REV', 'WITHSCORES');
+/* Topp N fra et sortert sett, med navn og dato fra hashen ved siden av.
+   felt er 'poeng' (lengst) eller 'pakker' (flest Bare Kylling-pakker). */
+async function hentListe(antall = 10, sett = NOKKEL.topp, info = NOKKEL.navn, felt = 'poeng') {
+  const par = await en('ZRANGE', sett, '0', String(antall - 1), 'REV', 'WITHSCORES');
   if (!Array.isArray(par) || !par.length) { return []; }
-  const nokler = [], poeng = [];
-  for (let i = 0; i < par.length; i += 2) { nokler.push(par[i]); poeng.push(Math.floor(Number(par[i + 1]))); }
-  const info = await en('HMGET', NOKKEL.navn, ...nokler);
+  const nokler = [], verdi = [];
+  for (let i = 0; i < par.length; i += 2) { nokler.push(par[i]); verdi.push(Math.floor(Number(par[i + 1]))); }
+  const data = await en('HMGET', info, ...nokler);
   return nokler.map((n, i) => {
     let d = {};
-    try { d = JSON.parse(info[i] || '{}') || {}; } catch (e) { d = {}; }
-    return { navn: d.navn || n, poeng: poeng[i], dato: d.dato || '' };
+    try { d = JSON.parse(data[i] || '{}') || {}; } catch (e) { d = {}; }
+    return { navn: d.navn || n, [felt]: verdi[i], dato: d.dato || '' };
   });
+}
+const hentPakkeliste = (antall = 10) => hentListe(antall, NOKKEL.pakker, NOKKEL.pnavn, 'pakker');
+
+/* Lagrer verdien hvis den er bedre enn det navnet har fra før, og holder
+   settet på BEHOLD plasser. Tidsbrøken (minker for hvert millisekund) gjør
+   at den som kom først av to like resultater står øverst. */
+async function lagreBeste(sett, info, nokkel, verdi, data, naa) {
+  const sum = verdi + (1 - naa.getTime() / 1e13);
+  const [gammel] = await db([['ZSCORE', sett, nokkel]]);
+  if (gammel === null || Number(gammel) < sum) {
+    await db([['ZADD', sett, String(sum), nokkel], ['HSET', info, nokkel, JSON.stringify(data)]]);
+    const ute = await en('ZRANGE', sett, '0', String(-BEHOLD - 1));
+    if (Array.isArray(ute) && ute.length) {
+      await db([['ZREMRANGEBYRANK', sett, '0', String(-BEHOLD - 1)], ['HDEL', info, ...ute]]);
+    }
+  }
+  const [rang] = await db([['ZREVRANK', sett, nokkel]]);
+  return rang === null ? null : Number(rang) + 1;
 }
 
 async function lesKropp(req) {
@@ -229,7 +285,13 @@ async function lesKropp(req) {
    Selve funksjonen
    --------------------------------------------------------------------------- */
 module.exports = async function toppliste(req, res) {
-  if (!URL_DB || !TOKEN || !HEMMELIG) { return send(res, 503, { feil: 'ikke-koblet' }); }
+  if (!URL_DB || !TOKEN || !HEMMELIG) {
+    const hjelp = ANNEN_DATABASE
+      ? 'Fant en database, men ikke av riktig type. Topplista trenger «Upstash for Redis» (Vercel → Storage).'
+      : 'Ingen database er koblet til. Se «Global toppliste» i README.md.';
+    console.error('toppliste: ' + hjelp);
+    return send(res, 503, { feil: 'ikke-koblet', hjelp });
+  }
 
   /* Bare forespørsler fra egen side (stopper enkle skript fra andre sider) */
   const opphav = req.headers.origin;
@@ -245,7 +307,10 @@ module.exports = async function toppliste(req, res) {
 
     if (req.method === 'GET') {
       if (await forMange('hent', ip)) { return send(res, 429, { melding: 'For mange forespørsler.' }); }
-      return send(res, 200, { liste: await hentListe(10) });
+      /* ?antall=100 gir hele lista (topp 100); ellers topp 10 */
+      const antall = /[?&]antall=100\b/.test(req.url || '') ? BEHOLD : 10;
+      const [liste, pakker] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
+      return send(res, 200, { liste, pakker }, LISTE_CACHE);
     }
 
     if (req.method !== 'POST') {
@@ -266,12 +331,27 @@ module.exports = async function toppliste(req, res) {
       return send(res, 200, { billett: `${id}.${t}.${hmac(id + '.' + t)}` });
     }
 
+    /* Sjekk et nytt kallenavn før det tas i bruk (lagrer ingenting) */
+    if (kropp.handling === 'navn') {
+      if (await forMange('navn', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
+      const navn = sjekkNavn(kropp.navn);
+      if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
+      const eier = enhetHash(kropp.enhet);
+      if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
+      if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
+      return send(res, 200, { ok: true, navn: navn.navn });
+    }
+
     if (kropp.handling !== 'send') { return send(res, 400, { melding: 'Ukjent handling.' }); }
     if (await forMange('send', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
 
-    /* 1. Kallenavnet */
+    /* 1. Kallenavnet, og at det tilhører denne enheten (før billetten brukes,
+       så et tatt navn ikke koster runden) */
     const navn = sjekkNavn(kropp.navn);
     if (navn.feil) { return send(res, 400, { melding: navn.feil }); }
+    const eier = enhetHash(kropp.enhet);
+    if (!eier) { return send(res, 400, { melding: 'Last siden på nytt og prøv igjen.' }); }
+    if (await eierAv(navn.nokkel, eier) === 'tatt') { return send(res, 409, { melding: TATT }); }
 
     /* 2. Billetten: riktig signatur, og ikke brukt før */
     const deler = String(kropp.billett || '').split('.');
@@ -289,30 +369,31 @@ module.exports = async function toppliste(req, res) {
     if (typeof poeng !== 'number' || !Number.isInteger(poeng) || poeng < 1 || poeng > MAKS_POENG) {
       return send(res, 400, { melding: 'Poengsummen kunne ikke godkjennes.' });
     }
+    /* Pakker: maks én per rad, så aldri flere enn hvor langt kyllingen kom */
+    const pakker = kropp.pakker === undefined ? 0 : kropp.pakker;
+    if (typeof pakker !== 'number' || !Number.isInteger(pakker) || pakker < 0 || pakker > poeng) {
+      return send(res, 400, { melding: 'Antall pakker kunne ikke godkjennes.' });
+    }
     const logg = lesLogg(kropp.logg);
     if (logg.feil) { return send(res, 400, { melding: logg.feil }); }
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
     const gikk = Date.now() - Number(deler[1]);
     if (logg.tidMs > gikk + SLINGRINGSMONN_MS) { return send(res, 400, { melding: 'Runden gikk for fort.' }); }
 
-    /* 4. Lagre beste resultat per kallenavn. Tidsbrøken (minker for hvert
-       millisekund) gjør at den som kom først av to like poengsummer står øverst. */
+    /* Navnet blir denne enhetens (HSETNX: den første vinner hvis to sender samtidig) */
+    const [, fikk] = await db([['HSETNX', NOKKEL.eier, navn.nokkel, eier], ['HGET', NOKKEL.eier, navn.nokkel]]);
+    if (fikk !== eier) { return send(res, 409, { melding: TATT }); }
+
+    /* 4. Lagre beste resultat per kallenavn: lengst og flest pakker hver for seg */
     const naa = new Date(Date.now());
-    const poengsum = poeng + (1 - naa.getTime() / 1e13);
-    const [gammel] = await db([['ZSCORE', NOKKEL.topp, navn.nokkel]]);
-    if (gammel === null || Number(gammel) < poengsum) {
-      await db([
-        ['ZADD', NOKKEL.topp, String(poengsum), navn.nokkel],
-        ['HSET', NOKKEL.navn, navn.nokkel, JSON.stringify({ navn: navn.navn, poeng, dato: naa.toISOString().slice(0, 10) })]
-      ]);
-      /* Hold lista kort */
-      const ute = await en('ZRANGE', NOKKEL.topp, '0', String(-BEHOLD - 1));
-      if (Array.isArray(ute) && ute.length) {
-        await db([['ZREMRANGEBYRANK', NOKKEL.topp, '0', String(-BEHOLD - 1)], ['HDEL', NOKKEL.navn, ...ute]]);
-      }
-    }
-    const [rang] = await db([['ZREVRANK', NOKKEL.topp, navn.nokkel]]);
-    return send(res, 200, { ok: true, plass: rang === null ? null : Number(rang) + 1, liste: await hentListe(10) });
+    const dato = naa.toISOString().slice(0, 10);
+    const plass = await lagreBeste(NOKKEL.topp, NOKKEL.navn, navn.nokkel, poeng, { navn: navn.navn, poeng, dato }, naa);
+    const pakkePlass = pakker > 0
+      ? await lagreBeste(NOKKEL.pakker, NOKKEL.pnavn, navn.nokkel, pakker, { navn: navn.navn, pakker, dato }, naa)
+      : null;
+    const antall = kropp.antall === 100 ? BEHOLD : 10;
+    const [liste, pakkeliste] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
+    return send(res, 200, { ok: true, plass, pakkePlass, liste, pakker: pakkeliste });
   } catch (e) {
     console.error('toppliste:', e && e.message);
     return send(res, 500, { melding: 'Noe gikk galt med topplista.' });

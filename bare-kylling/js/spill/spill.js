@@ -11,9 +11,10 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
-import { Verden, KOL, JOBB, vanske } from './verden.js';
+import { Verden, KOL, JOBB, KV, iKV, vanske } from './verden.js';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
+import * as B from './butikk.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -86,20 +87,21 @@ async function start() {
   const lyd = new Lyd();
 
   const ui = {
-    poeng: $('[data-poeng]'), rekord: $('[data-rekord]'), maal: $('[data-maal]'), maalFyll: $('[data-maal-fyll]'),
+    poeng: $('[data-poeng]'), pakker: $('[data-pakker]'), sluttPakker: $('[data-slutt-pakker]'), rekord: $('[data-rekord]'), maal: $('[data-maal]'), maalFyll: $('[data-maal-fyll]'),
     melding: $('[data-melding]'), start: $('[data-spill-start]'), slutt: $('[data-spill-slutt]'),
     sluttPoeng: $('[data-slutt-poeng]'), sluttRekord: $('[data-slutt-rekord]'), sluttTittel: $('[data-slutt-tittel]'),
     sluttTekst: $('[data-slutt-tekst]'), nyRekord: $('[data-ny-rekord]'), navnSkjema: $('[data-navn-skjema]'),
     navn: $('[data-navn]'), navnStatus: $('[data-navn-status]'), igjen: $('[data-igjen]'),
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
-    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), startRekord: $('[data-start-rekord]'),
-    feiring: $('[data-feiring]')
+    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
+    pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
+    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
      KYLLINGEN – logoen som voxelfigur
      ------------------------------------------------------------------------- */
-  const kyllingGeo = logoKylling();
+  const kyllingGeo = logoKylling(B.kroppsfarge());
   const spiller = {
     gruppe: new THREE.Group(), snu: new THREE.Group(), kropp: new THREE.Mesh(kyllingGeo, MATERIALE),
     x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null,
@@ -110,6 +112,21 @@ async function start() {
   spiller.gruppe.add(spiller.snu);
   scene.add(spiller.gruppe);
   const HOPP = 0.135;   /* sekunder per hopp */
+
+  /* Pynt og farge fra butikken */
+  const kroppGeo = new Map([[B.kroppsfarge(), kyllingGeo]]);
+  function kleKylling() {
+    const farge = B.kroppsfarge();
+    if (!kroppGeo.has(farge)) { kroppGeo.set(farge, logoKylling(farge)); }
+    spiller.kropp.geometry = kroppGeo.get(farge);
+    for (const barn of [...spiller.kropp.children]) { spiller.kropp.remove(barn); }
+    const paa = B.paaDeg();
+    for (const id of [paa.hode, paa.ansikt]) {
+      const m = id && M.pynt(id);
+      if (m) { spiller.kropp.add(m); }
+    }
+  }
+  kleKylling();
 
   /* Måka */
   const maake = M.maake();
@@ -174,12 +191,16 @@ async function start() {
   let verden = null;
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
+  let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
   let billett = null, logg = [], sisteTrekk = 0;
   let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0;
   /* «Redusert bevegelse»: kameraet rister ikke */
   const ristSkala = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
-  let lokalModus = false;
+  /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
+     enhetens egen liste) eller 'ukjent' (ikke fått svar ennå). listeFeil er
+     satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
+  let listeModus = 'ukjent', globalListe = [], globalPakker = [], listeFeil = '';
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -210,11 +231,16 @@ async function start() {
 
   function oppdaterHud() {
     if (ui.poeng) { ui.poeng.textContent = String(poeng); }
+    if (ui.pakker) { ui.pakker.textContent = String(pakker); }
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
     if (ui.maal) {
-      ui.maal.textContent = jobbNaadd ? 'Uendelig modus' : `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`;
+      ui.maal.textContent = !jobbNaadd ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`
+        : iKV(poeng) ? `Kylling Verden · ${KV.til - poeng + 1} igjen` : 'Uendelig modus';
     }
-    if (ui.maalFyll) { ui.maalFyll.style.transform = `scaleX(${jobbNaadd ? 1 : Math.min(1, poeng / JOBB)})`; }
+    if (ui.maalFyll) {
+      const fyll = !jobbNaadd ? Math.min(1, poeng / JOBB) : iKV(poeng) ? (poeng - KV.fra) / (KV.til - KV.fra) : 1;
+      ui.maalFyll.style.transform = `scaleX(${fyll})`;
+    }
   }
 
   /* -------------------------------------------------------------------------
@@ -231,7 +257,7 @@ async function start() {
     spiller.snu.rotation.set(0, spiller.yaw, 0);
     spiller.kropp.scale.set(1, 1, 1);
     spiller.kropp.position.set(0, 0, 0);
-    poeng = 0; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
+    poeng = 0; pakker = 0; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = null; dodTog = dodBane = null; dodTekst = '';
     maake.visible = false;
@@ -249,7 +275,9 @@ async function start() {
     melding(velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     lyd.startMusikk();
     sisteTrekk = performance.now();
-    T.startRunde().then((b) => { billett = b; });
+    /* Billetten hører til denne runden; en sen billett fra en avbrutt runde brukes ikke */
+    const runde = runder;
+    if (listeModus !== 'lokal') { T.startRunde().then((b) => { if (runde === runder) { billett = b; } }); }
   }
 
   /* -------------------------------------------------------------------------
@@ -259,6 +287,7 @@ async function start() {
   const YAW = { u: Math.PI / 2, d: -Math.PI / 2, l: Math.PI, r: 0 };
 
   function trekk(r) {
+    if (butikkApen) { return; }
     if (tilstand === 'meny') { startSpill(); }
     if (tilstand === 'over') { return; }
     if (tilstand !== 'spill') { return; }
@@ -313,6 +342,8 @@ async function start() {
       if (poeng === 10) { melding('10 ruter! Godt i gang.'); }
       else if (poeng === 25) { melding('25! Nå snakker vi.'); }
       else if (poeng === JOBB - 10) { melding('Jobbsenteret er rett der fremme!'); }
+      else if (poeng === KV.fra) { melding('Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.', 3); lyd.poeng(); }
+      else if (poeng === KV.til + 1) { melding('Du klarte Kylling Verden! Tilbake til byen.', 3); lyd.seier(); }
       else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
       if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
       oppdaterHud();
@@ -330,6 +361,14 @@ async function start() {
         lyd.lande();
         sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
       } else { do_('vann'); return; }
+    }
+    if (verden.plukk(spiller.x, spiller.rad)) {
+      pakker++;
+      lyd.pakke();
+      sprut(spiller.x, 0.5, -spiller.rad, 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
+      if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
+      else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
+      oppdaterHud();
     }
     if (spiller.rad === JOBB && !jobbNaadd) { feirJobb(); }
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
@@ -438,7 +477,10 @@ async function start() {
     tilstand = 'over';
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
-    T.leggTilLokal(poeng, T.sisteNavn() || 'Deg');
+    T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
+    B.leggTil(pakker);
+    visSaldo();
+    if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
     if (ui.sluttRekord) { ui.sluttRekord.textContent = String(rekord); }
     const TITLER = { bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!' };
@@ -452,6 +494,7 @@ async function start() {
     if (ui.nyRekord) { ui.nyRekord.hidden = !nyRekord || poeng === 0; }
     if (ui.navnSkjema) { ui.navnSkjema.hidden = true; }
     if (ui.navnStatus) { ui.navnStatus.textContent = ''; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (ui.slutt) { ui.slutt.hidden = false; }
     oppdaterHud();
     if (nyRekord && poeng > 0) {
@@ -465,51 +508,169 @@ async function start() {
     if (ui.igjen) { ui.igjen.focus({ preventScroll: true }); }
 
     /* Kom poengsummen på den globale lista? Da kan du skrive kallenavn. */
-    const svar = await oppdaterToppliste();
-    lokalModus = !svar.ok;
+    await oppdaterToppliste();
+    if (listeModus === 'global') { T.forberedBillett(); }   /* klar til neste runde */
+    if (ui.byttNavn) { ui.byttNavn.hidden = !(listeModus === 'global' && T.sisteNavn()); }
     if (poeng > 0 && tilstand === 'over' && ui.navnSkjema) {
-      if (svar.ok && billett) {
-        const liste = svar.liste;
-        const kvalifisert = liste.length < 10 || poeng > liste[liste.length - 1].poeng;
-        if (kvalifisert) { visNavnSkjema('Du er på topp 10! Skriv inn et kallenavn:'); }
-      } else if (!svar.ok && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
+      if (listeModus === 'global') {
+        /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
+           den svakeste når lista er full. Med husket navn skjer det av seg selv. */
+        const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
+        if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
+        else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
+        else if (ui.sluttInfo) {
+          ui.sluttInfo.textContent = 'Runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
+        }
+      } else if (listeModus === 'lokal' && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
         /* Uten global liste: gi runden et navn på enhetens egen liste */
-        visNavnSkjema('Gi runden et kallenavn på lista til denne enheten:');
+        visNavnSkjema('lokal', 'Gi runden et kallenavn på lista til denne enheten:');
       }
     }
   }
 
-  function visNavnSkjema(tekst) {
+  /* Skjemaet brukes til tre ting: 'send' (navngi og send inn runden),
+     'bytt' (velg nytt kallenavn til neste runde) og 'lokal' (enhetens liste) */
+  let navnModus = 'send';
+  function visNavnSkjema(modus, tekst, status = '') {
+    navnModus = modus;
     const etikett = $('label', ui.navnSkjema);
     if (etikett) { etikett.textContent = tekst; }
     ui.navnSkjema.hidden = false;
-    if (ui.navn) { ui.navn.value = T.sisteNavn(); }
+    if (ui.navnStatus) { ui.navnStatus.textContent = status; }
+    if (ui.navn) {
+      ui.navn.value = modus === 'bytt' ? '' : T.sisteNavn();
+      if (modus === 'bytt' || status) { ui.navn.focus({ preventScroll: true }); }
+    }
   }
 
-  async function oppdaterToppliste(markert) {
-    const svar = await T.hentListe();
-    tegnListe(svar.ok ? svar.liste : T.lokalListe(), svar.ok, markert);
-    return svar;
+  /* Sender inn runden under et kallenavn. Navnet huskes på enheten, så neste
+     topp 10-runde sendes inn av seg selv. */
+  async function sendRunde(navn) {
+    const knapp = $('button', ui.navnSkjema);
+    if (knapp) { knapp.disabled = true; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = `Lagrer som «${navn}» …`; }
+    const svar = await T.sendInn({ billett, navn, poeng, pakker, logg: logg.join(',') });
+    if (knapp) { knapp.disabled = false; }
+    if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
+    if (svar.ok) {
+      T.lagreNavn(navn);
+      billett = null;
+      ui.navnSkjema.hidden = true;
+      const plasser = [svar.plass ? `nummer ${svar.plass} på topplista` : '',
+        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
+      if (ui.sluttInfo) { ui.sluttInfo.textContent = plasser ? `Lagret som «${navn}» – ${plasser}!` : `Lagret som «${navn}».`; }
+      if (ui.byttNavn) { ui.byttNavn.hidden = false; }
+      melding(plasser ? `Du er ${plasser}!` : 'Lagret!', 3);
+      globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = '';
+      tegnListe();
+      oppdaterStartKort();
+      lyd.poeng();
+    } else if (svar.tatt && billett) {
+      /* Navnet er tatt av en annen enhet: velg et nytt, runden er ikke brukt opp */
+      visNavnSkjema('send', 'Velg et annet kallenavn:', svar.melding);
+    } else {
+      visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:', svar.melding);
+    }
   }
+
+  /* Henter topplista (én forespørsel om gangen) og tegner den på nytt */
+  let henterListe = null, sistHentet = -Infinity;
+  function oppdaterToppliste() {
+    if (!henterListe) {
+      henterListe = T.hentListe().then((svar) => {
+        henterListe = null;
+        sistHentet = performance.now();
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = ''; }
+        else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
+        else { listeFeil = svar.grunn; }
+        tegnListe();
+        oppdaterStartKort();
+        return svar;
+      });
+    }
+    return henterListe;
+  }
+
+  /* Bryter: topp 10 eller topp 100 */
+  function settBryter() {
+    const n = T.visAntall();
+    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(Number(k.dataset.antall) === n)));
+    if (ui.listeTittel) { ui.listeTittel.textContent = `Topp ${n}`; }
+    if (ui.pakkeTittelTall) { ui.pakkeTittelTall.textContent = n === 100 ? ' (topp 100)' : ''; }
+    [ui.liste, ui.pakkeliste].forEach((ol) => ol && ol.classList.toggle('toppliste__liste--lang', n === 100));
+  }
+  document.querySelectorAll('[data-antall]').forEach((k) => k.addEventListener('click', () => {
+    T.settVisAntall(Number(k.dataset.antall));
+    settBryter();
+    tegnListe();
+    if (listeModus !== 'lokal') { oppdaterToppliste(); }
+  }));
+  settBryter();
+
+  /* Startkortet: din rekord, og rekorden du skal slå */
+  function oppdaterStartKort() {
+    if (!ui.startRekord) { return; }
+    const deler = rekord > 0 ? [`Din rekord: ${rekord}`] : [];
+    const topp = listeModus === 'global' && globalListe[0];
+    if (topp) {
+      const meg = T.sisteNavn().toLowerCase();
+      deler.push(meg && topp.navn.toLowerCase() === meg ? `Du leder topplista med ${topp.poeng}!` : `Rekorden å slå: ${topp.poeng} (${topp.navn})`);
+    }
+    ui.startRekord.textContent = deler.join(' · ');
+  }
+
+  /* Kopien på GitHub Pages har ingen api/, så den kan bare vise enhetens egen liste */
+  const paaKopi = /\.github\.io$/.test(location.hostname);
 
   /* Egen pikselkrone til førsteplassen (ingen emojier) */
   const KRONE = '<svg class="krone" viewBox="0 0 11 8" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#F1B240" d="M0 0h1v1H0zM5 0h1v1H5zM10 0h1v1h-1zM0 1h2v1H0zM4 1h3v1H4zM9 1h2v1H9zM0 2h3v1H0zM4 2h3v1H4zM8 2h3v1H8zM0 3h11v3H0z"/><path fill="#11110F" d="M0 6h11v2H0z"/><path fill="#A8492A" d="M2 4h1v1H2zM5 4h1v1H5zM8 4h1v1H8z"/></svg>';
 
-  function tegnListe(liste, global, markert) {
+  function tegnListe() {
     if (!ui.liste) { return; }
-    ui.liste.textContent = '';
-    if (ui.listeStatus) {
-      ui.listeStatus.textContent = global
-        ? (liste.length ? '' : 'Ingen på lista ennå. Bli den første!')
-        : 'Den globale topplista er ikke koblet til ennå. Her er de beste rundene på denne enheten.';
+    const global = listeModus === 'global';
+    const liste = global ? globalListe : T.lokalListe();
+    if (ui.listeMerke) { ui.listeMerke.textContent = global ? 'Global toppliste' : 'Bare denne enheten'; }
+    if (ui.listeInfo) {
+      ui.listeInfo.textContent = global
+        ? 'Topplista er felles for alle som spiller, og oppdaterer seg selv. Skriv inn et kallenavn etter første runde, så kommer rundene dine på lista. De 100 beste lagres.'
+        : 'Rekordene her lagres bare i denne nettleseren. Andre som spiller, ser dem ikke.';
     }
-    liste.slice(0, 10).forEach((rad, i) => {
+    if (ui.listeStatus) {
+      const s = ui.listeStatus;
+      s.textContent = '';
+      if (listeFeil) {
+        s.textContent = global ? 'Fikk ikke oppdatert topplista akkurat nå. Prøver igjen …' : 'Fikk ikke kontakt med topplista. Prøver igjen …';
+      } else if (global && !liste.length) {
+        s.textContent = 'Ingen på lista ennå. Bli den første!';
+      } else if (!global && paaKopi) {
+        const lenke = document.createElement('a');
+        lenke.className = 'link'; lenke.href = 'https://barekylling.no/spill.html'; lenke.textContent = 'barekylling.no';
+        s.append('Den felles topplista finnes bare på ', lenke, '. Her er rundene på denne enheten.');
+      } else if (!global) {
+        s.textContent = 'Den felles topplista er ikke koblet til ennå, så her står bare rundene på denne enheten.';
+      }
+    }
+    tegnRader(ui.liste, liste, 'poeng');
+    /* Flest Bare Kylling-pakker */
+    const pliste = global ? globalPakker : T.lokalPakkeliste();
+    if (ui.pakkeStatus) { ui.pakkeStatus.textContent = pliste.length ? '' : 'Ingen har samlet pakker ennå. Plukk dem opp på veien!'; }
+    tegnRader(ui.pakkeliste, pliste, 'pakker');
+  }
+
+  function tegnRader(ol, liste, felt) {
+    if (!ol) { return; }
+    /* Ditt kallenavn markeres (navn er like uansett store og små bokstaver) */
+    const meg = T.sisteNavn().toLowerCase();
+    ol.textContent = '';
+    liste.slice(0, T.visAntall()).forEach((rad, i) => {
       const li = document.createElement('li');
-      if (markert && rad.navn === markert) { li.classList.add('er-deg'); }
+      const erDeg = meg && String(rad.navn).toLowerCase() === meg;
+      if (erDeg) { li.classList.add('er-deg'); }
       const plass = document.createElement('span'); plass.className = 'toppliste__plass'; plass.textContent = String(i + 1);
       if (i === 0) { plass.insertAdjacentHTML('beforeend', KRONE); }
       const navn = document.createElement('span'); navn.className = 'toppliste__navn'; navn.textContent = rad.navn;
-      const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad.poeng);
+      if (erDeg) { const sr = document.createElement('span'); sr.className = 'sr-only'; sr.textContent = ' (deg)'; navn.append(sr); }
+      const p = document.createElement('span'); p.className = 'toppliste__poeng'; p.textContent = String(rad[felt]);
       const dato = document.createElement('time'); dato.className = 'toppliste__dato';
       if (rad.dato) {
         dato.dateTime = rad.dato;
@@ -517,7 +678,7 @@ async function start() {
         dato.textContent = `${dd}.${mm}.${String(aa).slice(2)}`;
       }
       li.append(plass, navn, p, dato);
-      ui.liste.appendChild(li);
+      ol.appendChild(li);
     });
   }
 
@@ -526,30 +687,37 @@ async function start() {
       e.preventDefault();
       const navn = (ui.navn.value || '').trim().replace(/\s+/g, ' ');
       if (navn.length < 2 || navn.length > 16) { ui.navnStatus.textContent = 'Kallenavnet må ha 2–16 tegn.'; ui.navn.focus(); return; }
-      if (lokalModus) {
+      if (navnModus === 'lokal') {
         T.lagreNavn(navn);
-        tegnListe(T.navngiLokal(poeng, navn), false, navn);
+        T.navngiLokal(poeng, navn);
+        tegnListe();
         ui.navnSkjema.hidden = true;
         melding('Lagret på denne enheten!', 2.5);
         lyd.poeng();
         return;
       }
-      const knapp = $('button', ui.navnSkjema);
-      knapp.disabled = true;
-      ui.navnStatus.textContent = 'Lagrer …';
-      const svar = await T.sendInn({ billett, navn, poeng, logg: logg.join(',') });
-      knapp.disabled = false;
-      if (svar.ok) {
-        T.lagreNavn(navn);
-        billett = null;
+      if (navnModus === 'bytt') {
+        const knapp = $('button', ui.navnSkjema);
+        knapp.disabled = true;
+        ui.navnStatus.textContent = 'Sjekker …';
+        const svar = await T.sjekkNavn(navn);
+        knapp.disabled = false;
+        if (!svar.ok) { ui.navnStatus.textContent = svar.melding; return; }
+        T.lagreNavn(svar.navn);
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
-        melding(svar.plass ? `Du er nummer ${svar.plass} på topplista!` : 'Lagret!', 3);
-        tegnListe(svar.liste, true, navn);
-        lyd.poeng();
-      } else {
-        ui.navnStatus.textContent = svar.melding;
+        if (ui.sluttInfo) { ui.sluttInfo.textContent = `Fra neste runde heter du «${svar.navn}».`; }
+        tegnListe();
+        lyd.klikk();
+        return;
       }
+      ui.navnStatus.textContent = '';
+      await sendRunde(navn);
+    });
+  }
+  if (ui.byttNavn) {
+    ui.byttNavn.addEventListener('click', () => {
+      visNavnSkjema('bytt', `Nytt kallenavn (nå: «${T.sisteNavn()}»). Det brukes fra neste runde:`);
     });
   }
 
@@ -563,6 +731,7 @@ async function start() {
   document.addEventListener('keydown', (e) => {
     const iFelt = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
     if (iFelt || e.altKey || e.ctrlKey || e.metaKey) { return; }
+    if (butikkApen) { if (e.key === 'Escape') { lukkButikk(); } return; }
     const r = TAST[e.key];
     if (r && synlig) {
       e.preventDefault();
@@ -603,7 +772,72 @@ async function start() {
   const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(); tilstand = 'meny'; startSpill(); };
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
-  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a')) { trekk('u'); } });
+  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk]')) { trekk('u'); } });
+
+  /* -------------------------------------------------------------------------
+     BUTIKKEN – bruk pakkene på pynt til kyllingen
+     ------------------------------------------------------------------------- */
+  const butikk = $('[data-butikk]', scene_);
+  let butikkApen = false, kortForButikk = null;
+  function visSaldo() {
+    const n = B.saldo();
+    document.querySelectorAll('[data-saldo]').forEach((el) => { el.textContent = String(n); });
+  }
+  function tegnButikk(melding = '') {
+    const liste = $('[data-varer]', butikk);
+    const paa = B.paaDeg();
+    liste.textContent = '';
+    for (const v of B.VARER) {
+      const li = document.createElement('li');
+      li.className = 'butikk__vare';
+      const eier = B.eier(v.id), har = paa[v.type] === v.id;
+      if (har) { li.classList.add('er-paa'); }
+      const navn = document.createElement('span'); navn.className = 'butikk__navn'; navn.textContent = v.navn;
+      const pris = document.createElement('span'); pris.className = 'butikk__pris';
+      pris.textContent = eier ? (har ? 'På deg' : 'Din') : `${v.pris} pakker`;
+      const knapp = document.createElement('button');
+      knapp.type = 'button';
+      knapp.className = 'btn ' + (eier ? 'btn--ghost' : 'btn--ink') + ' butikk__knapp';
+      knapp.textContent = eier ? (har ? 'Ta av' : 'Bruk') : 'Kjøp';
+      if (!eier && B.saldo() < v.pris) { knapp.disabled = true; knapp.title = `Du trenger ${v.pris - B.saldo()} pakker til`; }
+      knapp.addEventListener('click', () => {
+        let tekst = '';
+        if (eier) { B.bruk(v.id); lyd.klikk(); }
+        else {
+          const svar = B.kjop(v.id);
+          if (svar.ok) { tekst = `Du kjøpte ${v.navn.toLowerCase()}!`; lyd.pakke(); }
+          else { tekst = svar.melding; lyd.bonk(); }
+        }
+        kleKylling(); visSaldo(); tegnButikk(tekst);
+        const ny = $(`[data-vare="${v.id}"] button`, butikk);
+        if (ny) { ny.focus(); }
+      });
+      li.dataset.vare = v.id;
+      li.append(navn, pris, knapp);
+      liste.appendChild(li);
+    }
+    const m = $('[data-butikk-melding]', butikk);
+    if (m) { m.textContent = melding; }
+  }
+  function apneButikk() {
+    lyd.vekk(); lyd.klikk();
+    kortForButikk = [ui.start, ui.slutt].find((k) => k && !k.hidden) || null;
+    if (kortForButikk) { kortForButikk.hidden = true; }
+    butikkApen = true;
+    butikk.hidden = false;
+    visSaldo(); tegnButikk();
+    const f = $('button:not([disabled])', butikk); if (f) { f.focus({ preventScroll: true }); }
+  }
+  function lukkButikk() {
+    butikkApen = false;
+    butikk.hidden = true;
+    if (kortForButikk) { kortForButikk.hidden = false; const k = $('[data-apne-butikk]', kortForButikk); if (k) { k.focus({ preventScroll: true }); } }
+  }
+  if (butikk) {
+    document.querySelectorAll('[data-apne-butikk]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); apneButikk(); }));
+    $('[data-lukk-butikk]', butikk).addEventListener('click', lukkButikk);
+  }
+  visSaldo();
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { lyd.pause(true); } else { lyd.pause(false); forrige = performance.now(); }
@@ -663,10 +897,19 @@ async function start() {
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
+    toneHimmel(dt);
     malKvalitet(dt);
     verden.sikre(Math.floor(rull) - 10, Math.floor(rull) + 28);
     oppdaterPartikler(dt);
     tegner.render(scene, kamera);
+  }
+
+  /* Himmelen blir varmere i Kylling Verden */
+  const HIMMEL = new THREE.Color(F.cream), HIMMEL_KV = new THREE.Color(0xF7DFA4), himmelMaal = new THREE.Color();
+  function toneHimmel(dt) {
+    himmelMaal.copy(iKV(-fokus.z) ? HIMMEL_KV : HIMMEL);
+    scene.background.lerp(himmelMaal, Math.min(1, dt * 1.5));
+    scene.fog.color.copy(scene.background);
   }
 
   /* Jobbsenteret tones ned når kyllingen er bak det, så den ikke forsvinner */
@@ -762,8 +1005,16 @@ async function start() {
      I GANG
      ------------------------------------------------------------------------- */
   nyVerden();
-  if (ui.startRekord) { ui.startRekord.textContent = rekord > 0 ? `Din rekord: ${rekord}` : ''; }
-  oppdaterToppliste();
+  oppdaterStartKort();
+  oppdaterToppliste().then((svar) => { if (svar.ok) { T.forberedBillett(); } });
+
+  /* Topplista oppdateres av seg selv mens siden er synlig, så nye rekorder fra
+     andre dukker opp uten at noen må laste siden på nytt. */
+  const OPPDATER_HVERT = 20000;
+  window.setInterval(() => {
+    if (document.hidden || listeModus === 'lokal') { return; }
+    if (performance.now() - sistHentet >= OPPDATER_HVERT) { oppdaterToppliste(); }
+  }, 2500);
   requestAnimationFrame((t) => { forrige = t; steg(t); });
   scene_.classList.add('er-klar');
 
@@ -771,14 +1022,15 @@ async function start() {
      snarvei til en senere rad, så Jobbsenteret kan testes uten å spille dit. */
   if (/[?&]test\b/.test(location.search)) {
     window.__bkSpill = {
-      trekk, tilstand: () => tilstand, poeng: () => poeng, spiller: () => ({ x: spiller.x, rad: spiller.rad }),
+      trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
+      pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
       rad: (r) => { const d = verden.rad(r); return d ? { type: d.type, blokk: [...d.blokk], fart: d.fart, flytt: d.flytt.map((m) => ({ x: m.x, len: m.len })) } : null },
-      hoppTil: (n) => {
+      hoppTil: (n, x = 0) => {
         verden.sikre(-10, n + 28);
-        Object.assign(spiller, { x: 0, rad: n, tilX: 0, tilRad: n, hopp: 1, paa: null });
-        spiller.gruppe.position.set(0, 0, -n);
+        Object.assign(spiller, { x, rad: n, tilX: x, tilRad: n, hopp: 1, paa: null });
+        spiller.gruppe.position.set(x, 0, -n);
         poeng = n; rull = n - 1; oppdaterHud();
       }
     };

@@ -144,6 +144,10 @@ export class Lyd {
     this.tone({ type: 'square', f0: 330, varighet: 0.16, styrke: 0.04 });
     this.tone({ type: 'square', f0: 415, varighet: 0.16, styrke: 0.04 });
   }
+  pakke() {
+    [84, 91].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.07, varighet: 0.1, styrke: 0.08 }));
+    this.tone({ type: 'triangle', f0: hz(96), t: 0.14, varighet: 0.16, styrke: 0.05 });
+  }
   poeng() {
     [76, 79, 84].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.06, varighet: 0.12, styrke: 0.07 }));
   }

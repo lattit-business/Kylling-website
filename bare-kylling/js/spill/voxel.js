@@ -120,7 +120,8 @@ const LOGO_STIER = [
    bak hodet og ved halen). */
 const LUKK = 'M64 16L63.5 4M20.7 56L21.5 61.5';
 
-export function logoKylling() {
+/* kropp: fargen på innsiden av kyllingen (butikken kan bytte den) */
+export function logoKylling(kropp = F.creamHi) {
   const R = 26;                      /* oppløsning: R × R voxler for sideprofilen */
   const S = R / 108;                 /* logoen bor i ca. -4..104 */
   const lerret = document.createElement('canvas');
@@ -164,7 +165,7 @@ export function logoKylling() {
       /* logo-y vokser nedover; voxel-y vokser oppover */
       const vy = R - 1 - y;
       const lx = x / S - 4, ly = y / S - 4;   /* tilbake til logo-enheter */
-      let c = F.creamHi;
+      let c = kropp;
       let bredde = D;                          /* hvor mange voxler i dybden */
       let kant = s;                            /* logostreken: sverte ytterst på sidene */
       if (ly > 84) { c = F.honeyDeep; bredde = 3; kant = false; }                  /* bein */

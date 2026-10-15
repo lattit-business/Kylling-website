@@ -1392,6 +1392,37 @@ body.meny-apen .sticky-cta { display: none; }
   color: var(--ink); text-shadow: 0 2px 0 var(--cream-hi), 0 0 12px rgba(250, 248, 243, .8);
 }
 .hud__poeng > b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: clamp(2.8rem, 8vw, 4.2rem); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.hud__pakker { display: inline-flex; align-items: center; gap: .3rem; margin-top: .35rem; font-size: 1.15rem; }
+.hud__pakker b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-variant-numeric: tabular-nums; }
+.pakkeikon { width: .85em; height: auto; flex: none; }
+/* Butikken */
+.spill__butikkknapp { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; }
+.spill__butikkknapp .pakkeikon { width: .8em; }
+.spill__butikk[hidden] { display: none; }
+.butikk__saldo { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; }
+.butikk__saldo b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.6rem; }
+.butikk__saldo .pakkeikon { width: 1rem; }
+.butikk__varer { width: 100%; display: grid; gap: .4rem; text-align: left; }
+.butikk__vare {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: .7rem; align-items: center;
+  padding: .55rem .7rem; border-radius: var(--r-sm); background: var(--cream);
+}
+.butikk__vare.er-paa { background: rgba(241, 178, 64, .35); }
+.butikk__navn { font-weight: 800; }
+.butikk__pris { grid-row: 2; font-size: .8rem; color: var(--ink-soft); }
+.butikk__knapp { grid-row: 1 / 3; grid-column: 2; min-height: 40px; padding-inline: 1rem; }
+.butikk__knapp:disabled { opacity: .4; cursor: not-allowed; }
+.butikk__info { font-size: .8rem; color: var(--ink-soft); line-height: 1.45; }
+.toppliste__bryter { display: inline-flex; padding: 3px; margin-bottom: .8rem; border-radius: 999px; background: var(--cream); box-shadow: inset 0 0 0 2px var(--ink); }
+.toppliste__bryter button {
+  border: 0; background: none; cursor: pointer; padding: .4rem .9rem; border-radius: 999px;
+  font: inherit; font-size: .84rem; font-weight: 800; color: var(--ink);
+}
+.toppliste__bryter button[aria-pressed="true"] { background: var(--ink); color: var(--cream-hi); }
+.toppliste__bryter button:focus-visible { outline: 2px solid var(--honey-deep); outline-offset: 2px; }
+.toppliste__liste--lang { max-height: 28rem; overflow-y: auto; overscroll-behavior: contain; padding-right: .3rem; }
+.toppliste__h3 { display: flex; align-items: center; gap: .45rem; margin: 1.6rem 0 .5rem; font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.5rem; }
+.toppliste__h3 .pakkeikon { width: .8em; }
 .hud__rekord { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-top: .3rem; }
 .hud__knapper { position: absolute; right: clamp(.6rem, 2vw, 1rem); top: clamp(.6rem, 2vw, 1rem); display: flex; gap: .45rem; pointer-events: auto; }
 .hud__knapp {
@@ -1496,6 +1527,10 @@ kbd {
 .spill__navn-felt { min-height: 48px; padding: .6rem 1rem; }
 .spill__navn-status { font-size: .86rem; font-weight: 700; color: var(--paprika-deep); }
 .spill__navn-status:empty { display: none; }
+.spill__slutt-info { font-size: .9rem; font-weight: 700; line-height: 1.45; }
+.spill__slutt-info:empty { display: none; }
+.spill__bytt { background: none; border: 0; padding: 0; font: inherit; font-size: .86rem; font-weight: 700; color: var(--ink); cursor: pointer; }
+.spill__bytt[hidden] { display: none; }
 .spill__feil p { max-width: 30ch; padding: 1.2rem; background: var(--cream-hi); border-radius: var(--r); box-shadow: 0 0 0 3px var(--ink); font-weight: 700; text-align: center; }
 .spill__hjelp { margin-top: .9rem; font-size: .88rem; color: var(--ink-soft); max-width: 70ch; }
 
@@ -1662,6 +1697,9 @@ kbd {
 
 /* Pikselkyllingen langs kanten av footeren */
 .foot { position: relative; }
+/* Kyllingen går helt ut til kanten; klipp sidelengs så siden ikke kan scrolles
+   til siden på mobil (body { overflow-x: hidden } holder ikke i iOS Safari) */
+.foot { overflow-x: clip; }
 .pikselkylling {
   position: absolute; z-index: 5; left: 0; top: -24px;
   width: 26px; height: 24px; cursor: pointer;

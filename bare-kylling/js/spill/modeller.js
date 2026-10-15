@@ -507,6 +507,101 @@ function lagMesh(geo, lengde) {
 }
 
 /* Måka som tar kyllinger som står for lenge stille (dette er tross alt Bergen) */
+/* ---------------------------------------------------------------------------
+   KYLLING VERDEN – hønsehus, kornsiloer, eggkartonger og halmballer
+   --------------------------------------------------------------------------- */
+export function honsehusBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.82, h: 0.52, d: 0.7, c: F.paprika },
+    { x, y: 0.52, z, w: 0.94, h: 0.12, d: 0.82, c: F.paprikaDeep },
+    { x, y: 0.64, z, w: 0.7, h: 0.12, d: 0.6, c: F.paprikaDeep },
+    { x, y: 0.02, z: z + 0.36, w: 0.24, h: 0.32, d: 0.02, c: F.ink },
+    { x, y: 0.04, z: z + 0.5, w: 0.2, h: 0.03, d: 0.3, c: F.bark },
+    { x: x + 0.24, y: 0.32, z: z + 0.36, w: 0.16, h: 0.12, d: 0.02, c: F.creamHi }
+  ];
+}
+export function siloBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.6, h: 1.25, d: 0.6, c: F.creamHi },
+    { x, y: 0.3, z, w: 0.64, h: 0.05, d: 0.64, c: F.fortauMork },
+    { x, y: 0.75, z, w: 0.64, h: 0.05, d: 0.64, c: F.fortauMork },
+    { x, y: 1.25, z, w: 0.66, h: 0.1, d: 0.66, c: F.honeyDeep },
+    { x, y: 1.35, z, w: 0.42, h: 0.1, d: 0.42, c: F.honeyDeep },
+    { x, y: 1.45, z, w: 0.16, h: 0.08, d: 0.16, c: F.honeyDeep }
+  ];
+}
+export function eggBokser(x, z) {
+  const l = [{ x, y: 0, z, w: 0.82, h: 0.16, d: 0.52, c: F.beige }];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 2; j++) { l.push({ x: x - 0.26 + i * 0.26, y: 0.16, z: z - 0.12 + j * 0.24, w: 0.16, h: 0.2, d: 0.16, c: F.creamHi }); }
+  }
+  return l;
+}
+export function halmBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.78, h: 0.44, d: 0.52, c: 0xD9B65A },
+    { x, y: 0.44, z, w: 0.78, h: 0.03, d: 0.52, c: 0xE8CC7A },
+    { x: x - 0.2, y: 0, z, w: 0.04, h: 0.45, d: 0.54, c: F.honeyDeep },
+    { x: x + 0.2, y: 0, z, w: 0.04, h: 0.45, d: 0.54, c: F.honeyDeep }
+  ];
+}
+
+/* ---------------------------------------------------------------------------
+   PYNT FRA BUTIKKEN – festes på kyllingen (hodet er rundt x 0,23, y 0,85;
+   nebbet peker mot +x). Gir en modell eller null.
+   --------------------------------------------------------------------------- */
+const PYNT = {
+  kokkelue: [
+    { x: 0.23, y: 0.8, z: 0, w: 0.36, h: 0.16, d: 0.36, c: F.creamHi },
+    { x: 0.23, y: 0.96, z: 0, w: 0.46, h: 0.2, d: 0.46, c: F.hvit },
+    { x: 0.23, y: 1.16, z: 0, w: 0.3, h: 0.07, d: 0.3, c: F.hvit }
+  ],
+  caps: [
+    { x: 0.2, y: 0.82, z: 0, w: 0.42, h: 0.16, d: 0.42, c: F.honey },
+    { x: 0.2, y: 0.98, z: 0, w: 0.22, h: 0.05, d: 0.22, c: F.honeyDeep },
+    { x: 0.5, y: 0.82, z: 0, w: 0.24, h: 0.04, d: 0.36, c: F.honeyDeep }
+  ],
+  krone: [
+    { x: 0.23, y: 0.86, z: 0, w: 0.4, h: 0.1, d: 0.4, c: F.honey },
+    { x: 0.07, y: 0.96, z: 0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.39, y: 0.96, z: 0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.07, y: 0.96, z: -0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.39, y: 0.96, z: -0.16, w: 0.08, h: 0.12, d: 0.08, c: F.honey },
+    { x: 0.44, y: 0.88, z: 0, w: 0.02, h: 0.06, d: 0.08, c: F.paprika }
+  ],
+  briller: [
+    { x: 0.27, y: 0.7, z: 0.255, w: 0.2, h: 0.11, d: 0.03, c: F.ink },
+    { x: 0.27, y: 0.7, z: -0.255, w: 0.2, h: 0.11, d: 0.03, c: F.ink },
+    { x: 0.38, y: 0.79, z: 0, w: 0.04, h: 0.03, d: 0.54, c: F.ink }
+  ]
+};
+export function pynt(id) {
+  if (!PYNT[id]) { return null; }
+  const m = new THREE.Mesh(bokser(PYNT[id]), MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
+/* En Bare Kylling-pakke å plukke opp: klar pose med kyllingfilet og etikett
+   i smakens farge (Original grønn, Sweet Paprika rød). Geometrien deles. */
+const PAKKE_GEO = {};
+export function pakke(smak) {
+  if (!PAKKE_GEO[smak]) {
+    const etikett = smak === 'paprika' ? F.paprika : F.forest;
+    PAKKE_GEO[smak] = bokser([
+      { x: 0, y: 0, z: 0, w: 0.46, h: 0.6, d: 0.06, c: F.creamHi },
+      { x: 0, y: 0.17, z: 0, w: 0.32, h: 0.24, d: 0.08, c: 0xD98A3D },
+      { x: 0.04, y: 0.25, z: 0, w: 0.1, h: 0.05, d: 0.085, c: 0x8E3D20 },
+      { x: 0, y: 0.02, z: 0, w: 0.47, h: 0.13, d: 0.08, c: etikett },
+      { x: 0, y: 0.45, z: 0, w: 0.24, h: 0.05, d: 0.08, c: F.ink },
+      { x: 0, y: 0.55, z: 0, w: 0.47, h: 0.06, d: 0.07, c: F.beige }
+    ]);
+  }
+  const m = new THREE.Mesh(PAKKE_GEO[smak], MATERIALE);
+  m.castShadow = true;
+  return m;
+}
+
 export function maake() {
   const g = new THREE.Group();
   g.add(modell([
