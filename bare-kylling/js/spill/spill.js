@@ -95,7 +95,7 @@ async function start() {
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
     pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
-    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-bytt-navn]'), feiring: $('[data-feiring]')
+    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -120,6 +120,8 @@ async function start() {
   function oppdaterGud() {
     const el = document.querySelector('[data-gud]');
     if (el) { el.hidden = !gud(); }
+    if (gud() && tilstand === 'spill') { gudIRunden = true; }
+    oppdaterMeg();
   }
 
   /* Pynt og farge fra butikken */
@@ -201,6 +203,7 @@ async function start() {
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
   let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
+  let gudIRunden = false;            /* gud-modus var på en gang i runden: sendes ikke inn */
   const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
   let billett = null, logg = [], sisteTrekk = 0;
@@ -267,7 +270,7 @@ async function start() {
     spiller.snu.rotation.set(0, spiller.yaw, 0);
     spiller.kropp.scale.set(1, 1, 1);
     spiller.kropp.position.set(0, 0, 0);
-    poeng = 0; pakker = 0; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
+    poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = null; dodTog = dodBane = null; dodTekst = '';
     maake.visible = false;
@@ -280,6 +283,7 @@ async function start() {
     if (tilstand === 'over' || tilstand === 'dod') { nyVerden(); }
     tilstand = 'spill';
     runder++;
+    gudIRunden = gud();
     ui.start && (ui.start.hidden = true);
     ui.slutt && (ui.slutt.hidden = true);
     melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
@@ -297,7 +301,7 @@ async function start() {
   const YAW = { u: Math.PI / 2, d: -Math.PI / 2, l: Math.PI, r: 0 };
 
   function trekk(r) {
-    if (butikkApen) { return; }
+    if (butikkApen || navnApen) { return; }
     if (tilstand === 'meny') { startSpill(); }
     if (tilstand === 'over') { return; }
     if (tilstand !== 'spill') { return; }
@@ -537,7 +541,7 @@ async function start() {
         /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
            den svakeste når lista er full. Med husket navn skjer det av seg selv. */
         const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
-        if (gud()) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus: runden kommer ikke på topplista.'; } }
+        if (gud() || gudIRunden) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
         else if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
         else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
         else if (ui.sluttInfo) {
@@ -720,7 +724,7 @@ async function start() {
       }
       /* Gud-modus-navnet lagres bare på enheten og sendes aldri til topplista */
       if (erGudNavn(navn)) {
-        T.lagreNavn(navn);
+        settNavn(navn);
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
         if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus er på fra neste runde. Runder i gud-modus kommer ikke på topplista.'; }
@@ -728,29 +732,82 @@ async function start() {
         lyd.seier();
         return;
       }
-      if (navnModus === 'bytt') {
-        const knapp = $('button', ui.navnSkjema);
-        knapp.disabled = true;
-        ui.navnStatus.textContent = 'Sjekker …';
-        const svar = await T.sjekkNavn(navn);
-        knapp.disabled = false;
-        if (!svar.ok) { ui.navnStatus.textContent = svar.melding; return; }
-        T.lagreNavn(svar.navn);
-        ui.navnSkjema.hidden = true;
-        ui.navnStatus.textContent = '';
-        if (ui.sluttInfo) { ui.sluttInfo.textContent = `Fra neste runde heter du «${svar.navn}».`; }
-        oppdaterGud();
-        tegnListe();
-        lyd.klikk();
-        return;
-      }
       ui.navnStatus.textContent = '';
       await sendRunde(navn);
     });
   }
-  if (ui.byttNavn) {
-    ui.byttNavn.addEventListener('click', () => {
-      visNavnSkjema('bytt', `Nytt kallenavn (nå: «${T.sisteNavn()}»). Det brukes fra neste runde:`);
+
+  /* -------------------------------------------------------------------------
+     KALLENAVN-VINDUET – bytt navn eller slå av gud-modus, når som helst
+     (også midt i en runde, så gud-modus aldri kan låse deg inne)
+     ------------------------------------------------------------------------- */
+  const navnevindu = $('[data-navnevindu]', scene_);
+  let navnApen = false, kortForNavn = null;
+  const NAVN_FOR_GUD = 'bk-spill-navn-for-gud';
+
+  /* Lagrer kallenavnet. Går du inn i gud-modus, huskes navnet du hadde. */
+  function settNavn(navn) {
+    if (erGudNavn(navn) && !gud()) {
+      try { localStorage.setItem(NAVN_FOR_GUD, JSON.stringify(T.sisteNavn())); } catch (e) { /* privat modus */ }
+    }
+    T.lagreNavn(navn);
+    oppdaterGud();
+    tegnListe();
+    oppdaterStartKort();
+  }
+  function oppdaterMeg() {
+    const meg = document.querySelector('[data-meg]'), n = T.sisteNavn();
+    if (!meg) { return; }
+    meg.hidden = !n;
+    const b = $('[data-meg-navn]', meg); if (b) { b.textContent = n; }
+  }
+  function apneNavnevindu() {
+    if (!navnevindu) { return; }
+    lyd.vekk(); lyd.klikk();
+    kortForNavn = [ui.start, ui.slutt].find((k) => k && !k.hidden) || null;
+    if (kortForNavn) { kortForNavn.hidden = true; }
+    navnApen = true;
+    navnevindu.hidden = false;
+    const n = T.sisteNavn();
+    $('[data-navnevindu-naa]', navnevindu).textContent = n ? `Du heter nå «${n}».` : 'Du har ikke valgt kallenavn ennå.';
+    $('[data-navnevindu-status]', navnevindu).textContent = '';
+    $('[data-gud-av]', navnevindu).hidden = !gud();
+    const felt = $('input', navnevindu); felt.value = ''; felt.focus({ preventScroll: true });
+  }
+  function lukkNavnevindu() {
+    if (!navnevindu) { return; }
+    navnApen = false;
+    navnevindu.hidden = true;
+    if (kortForNavn) { kortForNavn.hidden = false; }
+  }
+  if (navnevindu) {
+    document.querySelectorAll('[data-bytt-navn]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); apneNavnevindu(); }));
+    $('[data-lukk-navnevindu]', navnevindu).addEventListener('click', lukkNavnevindu);
+    $('[data-gud-av]', navnevindu).addEventListener('click', () => {
+      let for_ = '';
+      try { for_ = JSON.parse(localStorage.getItem(NAVN_FOR_GUD) || '""') || ''; localStorage.removeItem(NAVN_FOR_GUD); } catch (e) { for_ = ''; }
+      settNavn(erGudNavn(for_) ? '' : for_);
+      lyd.klikk();
+      melding(for_ ? `Gud-modus er av. Du heter «${for_}» igjen.` : 'Gud-modus er av.', 2.5);
+      lukkNavnevindu();
+    });
+    $('form', navnevindu).addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const felt = $('input', navnevindu), status = $('[data-navnevindu-status]', navnevindu);
+      const navn = (felt.value || '').trim().replace(/\s+/g, ' ');
+      if (navn.length < 2 || navn.length > 16) { status.textContent = 'Kallenavnet må ha 2–16 tegn.'; felt.focus(); return; }
+      if (!erGudNavn(navn) && listeModus !== 'lokal') {
+        const knapp = $('button[type=submit]', navnevindu);
+        knapp.disabled = true; status.textContent = 'Sjekker …';
+        const svar = await T.sjekkNavn(navn);
+        knapp.disabled = false;
+        if (!svar.ok) { status.textContent = svar.melding; return; }
+      }
+      const varGud = gud();
+      settNavn(navn);
+      if (erGudNavn(navn)) { lyd.seier(); melding('Gud-modus er på! Runder i gud-modus kommer ikke på topplista.', 3); }
+      else { lyd.klikk(); melding(varGud ? `Gud-modus er av. Du heter nå «${navn}».` : `Du heter nå «${navn}».`, 2.5); }
+      lukkNavnevindu();
     });
   }
 
@@ -764,6 +821,7 @@ async function start() {
   document.addEventListener('keydown', (e) => {
     const iFelt = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
     if (iFelt || e.altKey || e.ctrlKey || e.metaKey) { return; }
+    if (navnApen) { if (e.key === 'Escape') { lukkNavnevindu(); } return; }
     if (butikkApen) { if (e.key === 'Escape') { lukkButikk(); } return; }
     const r = TAST[e.key];
     if (r && synlig) {
@@ -805,7 +863,7 @@ async function start() {
   const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(); tilstand = 'meny'; startSpill(); };
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
-  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk]')) { trekk('u'); } });
+  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn]')) { trekk('u'); } });
 
   /* -------------------------------------------------------------------------
      BUTIKKEN – bruk pakkene på pynt til kyllingen

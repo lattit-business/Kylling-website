@@ -214,6 +214,10 @@ vises (`GET /api/toppliste?antall=100`), og valget huskes på enheten.
 - **Gud-modus:** med kallenavnet «barefjær» dør ikke kyllingen (biler,
   bybanen, vann, drift og måka). Merket «Gud-modus» vises i hjørnet. Rundene
   sendes aldri til topplista, og serveren har navnet som reservert.
+  Under topplista står «Du spiller som …» med «Bytt kallenavn», som åpner et
+  vindu der du kan bytte navn eller slå av gud-modus (navnet du hadde før,
+  kommer tilbake). Det virker også midt i en runde; en runde der gud-modus
+  har vært på, sendes aldri inn.
 
 ### Kallenavn og stygge ord
 
