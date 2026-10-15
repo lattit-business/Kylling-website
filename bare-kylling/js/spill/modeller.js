@@ -1030,3 +1030,56 @@ export function vektstang() {
   });
   return lagMesh(geo, 4.4);
 }
+
+/* ---------------------------------------------------------------------------
+   KRAFTPAKKER – større enn vanlige pakker, med en glorie rundt
+   skjold: Original (grønn), fart: Sweet Paprika (rød med lyn), magnet: matboks
+   --------------------------------------------------------------------------- */
+export function kraftpakke(slag) {
+  const g = new THREE.Group();
+  if (slag === 'magnet') {
+    g.add(new THREE.Mesh(cachet('matboks', () => bokser([
+      { x: 0, y: 0, z: 0, w: 0.56, h: 0.36, d: 0.36, c: F.honey },
+      { x: 0, y: 0.36, z: 0, w: 0.58, h: 0.06, d: 0.38, c: F.honeyDeep },
+      { x: -0.16, y: 0.42, z: 0, w: 0.05, h: 0.12, d: 0.05, c: F.ink },
+      { x: 0.16, y: 0.42, z: 0, w: 0.05, h: 0.12, d: 0.05, c: F.ink },
+      { x: 0, y: 0.52, z: 0, w: 0.37, h: 0.05, d: 0.05, c: F.ink },
+      { x: 0, y: 0.12, z: 0.185, w: 0.3, h: 0.12, d: 0.01, c: F.creamHi }
+    ])), MATERIALE));
+  } else {
+    const m = pakke(slag === 'fart' ? 'paprika' : 'original');
+    m.scale.setScalar(1.25);
+    g.add(m);
+    if (slag === 'fart') {
+      g.add(new THREE.Mesh(cachet('lyn', () => bokser([
+        { x: 0.12, y: 0.62, z: 0.06, w: 0.08, h: 0.12, d: 0.02, c: F.honey },
+        { x: 0.06, y: 0.52, z: 0.06, w: 0.12, h: 0.06, d: 0.02, c: F.honey },
+        { x: 0.0, y: 0.4, z: 0.06, w: 0.08, h: 0.12, d: 0.02, c: F.honey }
+      ])), MATERIALE));
+    }
+  }
+  const farge = slag === 'skjold' ? F.forest : slag === 'fart' ? F.paprika : F.honey;
+  g.add(new THREE.Mesh(cachet('glorie' + farge, () => bokser([
+    { x: 0, y: -0.15, z: 0.42, w: 0.9, h: 0.04, d: 0.06, c: farge },
+    { x: 0, y: -0.15, z: -0.42, w: 0.9, h: 0.04, d: 0.06, c: farge },
+    { x: 0.42, y: -0.15, z: 0, w: 0.06, h: 0.04, d: 0.9, c: farge },
+    { x: -0.42, y: -0.15, z: 0, w: 0.06, h: 0.04, d: 0.9, c: farge }
+  ])), MATERIALE));
+  g.children.forEach((c) => { c.castShadow = true; });
+  return g;
+}
+
+/* Skjoldet rundt kyllingen: en tynn grønn ramme */
+export function skjoldRamme() {
+  const m = new THREE.Mesh(cachet('skjold', () => bokser([
+    { x: 0, y: 0, z: 0.36, w: 0.8, h: 0.05, d: 0.05, c: F.lovLys },
+    { x: 0, y: 0, z: -0.36, w: 0.8, h: 0.05, d: 0.05, c: F.lovLys },
+    { x: 0.38, y: 0, z: 0, w: 0.05, h: 0.05, d: 0.76, c: F.lovLys },
+    { x: -0.38, y: 0, z: 0, w: 0.05, h: 0.05, d: 0.76, c: F.lovLys },
+    { x: 0.38, y: 0, z: 0.36, w: 0.06, h: 1.0, d: 0.06, c: F.lovLys },
+    { x: -0.38, y: 0, z: 0.36, w: 0.06, h: 1.0, d: 0.06, c: F.lovLys },
+    { x: 0.38, y: 0, z: -0.36, w: 0.06, h: 1.0, d: 0.06, c: F.lovLys },
+    { x: -0.38, y: 0, z: -0.36, w: 0.06, h: 1.0, d: 0.06, c: F.lovLys }
+  ])), new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55 }));
+  return m;
+}

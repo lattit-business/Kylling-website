@@ -68,6 +68,7 @@ export class Verden {
     this.sti = 0;              /* kolonnen som alltid holdes åpen gjennom gresset */
     this.tavler = 0;
     this.harEgg = false;
+    this.sluppet = new Set();   /* leveringsrunder som er sluppet */
     this.tid = 0;
   }
 
@@ -103,6 +104,8 @@ export class Verden {
     const rad = { rad: r, type: spek.type, verden: v, blokk: new Set(), flytt: [], fart: 0, gruppe: new THREE.Group(), spek };
     /* Ruter med pakker skal aldri få hindringer */
     const pakkeRuter = new Set(this.bane.pakker(r).map((p) => p.x));
+    const kraft = this.bane.kraft(r);
+    if (kraft) { pakkeRuter.add(kraft.x); }
     const l = [];                         /* klosser som slås sammen */
     const lys = r % 2 === 0;
 
@@ -555,25 +558,71 @@ export class Verden {
     return M.stokk(len);
   }
 
-  /* Pakkene i raden (fra banen) */
+  /* Pakkene i raden (fra banen), og kraftpakken hvis det er en her */
   leggPakke(rad) {
+    rad.pakker = [];
     for (const p of this.bane.pakker(rad.rad)) {
       const mesh = M.pakke(p.slag);
       mesh.scale.setScalar(1.45);
       mesh.position.set(p.x, 0.2, -rad.rad);
       rad.gruppe.add(mesh);
-      rad.pakke = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7) % 6, tatt: false };
+      const q = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false, levering: !!p.levering };
+      if (p.levering && !this.sluppet.has(this.bane.levering(rad.rad))) {
+        /* Varebilens last: ligger oppe i lufta til den slippes */
+        q.landet = false;
+        mesh.visible = false;
+        mesh.position.y = 9;
+      }
+      rad.pakker.push(q);
+    }
+    const k = this.bane.kraft(rad.rad);
+    if (k) {
+      const mesh = M.kraftpakke(k.slag);
+      mesh.position.set(k.x, 0.25, -rad.rad);
+      rad.gruppe.add(mesh);
+      rad.kraft = { x: k.x, slag: k.slag, mesh, tatt: false };
     }
   }
 
   /* Plukker pakken på (x, r) hvis det ligger en der. Gir pakken én gang, ellers null. */
   plukk(x, r) {
     const rad = this.rader.get(r);
-    const p = rad && rad.pakke;
-    if (!p || p.tatt || Math.round(x) !== p.x || Math.abs(x - p.x) > 0.3) { return null; }
+    if (!rad || Math.abs(x - Math.round(x)) > 0.3) { return null; }
+    const p = rad.pakker.find((q) => !q.tatt && q.x === Math.round(x));
+    if (!p) { return null; }
     p.tatt = true;
     p.mesh.visible = false;
     return p;
+  }
+
+  /* Magnet: alle pakker i rad r som ligger høyst n kolonner fra x */
+  pakkerNaer(x, r, n) {
+    const rad = this.rader.get(r);
+    if (!rad) { return []; }
+    return rad.pakker.filter((q) => !q.tatt && Math.abs(q.x - Math.round(x)) <= n);
+  }
+
+  /* Varebilen mister lasten: pakkene i radene fra–fra+2 begynner å falle */
+  slippLevering(fra) {
+    if (this.sluppet.has(fra)) { return false; }
+    this.sluppet.add(fra);
+    let i = 0;
+    for (let r = fra; r <= fra + 2; r++) {
+      const rad = this.rader.get(r);
+      if (!rad) { continue; }
+      for (const p of rad.pakker) { if (p.landet === false) { p.fallStart = this.tid + 0.3 + (i++) * 0.12; } }
+    }
+    return true;
+  }
+
+  /* Kraftpakken på (x, r), én gang */
+  plukkKraft(x, r) {
+    const rad = this.rader.get(r);
+    const k = rad && rad.kraft;
+    if (!k || k.tatt || Math.round(x) !== k.x || Math.abs(x - k.x) > 0.3) { return null; }
+    k.tatt = true;
+    k.mesh.visible = false;
+    return k;
   }
 
   /* ---------------------------------------------------------------------------
@@ -584,10 +633,24 @@ export class Verden {
     this.tid += dt;
     const hendelser = [];
     for (const rad of this.rader.values()) {
-      if (rad.pakke && !rad.pakke.tatt) {
-        const p = rad.pakke;
+      for (const p of rad.pakker) {
+        if (p.tatt) { continue; }
+        if (p.landet === false) {
+          /* Pakker som regner ned fra varebilen */
+          if (p.fallStart === undefined || this.tid < p.fallStart) { continue; }
+          const t = this.tid - p.fallStart;
+          p.mesh.visible = true;
+          p.mesh.position.y = Math.max(0.2, 9 - 10 * t * t);
+          p.mesh.rotation.y = t * 9;
+          if (p.mesh.position.y <= 0.2) { p.landet = true; hendelser.push({ type: 'pakkeland', rad: rad.rad, x: p.x }); }
+          continue;
+        }
         p.mesh.rotation.y = this.tid * 1.8 + p.fase;
         p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
+      }
+      if (rad.kraft && !rad.kraft.tatt) {
+        rad.kraft.mesh.rotation.y = this.tid * 2.4;
+        rad.kraft.mesh.position.y = 0.3 + Math.sin(this.tid * 4) * 0.1;
       }
       if (rad.bane) { this.oppdaterBane(rad, dt, hendelser); continue; }
       if (rad.grill) { this.oppdaterGrill(rad, dt, hendelser); continue; }

@@ -175,6 +175,10 @@ export class Lyd {
     [72, 76, 79, 84, 88, 91].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.07, varighet: 0.18, styrke: 0.08 }));
     for (let i = 0; i < 6; i++) { this.tone({ type: 'triangle', f0: hz(96 + (i % 3) * 2), t: 0.5 + i * 0.08, varighet: 0.1, styrke: 0.05 }); }
   }
+  kraft() {
+    [72, 79, 84, 91].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.05, varighet: 0.14, styrke: 0.07 }));
+    this.tone({ type: 'triangle', f0: hz(60), f1: hz(72), varighet: 0.25, styrke: 0.12 });
+  }
   kakle() {
     [0, 0.09, 0.2].forEach((t, i) => this.tone({ type: 'square', f0: 620 + i * 90, f1: 480, t, varighet: 0.07, styrke: 0.04 }));
   }

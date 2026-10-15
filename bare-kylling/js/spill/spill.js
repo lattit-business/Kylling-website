@@ -12,10 +12,11 @@ import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
 import { Verden, KOL, JOBB, vanske, verdenFor } from './verden.js';
-import { Bane } from './bane.mjs';
+import { Bane, dagFrø, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
+import * as O from './oppdrag.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -96,7 +97,7 @@ async function start() {
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
     pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
-    startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
+    startRekord: $('[data-start-rekord]'), effekt: $('[data-effekt]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -113,6 +114,7 @@ async function start() {
   spiller.gruppe.add(spiller.snu);
   scene.add(spiller.gruppe);
   const HOPP = 0.135;   /* sekunder per hopp */
+  const HOPP_FART = 0.08;   /* med Sweet Paprika-fart */
 
   /* GUD-MODUS: kallenavnet «barefjær» gjør kyllingen udødelig. Slike runder
      sendes ikke til topplista (serveren har også navnet som reservert). */
@@ -139,6 +141,9 @@ async function start() {
     }
   }
   kleKylling();
+  const skjold = M.skjoldRamme();
+  skjold.visible = false;
+  spiller.gruppe.add(skjold);
 
   /* Måka */
   const maake = M.maake();
@@ -204,6 +209,18 @@ async function start() {
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
   let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
+  /* Kraftpakker: tidene er i ekte millisekunder (som trekkloggen), så de
+     slutter på samme tid som serveren regner med */
+  const effekt = { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 };
+  /* Det som skjedde i runden (til oppdragene) */
+  let runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+  const fartAktiv = () => performance.now() < effekt.fartTil;
+  const magnetAktiv = () => performance.now() < effekt.magnetTil;
+  /* Kombo: 10 hopp framover på rad (uten å stoppe) gir dobbel pakke i
+     lommeboka. Bare lommeboka: pakkelista teller ekte pakker. */
+  const KOMBO = 10, KOMBO_PAUSE = 900;
+  let kombo = 0, bonus = 0;
+  const komboAktiv = () => kombo >= KOMBO && performance.now() - sisteTrekk < KOMBO_PAUSE;
   let gudIRunden = false;            /* gud-modus var på en gang i runden: sendes ikke inn */
   const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
@@ -215,7 +232,8 @@ async function start() {
   /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
      enhetens egen liste) eller 'ukjent' (ikke fått svar ennå). listeFeil er
      satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
-  let listeModus = 'ukjent', globalListe = [], globalPakker = [], listeFeil = '';
+  let listeModus = 'ukjent', globalListe = [], globalPakker = [], globalDag = [], listeFeil = '';
+  let dagensRunde = false;   /* runden spilles på dagens rute */
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -247,6 +265,10 @@ async function start() {
     driftBrygge: ['Du drev ut Vågen. Neste stopp: Nordsjøen.'],
     krydret: ['Du ble krydret!'],
     molle: ['Tredemølla vant den runden.', 'Ikke stå stille på mølla!'],
+    skjold: ['Original-skjold! Du tåler én smell.'],
+    fart: ['Sweet Paprika! Full fart i fem sekunder.'],
+    magnet: ['Matboks-magnet! Pakkene kommer til deg.'],
+    reddet: ['Skjoldet tok støyten!', 'Puh! Skjoldet reddet deg.'],
     tyveri: ['Måka stjal en pakke! Neste gang tar den deg.', 'Typisk Bergen: måka tok matpakka.', 'Måka fikk lunsj. Du får ikke ny sjanse.'],
     rekord: ['Du er offisielt en legendekylling!'],
     jobb: ['Gratulerer! Du kom deg på jobb!']
@@ -306,7 +328,13 @@ async function start() {
     poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
+    dagensRunde = !!(b && b.dagens);
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
+    Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
+    runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+    kombo = 0; bonus = 0;
+    skjold.visible = false;
+    if (leveringsbil) { leveringsbil.visible = false; }
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     if (pakketKylling) { pakketKylling.visible = false; }
@@ -323,7 +351,9 @@ async function start() {
     gudIRunden = gud();
     ui.start && (ui.start.hidden = true);
     ui.slutt && (ui.slutt.hidden = true);
-    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute! Samme bane for alle i dag.' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    if (dagensRunde) { T.registrerDag(osloDato()); }
+    O.fyllPaa(); tegnOppdrag();
     lyd.startMusikk();
     sisteTrekk = performance.now();
   }
@@ -382,6 +412,8 @@ async function start() {
     sprut(spiller.x, 0.05, -spiller.rad, 3, stoev, { fart: 0.9, opp: 1.2, liv: 0.35, str: 0.07 });
 
     const naa = performance.now();
+    if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
+    if (kombo === KOMBO) { melding('Kombo! Doble pakker i lommeboka.', 2); lyd.kraft(); runde.kombo = true; sjekkOppdrag(); }
     logg.push(r + Math.max(0, Math.round((naa - sisteTrekk) / 10)).toString(36));
     sisteTrekk = naa;
 
@@ -406,6 +438,7 @@ async function start() {
         sprut(spiller.x, 1.2, -spiller.rad, 30, [F.honey, F.creamHi, F.paprika], { fart: 2.4, opp: 4, liv: 1.2, str: 0.09, tyngde: 5 });
       }
       if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
+      sjekkOppdrag();
       oppdaterHud();
     }
   }
@@ -423,18 +456,100 @@ async function start() {
         sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
       } else { do_('vann'); return; }
     }
-    const tattPakke = verden.plukk(spiller.x, spiller.rad);
-    if (tattPakke) {
-      pakker++;
-      logg.push(`p${spiller.rad.toString(36)}.${tattPakke.x + KOL}`);   /* serveren kontrollerer pakken */
-      lyd.pakke();
-      sprut(spiller.x, 0.5, -spiller.rad, 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
-      if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
-      else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
-      oppdaterHud();
+    const kraft = verden.plukkKraft(spiller.x, spiller.rad);
+    if (kraft) {
+      logg.push(`k${spiller.rad.toString(36)}.${kraft.x + KOL}`);      /* serveren kontrollerer kraftpakken */
+      const naa = performance.now();
+      if (kraft.slag === 'skjold') { effekt.skjold = true; skjold.visible = true; }
+      if (kraft.slag === 'fart') { effekt.fartTil = naa + 4800; }
+      if (kraft.slag === 'magnet') { effekt.magnetTil = naa + 5800; }
+      melding(MELDINGER[kraft.slag][0], 2.4);
+      lyd.kraft();
+      sprut(spiller.x, 0.6, -spiller.rad, 22, [F.honey, F.creamHi, kraft.slag === 'fart' ? F.paprika : F.forest], { fart: 2, opp: 3.4, liv: 0.8, str: 0.08, tyngde: 5 });
+      runde.kraft++;
+      sjekkOppdrag();
     }
+    const tattPakke = verden.plukk(spiller.x, spiller.rad);
+    if (tattPakke) { taPakke(tattPakke, spiller.rad); }
+    trekkMagnet();
     if (spiller.rad === JOBB && !jobbNaadd) { feirJobb(); }
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
+  }
+
+  /* LEVERINGSRUNDEN: når kyllingen er seks rader unna, kjører varebilen
+     forbi og mister lasten over tre rader */
+  let leveringsbil = null;
+  function oppdaterLevering(dt) {
+    if (tilstand === 'spill') {
+      for (let r = spiller.rad + 1; r <= spiller.rad + 7; r++) {
+        if (verden.bane.levering(r) === r && verden.slippLevering(r)) {
+          melding('Varebilen mistet lasten!', 2.6);
+          lyd.horn(); lyd.forbi(0.08);
+          if (!leveringsbil) { leveringsbil = M.varebil(teksturer); scene.add(leveringsbil); }
+          leveringsbil.visible = true;
+          leveringsbil.position.set(-14, 0, -(r - 1));
+          leveringsbil.rotation.y = 0;
+          leveringsbil.userData.t = 0;
+        }
+      }
+    }
+    if (leveringsbil && leveringsbil.visible) {
+      leveringsbil.userData.t += dt;
+      leveringsbil.position.x = -14 + leveringsbil.userData.t * 16;
+      leveringsbil.position.y = Math.abs(Math.sin(leveringsbil.userData.t * 20)) * 0.06;
+      if (leveringsbil.position.x > 15) { leveringsbil.visible = false; }
+    }
+  }
+
+  /* OPPDRAG: sjekkes når noe skjer i runden; klare oppdrag gir pakker i lommeboka */
+  const tegnOppdrag = () => document.querySelectorAll('[data-oppdrag]').forEach((ul) => O.tegn(ul));
+  function sjekkOppdrag() {
+    if (tilstand !== 'spill' && tilstand !== 'over') { return; }
+    for (const o of O.sjekk({ poeng, pakker, ...runde, dagens: dagensRunde })) {
+      B.leggTil(O.BELONNING);
+      visSaldo();
+      melding(`Oppdrag klart: ${o.tekst}! +${O.BELONNING} pakker`, 2.6);
+      lyd.poeng();
+      tegnOppdrag();
+    }
+  }
+
+  /* Kraft og kombo vises i HUD-en; kyllingen blinker mens den er uskadelig */
+  let sisteEffekt = '';
+  function visEffekt() {
+    const naa = performance.now(), deler = [];
+    if (effekt.skjold) { deler.push('Skjold'); }
+    if (naa < effekt.fartTil) { deler.push(`Fart ${Math.ceil((effekt.fartTil - naa) / 1000)}`); }
+    if (naa < effekt.magnetTil) { deler.push(`Magnet ${Math.ceil((effekt.magnetTil - naa) / 1000)}`); }
+    if (komboAktiv()) { deler.push('Kombo ×2'); }
+    const tekst = deler.join(' · ');
+    if (tekst !== sisteEffekt && ui.effekt) { sisteEffekt = tekst; ui.effekt.textContent = tekst; ui.effekt.hidden = !tekst; }
+    spiller.kropp.visible = !(naa < effekt.uskadeligTil && Math.floor(naa / 90) % 2);
+  }
+
+  /* En pakke er plukket (rad r). Serveren får vite det i loggen. */
+  function taPakke(p, r, langt = false) {
+    pakker++;
+    if (p.levering) { runde.levering++; }
+    if (komboAktiv()) { bonus++; }
+    queueMicrotask(sjekkOppdrag);
+    logg.push(`p${r.toString(36)}.${p.x + KOL}`);
+    lyd.pakke();
+    sprut(p.x, 0.5, -r, langt ? 8 : 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
+    if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
+    else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
+    oppdaterHud();
+  }
+
+  /* Magneten trekker inn pakker i raden og raden foran (to kolonner til hver side) */
+  function trekkMagnet() {
+    if (!magnetAktiv() || tilstand !== 'spill' || spiller.hopp < 1) { return; }
+    for (const r of [spiller.rad, spiller.rad + 1]) {
+      for (const p of verden.pakkerNaer(spiller.x, r, 2)) {
+        p.tatt = true; p.mesh.visible = false;
+        taPakke(p, r, true);
+      }
+    }
   }
 
   function feirJobb() {
@@ -457,6 +572,17 @@ async function start() {
   function do_(aarsak, kjoretoy, r) {
     if (tilstand !== 'spill') { return; }
     if (gud()) { return; }   /* gud-modus: ingenting tar livet av kyllingen */
+    if (performance.now() < effekt.uskadeligTil && aarsak !== 'maake' && aarsak !== 'vann' && aarsak !== 'drift') { return; }
+    if (effekt.skjold && ['bil', 'bane', 'stempel', 'grill'].includes(aarsak)) {
+      /* Skjoldet tar smellen, og kyllingen er uskadelig et lite øyeblikk */
+      effekt.skjold = false; skjold.visible = false;
+      effekt.uskadeligTil = performance.now() + 1200;
+      melding(velg(MELDINGER.reddet), 2);
+      lyd.bonk(); lyd.kraft();
+      risting = 0.2 * ristSkala;
+      sprut(spiller.gruppe.position.x, 0.6, spiller.gruppe.position.z, 18, [F.lovLys, F.forest, F.creamHi], { fart: 2.4, opp: 2.6, liv: 0.6, str: 0.08 });
+      return;
+    }
     tilstand = 'dod';
     dodTid = 0;
     dodAarsak = aarsak;
@@ -565,12 +691,22 @@ async function start() {
   /* -------------------------------------------------------------------------
      SLUTT – poengsum, rekord og toppliste
      ------------------------------------------------------------------------- */
+  /* Runden som er ferdig: tas vare på med en gang, så den kan sendes inn
+     selv om spilleren starter en ny runde før topplista har svart */
+  let innsending = null;
+
   async function visSlutt() {
     tilstand = 'over';
+    innsending = { billett, poeng, pakker, logg: logg.join(','), gud: gud() || gudIRunden };
+    billett = null;
+    const egen = innsending;
+    /* Kjent kallenavn: send inn med en gang (vent ikke på topplista) */
+    const sender = poeng > 0 && egen.billett && T.sisteNavn() && !egen.gud && listeModus !== 'lokal'
+      ? sendRunde(T.sisteNavn(), egen) : null;
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
-    B.leggTil(pakker);
+    B.leggTil(pakker + bonus);
     visSaldo();
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
@@ -584,12 +720,14 @@ async function start() {
         ? `Du nådde Jobbsenteret og kom ${poeng - JOBB} ${poeng - JOBB === 1 ? 'rute' : 'ruter'} videre.`
         : poeng > 0 ? `Du kom ${poeng} ${poeng === 1 ? 'rute' : 'ruter'}, ${JOBB - poeng} igjen til Jobbsenteret.` : 'Hopp framover med piltastene, WASD eller ved å sveipe.';
       ui.sluttTekst.textContent = jobbNaadd || !dodTekst ? fram : `${dodTekst} ${fram}`;
+      if (bonus > 0) { ui.sluttTekst.textContent += ` Kombo-bonus: ${bonus} ekstra ${bonus === 1 ? 'pakke' : 'pakker'} i lommeboka.`; }
     }
     if (ui.nyRekord) { ui.nyRekord.hidden = !nyRekord || poeng === 0; }
     if (ui.navnSkjema) { ui.navnSkjema.hidden = true; }
     if (ui.navnStatus) { ui.navnStatus.textContent = ''; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (ui.slutt) { ui.slutt.hidden = false; }
+    tegnOppdrag();
     oppdaterHud();
     if (nyRekord && poeng > 0) {
       lyd.rekord();
@@ -610,9 +748,10 @@ async function start() {
         /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
            den svakeste når lista er full. Med husket navn skjer det av seg selv. */
         const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
-        if (gud() || gudIRunden) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
-        else if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
-        else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
+        if (egen.gud) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
+        else if (sender) { await sender; }
+        else if (egen.billett && T.sisteNavn()) { await sendRunde(T.sisteNavn(), egen); }
+        else if (egen.billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
         else if (ui.sluttInfo) {
           ui.sluttInfo.textContent = 'Runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
         }
@@ -640,29 +779,37 @@ async function start() {
 
   /* Sender inn runden under et kallenavn. Navnet huskes på enheten, så neste
      topp 10-runde sendes inn av seg selv. */
-  async function sendRunde(navn) {
+  async function sendRunde(navn, r = innsending) {
+    if (!r || !r.billett) { return; }
     const knapp = $('button', ui.navnSkjema);
     if (knapp) { knapp.disabled = true; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = `Lagrer som «${navn}» …`; }
-    const svar = await T.sendInn({ billett, navn, poeng, pakker, logg: logg.join(',') });
+    const billettNaa = r.billett;
+    r.billett = null;   /* sendes bare én gang */
+    const svar = await T.sendInn({ billett: billettNaa, navn, poeng: r.poeng, pakker: r.pakker, logg: r.logg });
     if (knapp) { knapp.disabled = false; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (svar.ok) {
       T.lagreNavn(navn);
-      billett = null;
       ui.navnSkjema.hidden = true;
       const plasser = [svar.plass ? `nummer ${svar.plass} på topplista` : '',
-        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
+        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : '',
+        svar.dagPlass ? `nummer ${svar.dagPlass} på dagens rute` : ''].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' og $1');
       if (ui.sluttInfo) { ui.sluttInfo.textContent = plasser ? `Lagret som «${navn}» – ${plasser}!` : `Lagret som «${navn}».`; }
       if (ui.byttNavn) { ui.byttNavn.hidden = false; }
       melding(plasser ? `Du er ${plasser}!` : 'Lagret!', 3);
-      globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = '';
+      globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = '';
       tegnListe();
       oppdaterStartKort();
       lyd.poeng();
-    } else if (svar.tatt && billett) {
-      /* Navnet er tatt av en annen enhet: velg et nytt, runden er ikke brukt opp */
+    } else if (svar.status === 400 && /kallenavn|navn/i.test(svar.melding || '')) {
+      /* Navnet gikk ikke gjennom filteret: billetten er ikke brukt, prøv et annet */
+      r.billett = billettNaa;
       visNavnSkjema('send', 'Velg et annet kallenavn:', svar.melding);
+    } else if (svar.status === 0 || svar.status === 429 || svar.status >= 500) {
+      /* Fikk ikke kontakt: billetten er ikke brukt, så den kan sendes igjen */
+      r.billett = billettNaa;
+      visNavnSkjema('send', 'Fikk ikke lagret runden. Prøv igjen:', svar.melding);
     } else {
       visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:', svar.melding);
     }
@@ -675,7 +822,7 @@ async function start() {
       henterListe = T.hentListe().then((svar) => {
         henterListe = null;
         sistHentet = performance.now();
-        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = ''; }
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = ''; }
         else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
         else { listeFeil = svar.grunn; }
         tegnListe();
@@ -688,13 +835,23 @@ async function start() {
 
   /* Bryter: topp 10 eller topp 100 */
   function settBryter() {
-    const n = T.visAntall();
-    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(Number(k.dataset.antall) === n)));
-    if (ui.listeTittel) { ui.listeTittel.textContent = `Topp ${n}`; }
+    const n = T.visAntall(), dag = T.listeValg() === 'dag';
+    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(!dag && Number(k.dataset.antall) === n)));
+    document.querySelectorAll('[data-dagliste]').forEach((k) => k.setAttribute('aria-pressed', String(dag)));
+    if (ui.listeTittel) { ui.listeTittel.textContent = dag ? 'Dagens rute' : `Topp ${n}`; }
+    /* Dagens liste har bare poeng, så pakkedelen skjules */
+    [document.querySelector('[data-pakkedel]'), ui.pakkeStatus, ui.pakkeliste].forEach((el) => { if (el) { el.hidden = dag; } });
     if (ui.pakkeTittelTall) { ui.pakkeTittelTall.textContent = n === 100 ? ' (topp 100)' : ''; }
     [ui.liste, ui.pakkeliste].forEach((ol) => ol && ol.classList.toggle('toppliste__liste--lang', n === 100));
   }
+  document.querySelectorAll('[data-dagliste]').forEach((k) => k.addEventListener('click', () => {
+    T.settListeValg('dag');
+    settBryter();
+    tegnListe();
+    if (listeModus !== 'lokal') { oppdaterToppliste(); }
+  }));
   document.querySelectorAll('[data-antall]').forEach((k) => k.addEventListener('click', () => {
+    T.settListeValg('alle');
     T.settVisAntall(Number(k.dataset.antall));
     settBryter();
     tegnListe();
@@ -722,8 +879,8 @@ async function start() {
 
   function tegnListe() {
     if (!ui.liste) { return; }
-    const global = listeModus === 'global';
-    const liste = global ? globalListe : T.lokalListe();
+    const global = listeModus === 'global', dag = T.listeValg() === 'dag';
+    const liste = dag ? (global ? globalDag : []) : global ? globalListe : T.lokalListe();
     if (ui.listeMerke) { ui.listeMerke.textContent = global ? 'Global toppliste' : 'Bare denne enheten'; }
     if (ui.listeInfo) {
       ui.listeInfo.textContent = global
@@ -735,6 +892,10 @@ async function start() {
       s.textContent = '';
       if (listeFeil) {
         s.textContent = global ? 'Fikk ikke oppdatert topplista akkurat nå. Prøver igjen …' : 'Fikk ikke kontakt med topplista. Prøver igjen …';
+      } else if (dag && !global) {
+        s.textContent = 'Lista for dagens rute finnes bare når den felles topplista er koblet til.';
+      } else if (dag && !liste.length) {
+        s.textContent = 'Ingen har spilt dagens rute ennå. Bli den første! Ruta er ny hver dag ved midnatt.';
       } else if (global && !liste.length) {
         s.textContent = 'Ingen på lista ennå. Bli den første!';
       } else if (!global && paaKopi) {
@@ -929,10 +1090,30 @@ async function start() {
     lyd.vekk(); lyd.settMusikk(!lyd.musikkPaa); settKnapp(ui.musikkKnapp, lyd.musikkPaa);
     if (lyd.musikkPaa && tilstand === 'spill') { lyd.startMusikk(); }
   });
-  const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill(); };
+  const omstart = () => {
+    if (dagensRunde) { startDagens(); return; }
+    lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill();
+  };
+  /* DAGENS RUTE: samme bane for alle i dag. Uten kontakt med topplista
+     spilles den likevel (frøet regnes ut fra datoen), men kan ikke sendes inn. */
+  let henterDag = false;
+  async function startDagens() {
+    if (henterDag) { return; }
+    henterDag = true;
+    lyd.vekk(); lyd.klikk(); lyd.stoppMusikk();
+    const knapper = document.querySelectorAll('[data-dagens]');
+    knapper.forEach((k) => { k.disabled = true; k.textContent = 'Henter …'; });
+    const b = (listeModus !== 'lokal' && await T.dagensBillett()) || { billett: null, frø: dagFrø(osloDato()), dagens: true };
+    knapper.forEach((k) => { k.disabled = false; k.textContent = 'Dagens rute'; });
+    henterDag = false;
+    nyVerden(b);
+    tilstand = 'meny';
+    startSpill();
+  }
+  document.querySelectorAll('[data-dagens]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); startDagens(); }));
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
-  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn]')) { trekk('u'); } });
+  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn], [data-dagens]')) { trekk('u'); } });
 
   /* -------------------------------------------------------------------------
      BUTIKKEN – bruk pakkene på pynt til kyllingen
@@ -1016,6 +1197,8 @@ async function start() {
   function stjelPakke(spillerRad) {
     maakeHarStjaalet = true;
     pakker--;
+    runde.stjalet = true;
+    sjekkOppdrag();
     logg.push('m');                         /* serveren trekker fra pakken */
     oppdaterHud();
     rull = spillerRad - 1;                  /* måka er mett en stund */
@@ -1102,6 +1285,7 @@ async function start() {
       else if (h.type === 'stempel' && naer < 6) { lyd.stempel(naer > 1 ? 0.5 : 1); }
       else if (h.type === 'grill' && naer < 3) { lyd.fres(0.5); }
       else if (h.type === 'kakle' && naer < 4 && Math.random() < 0.35) { lyd.kakle(); }
+      else if (h.type === 'pakkeland') { sprut(h.x, 0.1, -h.rad, 4, [F.honey, F.creamHi], { fart: 0.8, opp: 1.4, liv: 0.35, str: 0.06 }); if (naer < 5) { lyd.lande(); } }
     }
 
     if (feiringTid > 0) { feiringTid -= dt; }
@@ -1111,6 +1295,8 @@ async function start() {
     if (tilstand === 'spill' || tilstand === 'meny') { oppdaterSpiller(dt); }
     if (tilstand === 'dod') { oppdaterDod(dt); }
     oppdaterTyveri(dt);
+    visEffekt();
+    oppdaterLevering(dt);
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1214,7 +1400,7 @@ async function start() {
   function oppdaterSpiller(dt) {
     const s = spiller, g = s.gruppe;
     if (s.hopp < 1) {
-      s.hopp = Math.min(1, s.hopp + dt / (s.glid ? 0.3 : HOPP));
+      s.hopp = Math.min(1, s.hopp + dt / (s.glid ? 0.3 : fartAktiv() ? HOPP_FART : HOPP));
       const t = s.hopp;
       const x = s.fraX + (s.tilX - s.fraX) * t;
       const zRad = s.fraRad + (s.tilRad - s.fraRad) * t;
@@ -1232,6 +1418,7 @@ async function start() {
       }
       g.position.set(s.x, s.paa ? s.paa.mesh.position.y : 0, -s.rad);
       s.tomgang += dt;
+      if (magnetAktiv()) { trekkMagnet(); }
       /* Tredemølla: står du stille i ett sekund, blir du dyttet én rad bakover */
       const radHer = verden.rad(s.rad);
       if (tilstand === 'spill' && radHer && radHer.type === 'mølle') {
@@ -1290,12 +1477,15 @@ async function start() {
      I GANG
      ------------------------------------------------------------------------- */
   nyVerden();
+  O.fyllPaa(); tegnOppdrag();
   oppdaterStartKort();
   oppdaterGud();
-  /* Første billett: bygg verdenen på nytt fra frøet hvis spillet ikke har startet */
+  /* Første billett hentes med en gang (samtidig med lista), og verdenen bygges
+     på nytt fra frøet hvis spillet ikke har startet */
+  const forsteBillett = T.nesteBillett();
   oppdaterToppliste().then(async (svar) => {
     if (!svar.ok) { return; }
-    const b = await T.nesteBillett();
+    const b = await forsteBillett;
     if (!b) { return; }
     if (tilstand === 'meny') { nyVerden(b); } else { T.leggTilbake(b); }
   });
@@ -1317,7 +1507,10 @@ async function start() {
       trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
-      pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
+      pakkeRader: (fra = 0, til = 80) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); if (d) { d.pakker.forEach((p) => u.push({ rad: r, x: p.x, tatt: p.tatt })); } } return u; },
+      levering: (r) => verden.bane.levering(r),
+      kraft: (fra = 0, til = 400) => { const u = []; for (let r = fra; r <= til; r++) { const k = verden.bane.kraft(r); if (k) { u.push({ rad: r, ...k }); } } return u; },
+      effekt: () => ({ skjold: effekt.skjold, fart: fartAktiv(), magnet: magnetAktiv() }), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
       rad: (r) => { const d = verden.rad(r); return d ? { type: d.type, blokk: [...d.blokk], fart: d.fart, flytt: d.flytt.map((m) => ({ x: m.x, len: m.len })) } : null },

@@ -170,23 +170,33 @@ Vern mot juks: hver runde får en signert billett med et frø som bare kan
 brukes én gang. Banen og pakkene lages av frøet i
 `bare-kylling/js/spill/bane.mjs`, som spillet og serveren deler. Spillet
 sender en logg over hoppene og pakkene; serveren spiller den av mot banen
-(samme poeng, ingen hopp raskere enn mulig, hver pakke må ha ligget der
-kyllingen sto, måka kan stjele én) og teller pakkene selv. I tillegg:
+(samme poeng, ingen hopp raskere enn mulig) og teller pakkene selv: en pakke
+som ikke lå der kyllingen sto, telles ikke, men runden og poengene godtas. I tillegg:
 grenser per IP (bare en hash lagres) og sjekk av kallenavn. Et
 nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 
-### Kallenavn huskes, og tilhører én enhet
+### Kraftpakker, kombo, leveringsrunde, dagens rute og oppdrag
+
+- **Kraftpakker** (`kraft()` i `bane.mjs`, sjeldne, maks én synlig): Original
+  gir skjold (tåler én smell), Sweet Paprika gir fart i 5 s, matboksen gir
+  magnet i 6 s. Loggen får `k<rad>.<kol>`, og serveren tillater raske hopp
+  og pakker på avstand bare i vinduet etter en ekte kraftpakke.
+- **Kombo:** 10 hopp framover på rad gir dobbel pakke i lommeboka (ikke på
+  pakkelista).
+- **Leveringsrunde** (`levering()` i `bane.mjs`): varebilen mister lasten,
+  og tre pakker regner ned i hver av tre rader.
+- **Dagens rute:** samme bane for alle i dag (`dagFrø(osloDato())`). Egen
+  liste (`bk:dag:<dato>`) som skifter ved midnatt norsk tid. «I dag» i
+  bryteren over topplista.
+- **Oppdrag** (`js/spill/oppdrag.js`): tre om gangen i localStorage, vist på
+  start- og sluttkortet. Hvert klart oppdrag gir tre pakker i lommeboka.
+
+### Kallenavn huskes
 
 Første gang du kommer på lista, skriver du et kallenavn. Det huskes i
-nettleseren, så senere topp 10-runder sendes inn av seg selv. «Bytt
-kallenavn» på sluttkortet lar deg velge et nytt.
-
-Hver nettleser får en tilfeldig enhetsnøkkel (`bk-spill-enhet` i
-localStorage). Et kallenavn tilhører enheten som først kom på lista med det
-(`bk:eier` i databasen, bare en hash av nøkkelen lagres), så ingen andre kan
-sende inn under ditt navn. Det er enhet og ikke IP-adresse fordi en hel skole
-ofte deler én IP. Tømmer noen nettleseren, mister de navnet sitt; slett da
-navnet fra `bk:eier` i Upstash-konsollen så de kan ta det igjen.
+nettleseren, så senere runder sendes inn av seg selv. «Bytt kallenavn» lar deg
+velge et nytt. Alle kan bruke hvilket navn de vil: samme navn deler én plass
+på lista, og den beste runden står. En ny rekord oppdaterer plassen.
 
 ### Bare Kylling-pakker
 

@@ -93,7 +93,7 @@ export const settVisAntall = (n) => skriv('bk-spill-antall', n === 100 ? 100 : 1
 export async function hentListe() {
   const { status, data } = await kall('GET', null, visAntall() === 100 ? API + '?antall=100' : API);
   if (status === 200 && data && Array.isArray(data.liste)) {
-    return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [] };
+    return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [], dag: Array.isArray(data.dag) ? data.dag : [] };
   }
   if ([404, 405, 501, 503].includes(status)) { return { ok: false, grunn: 'ikke-koblet' }; }
   return { ok: false, grunn: status === 429 ? 'opptatt' : 'nett' };
@@ -115,6 +115,24 @@ async function hentBillett() {
   const { status, data } = await kall('POST', { handling: 'start' });
   return status === 200 && data && data.billett && Number.isInteger(data.frø)
     ? { billett: data.billett, frø: data.frø >>> 0, hentet: Date.now() } : null;
+}
+
+/* Billett til dagens rute (samme bane for alle i dag). Hentes når du trykker. */
+export async function dagensBillett() {
+  const { status, data } = await kall('POST', { handling: 'start', dagens: true });
+  return status === 200 && data && data.billett && Number.isInteger(data.frø)
+    ? { billett: data.billett, frø: data.frø >>> 0, hentet: Date.now(), dagens: true, dato: data.dato } : null;
+}
+
+/* Hvilken liste som vises: 'alle' (topp 10/100) eller 'dag' (dagens rute) */
+export const listeValg = () => (les('bk-spill-listevalg', 'alle') === 'dag' ? 'dag' : 'alle');
+export const settListeValg = (v) => skriv('bk-spill-listevalg', v === 'dag' ? 'dag' : 'alle');
+
+/* Dager med dagens rute på denne enheten (til merkene) */
+export function registrerDag(dato) {
+  const d = les('bk-spill-dager', []);
+  if (!d.includes(dato)) { d.push(dato); skriv('bk-spill-dager', d.slice(-60)); }
+  return d.length;
 }
 
 /* Henter neste billett i bakgrunnen hvis det ikke ligger en klar */
@@ -145,7 +163,7 @@ export function leggTilbake(b) { if (b && !fersk(klar)) { klar = b; } }
 export async function sendInn({ billett, navn, poeng, pakker, logg }) {
   const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, pakker, logg, enhet: enhet(), antall: visAntall() });
   if (status === 200 && data && data.ok) {
-    return { ok: true, plass: data.plass, pakkePlass: data.pakkePlass, liste: data.liste || [], pakker: data.pakker || [] };
+    return { ok: true, plass: data.plass, pakkePlass: data.pakkePlass, dagPlass: data.dagPlass, liste: data.liste || [], pakker: data.pakker || [], dag: data.dag || [] };
   }
   const meldinger = {
     429: 'Litt for mange forsøk akkurat nå. Prøv igjen om noen minutter.',
@@ -153,7 +171,7 @@ export async function sendInn({ billett, navn, poeng, pakker, logg }) {
     409: (data && data.melding) || 'Det kallenavnet er tatt av en annen spiller.',
     503: 'Den globale topplista er ikke koblet til ennå.'
   };
-  return { ok: false, tatt: status === 409, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
+  return { ok: false, status, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
 }
 
 /* Sjekker at et nytt kallenavn er lov og ikke tatt. { ok, navn } eller { ok: false, melding } */
