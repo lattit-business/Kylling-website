@@ -331,6 +331,7 @@ async function start() {
     runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
     kombo = 0; bonus = 0;
     skjold.visible = false;
+    if (leveringsbil) { leveringsbil.visible = false; }
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     if (pakketKylling) { pakketKylling.visible = false; }
@@ -468,6 +469,31 @@ async function start() {
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
   }
 
+  /* LEVERINGSRUNDEN: når kyllingen er seks rader unna, kjører varebilen
+     forbi og mister lasten over tre rader */
+  let leveringsbil = null;
+  function oppdaterLevering(dt) {
+    if (tilstand === 'spill') {
+      for (let r = spiller.rad + 1; r <= spiller.rad + 7; r++) {
+        if (verden.bane.levering(r) === r && verden.slippLevering(r)) {
+          melding('Varebilen mistet lasten!', 2.6);
+          lyd.horn(); lyd.forbi(0.08);
+          if (!leveringsbil) { leveringsbil = M.varebil(teksturer); scene.add(leveringsbil); }
+          leveringsbil.visible = true;
+          leveringsbil.position.set(-14, 0, -(r - 1));
+          leveringsbil.rotation.y = 0;
+          leveringsbil.userData.t = 0;
+        }
+      }
+    }
+    if (leveringsbil && leveringsbil.visible) {
+      leveringsbil.userData.t += dt;
+      leveringsbil.position.x = -14 + leveringsbil.userData.t * 16;
+      leveringsbil.position.y = Math.abs(Math.sin(leveringsbil.userData.t * 20)) * 0.06;
+      if (leveringsbil.position.x > 15) { leveringsbil.visible = false; }
+    }
+  }
+
   /* Kraft og kombo vises i HUD-en; kyllingen blinker mens den er uskadelig */
   let sisteEffekt = '';
   function visEffekt() {
@@ -484,6 +510,7 @@ async function start() {
   /* En pakke er plukket (rad r). Serveren får vite det i loggen. */
   function taPakke(p, r, langt = false) {
     pakker++;
+    if (p.levering) { runde.levering++; }
     if (komboAktiv()) { bonus++; }
     logg.push(`p${r.toString(36)}.${p.x + KOL}`);
     lyd.pakke();
@@ -1182,6 +1209,7 @@ async function start() {
       else if (h.type === 'stempel' && naer < 6) { lyd.stempel(naer > 1 ? 0.5 : 1); }
       else if (h.type === 'grill' && naer < 3) { lyd.fres(0.5); }
       else if (h.type === 'kakle' && naer < 4 && Math.random() < 0.35) { lyd.kakle(); }
+      else if (h.type === 'pakkeland') { sprut(h.x, 0.1, -h.rad, 4, [F.honey, F.creamHi], { fart: 0.8, opp: 1.4, liv: 0.35, str: 0.06 }); if (naer < 5) { lyd.lande(); } }
     }
 
     if (feiringTid > 0) { feiringTid -= dt; }
@@ -1192,6 +1220,7 @@ async function start() {
     if (tilstand === 'dod') { oppdaterDod(dt); }
     oppdaterTyveri(dt);
     visEffekt();
+    oppdaterLevering(dt);
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1400,6 +1429,7 @@ async function start() {
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
       pakkeRader: (fra = 0, til = 80) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); if (d) { d.pakker.forEach((p) => u.push({ rad: r, x: p.x, tatt: p.tatt })); } } return u; },
+      levering: (r) => verden.bane.levering(r),
       kraft: (fra = 0, til = 400) => { const u = []; for (let r = fra; r <= til; r++) { const k = verden.bane.kraft(r); if (k) { u.push({ rad: r, ...k }); } } return u; },
       effekt: () => ({ skjold: effekt.skjold, fart: fartAktiv(), magnet: magnetAktiv() }), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),

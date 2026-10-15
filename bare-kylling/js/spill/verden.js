@@ -68,6 +68,7 @@ export class Verden {
     this.sti = 0;              /* kolonnen som alltid holdes åpen gjennom gresset */
     this.tavler = 0;
     this.harEgg = false;
+    this.sluppet = new Set();   /* leveringsrunder som er sluppet */
     this.tid = 0;
   }
 
@@ -565,7 +566,14 @@ export class Verden {
       mesh.scale.setScalar(1.45);
       mesh.position.set(p.x, 0.2, -rad.rad);
       rad.gruppe.add(mesh);
-      rad.pakker.push({ x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false, levering: !!p.levering });
+      const q = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false, levering: !!p.levering };
+      if (p.levering && !this.sluppet.has(this.bane.levering(rad.rad))) {
+        /* Varebilens last: ligger oppe i lufta til den slippes */
+        q.landet = false;
+        mesh.visible = false;
+        mesh.position.y = 9;
+      }
+      rad.pakker.push(q);
     }
     const k = this.bane.kraft(rad.rad);
     if (k) {
@@ -591,7 +599,20 @@ export class Verden {
   pakkerNaer(x, r, n) {
     const rad = this.rader.get(r);
     if (!rad) { return []; }
-    return rad.pakker.filter((q) => !q.tatt && Math.abs(q.x - Math.round(x)) <= n && (!q.levering || q.landet !== false));
+    return rad.pakker.filter((q) => !q.tatt && Math.abs(q.x - Math.round(x)) <= n);
+  }
+
+  /* Varebilen mister lasten: pakkene i radene fra–fra+2 begynner å falle */
+  slippLevering(fra) {
+    if (this.sluppet.has(fra)) { return false; }
+    this.sluppet.add(fra);
+    let i = 0;
+    for (let r = fra; r <= fra + 2; r++) {
+      const rad = this.rader.get(r);
+      if (!rad) { continue; }
+      for (const p of rad.pakker) { if (p.landet === false) { p.fallStart = this.tid + 0.3 + (i++) * 0.12; } }
+    }
+    return true;
   }
 
   /* Kraftpakken på (x, r), én gang */
@@ -613,7 +634,17 @@ export class Verden {
     const hendelser = [];
     for (const rad of this.rader.values()) {
       for (const p of rad.pakker) {
-        if (p.tatt || p.faller) { continue; }
+        if (p.tatt) { continue; }
+        if (p.landet === false) {
+          /* Pakker som regner ned fra varebilen */
+          if (p.fallStart === undefined || this.tid < p.fallStart) { continue; }
+          const t = this.tid - p.fallStart;
+          p.mesh.visible = true;
+          p.mesh.position.y = Math.max(0.2, 9 - 10 * t * t);
+          p.mesh.rotation.y = t * 9;
+          if (p.mesh.position.y <= 0.2) { p.landet = true; hendelser.push({ type: 'pakkeland', rad: rad.rad, x: p.x }); }
+          continue;
+        }
         p.mesh.rotation.y = this.tid * 1.8 + p.fase;
         p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
       }

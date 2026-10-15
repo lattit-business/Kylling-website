@@ -95,6 +95,11 @@ const KRAFT_LUKE = 70;                 /* én mulig kraftpakke per 70 rader */
 const KRAFTLAND = ['gress', 'park', 'fortau'];
 const iTryggSone = (r) => Math.abs(r - JOBB) <= 3;
 
+/* LEVERINGSRUNDE: varebilen mister lasten, og pakkene regner ned over tre
+   rader på rad (tre pakker per rad). Én mulig per 110 rader. */
+const SALT_LEV = 0x4C4556;
+const LEV_LUKE = 110;
+
 export class Bane {
   constructor(frø) {
     this.frø = frø >>> 0;
@@ -104,6 +109,7 @@ export class Bane {
     this.forrigeBlokk = '';
     this.pakkeCache = new Map();
     this.kraftCache = new Map();
+    this.levCache = new Map();
   }
 
   /* Spesifikasjonen for rad r: { rad, type, verden, ... } */
@@ -187,6 +193,48 @@ export class Bane {
      ligger pakker, holdes fri for hindringer når raden bygges. */
   pakker(r) {
     if (this.pakkeCache.has(r)) { return this.pakkeCache.get(r); }
+    const liste = this.grunnPakker(r);
+    const lev = this.levering(r);
+    if (lev) {
+      /* tre pakker i raden fra varebilen, på ledige plasser */
+      const rng = lagRng(bland(this.frø, r, SALT_LEV));
+      const opptatt = new Set(liste.map((p) => p.x));
+      for (let i = 0; i < 3; i++) {
+        let x = Math.floor(rng() * (KOL * 2 + 1)) - KOL;
+        while (opptatt.has(x)) { x = x >= KOL ? -KOL : x + 1; }
+        opptatt.add(x);
+        liste.push({ x, slag: rng() < 0.5 ? 'original' : 'paprika', levering: true });
+      }
+    }
+    this.pakkeCache.set(r, liste);
+    return liste;
+  }
+
+  /* Leveringsrunden i luke k (eller null): { fra } = første av tre rader */
+  leveringLuke(k) {
+    if (this.levCache.has(k)) { return this.levCache.get(k); }
+    const rng = lagRng(bland(this.frø, k, SALT_LEV ^ 0xABCDEF));
+    let svar = null;
+    if (rng() < 0.6) {
+      const start = 40 + k * LEV_LUKE + Math.floor(rng() * 50);
+      const ok = (r) => r !== JOBB - 3 && !iTryggSone(r) && PAKKELAND.includes(this.spek(r).type);
+      for (let r = start; r < start + 20; r++) {
+        if (ok(r) && ok(r + 1) && ok(r + 2)) { svar = { fra: r }; break; }
+      }
+    }
+    this.levCache.set(k, svar);
+    return svar;
+  }
+
+  /* Første rad i leveringsrunden som rad r er med i, eller null */
+  levering(r) {
+    if (r < 40) { return null; }
+    const l = this.leveringLuke(Math.floor((r - 40) / LEV_LUKE));
+    return l && r >= l.fra && r <= l.fra + 2 ? l.fra : null;
+  }
+
+  /* Vanlige pakker (uten leveringsrunden) */
+  grunnPakker(r) {
     const spek = this.spek(r), liste = [];
     if (r >= 4 && r !== JOBB - 3 && PAKKELAND.includes(spek.type)) {
       const rng = lagRng(bland(this.frø, r, SALT_PAKKE));
@@ -195,7 +243,6 @@ export class Bane {
         liste.push({ x: Math.floor(rng() * (KOL * 2 + 1)) - KOL, slag: rng() < 0.5 ? 'original' : 'paprika' });
       }
     }
-    this.pakkeCache.set(r, liste);
     return liste;
   }
 
