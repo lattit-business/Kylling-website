@@ -33,11 +33,48 @@ export function bland(frø, r, salt) {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-/* Kylling Verden: en egen kyllingby fra rett etter Jobbsenteret til rad 250 */
-export const KV = { fra: JOBB + 3, til: 250 };
-export const iKV = (r) => r >= KV.fra && r <= KV.til;
+/* ---------------------------------------------------------------------------
+   VERDENENE
+   Byen går fram til Jobbsenteret. Etter det kommer fire verdener, og når
+   Treningssenteret er ferdig, starter ringen på nytt med Kylling Verden (litt
+   raskere for hver runde). Første rad i hver verden er porten.
+   --------------------------------------------------------------------------- */
+export const VERDENER = [
+  { id: 'by', navn: 'Byen', fra: -10, til: JOBB + 2 },
+  { id: 'kylling', navn: 'Kylling Verden', fra: JOBB + 3, til: 130 },
+  { id: 'brygge', navn: 'Bryggen', fra: 131, til: 200 },
+  { id: 'fabrikk', navn: 'Fabrikken', fra: 201, til: 270 },
+  { id: 'trening', navn: 'Treningssenteret', fra: 271, til: 340 }
+];
+const RING_FRA = VERDENER[1].fra;
+const RING = VERDENER[VERDENER.length - 1].til - RING_FRA + 1;
+
+/* Verdenen rad r ligger i: { id, navn, fra, til, runde } (fra/til er de
+   faktiske radene i denne runden av ringen) */
+export function verdenFor(r) {
+  if (r < RING_FRA) { return { ...VERDENER[0], runde: 0 }; }
+  const runde = Math.floor((r - RING_FRA) / RING);
+  const forskyv = runde * RING, i = r - forskyv;
+  const v = VERDENER.find((w) => w.id !== 'by' && i >= w.fra && i <= w.til);
+  return { id: v.id, navn: v.navn, fra: v.fra + forskyv, til: v.til + forskyv, runde };
+}
 
 export const vanske = (r) => Math.max(0, Math.min(1, (r - 4) / 130));
+
+/* Hvor ofte hver blokk kommer i hver verden. Blokkene er de samme overalt
+   (gress, park, by = fortau + vei + fortau, vei, elv, bane), men ser ulike ut:
+   på Bryggen er elva havna og bybanen Fløibanen, i Fabrikken er elva et
+   samlebånd og bybanen et stempel, osv. To blokker finnes bare ett sted:
+   grillplater i Fabrikken og tredemøller på Treningssenteret. */
+const VEKTER = {
+  by: (r, d) => [['gress', 3], ['park', 1.1], ['by', 3.2], ['vei', 1.6], ['elv', r >= 8 ? 2.2 : 0], ['bane', r >= 18 ? 1 + d : 0]],
+  kylling: (r, d) => [['gress', 3.2], ['park', 1.4], ['by', 2.6], ['vei', 1.8], ['elv', 2.2], ['bane', 1 + d]],
+  brygge: (r, d) => [['gress', 2.6], ['park', 1.4], ['by', 2.4], ['vei', 1.0], ['elv', 3.0], ['bane', 0.6 + d * 0.4]],
+  fabrikk: (r, d) => [['gress', 2.8], ['park', 0.8], ['by', 1.6], ['vei', 2.0], ['elv', 2.2], ['bane', 0.8 + d * 0.5], ['grill', 1.6]],
+  trening: (r, d) => [['gress', 3.0], ['park', 1.0], ['by', 1.2], ['vei', 2.0], ['bane', 0.8 + d * 0.4], ['mølle', 3.0]]
+};
+/* Minste antall rader en blokk trenger (så den ikke renner over i neste verden) */
+const MIN_RADER = { gress: 1, park: 1, by: 3, vei: 1, elv: 2, bane: 1, grill: 1, mølle: 2 };
 
 /* Radtyper der det kan ligge pakker */
 const PAKKELAND = ['gress', 'park', 'fortau', 'vei'];
@@ -53,7 +90,7 @@ export class Bane {
     this.pakkeCache = new Map();
   }
 
-  /* Spesifikasjonen for rad r: { rad, type, ... } */
+  /* Spesifikasjonen for rad r: { rad, type, verden, ... } */
   spek(r) {
     while (this.neste <= r) { this.planlegg(); }
     return this.spekker.get(r);
@@ -61,6 +98,7 @@ export class Bane {
 
   leggTil(spek) {
     spek.rad = this.neste++;
+    spek.verden = verdenFor(spek.rad).id;
     this.spekker.set(spek.rad, spek);
   }
 
@@ -74,18 +112,24 @@ export class Bane {
       this.leggTil({ type: typer[r], jobb: true, lett: r === JOBB - 3 });
       return;
     }
+    const v = verdenFor(r);
+    if (r === v.fra && v.id !== 'by') {
+      /* Porten inn til en ny verden: en rolig rad å puste på */
+      this.forrigeBlokk = 'gress';
+      this.leggTil({ type: 'gress', lett: true, port: v.id });
+      return;
+    }
     const d = vanske(r);
-    const igjen = JOBB - 3 - r;          /* plass før Jobbsenteret */
+    const igjen = (v.id === 'by' ? JOBB - 4 : v.til) - r + 1;   /* rader igjen i verdenen */
     const rng = this.rng;
-    const valg = [
-      ['gress', 3], ['park', 1.1], ['by', 3.2], ['vei', 1.6],
-      ['elv', r >= 8 ? 2.2 : 0], ['bane', r >= 18 ? 1 + d : 0]
-    ].filter(([n, w]) => w > 0 && (n !== this.forrigeBlokk || n === 'gress'));
-    let sum = valg.reduce((s, v) => s + v[1], 0), pil = rng() * sum, blokk = 'gress';
+    const valg = VEKTER[v.id](r, d)
+      .filter(([n, w]) => w > 0 && MIN_RADER[n] <= igjen && (n !== this.forrigeBlokk || n === 'gress'));
+    let sum = valg.reduce((s, x) => s + x[1], 0), pil = rng() * sum, blokk = 'gress';
     for (const [n, w] of valg) { if ((pil -= w) <= 0) { blokk = n; break; } }
     this.forrigeBlokk = blokk;
 
-    const maks = (n) => (igjen > 0 ? Math.max(1, Math.min(n, igjen)) : n);
+    /* n rader, men aldri flere enn det er plass til (ekstra = rader rundt) */
+    const maks = (n, ekstra = 0) => Math.max(1, Math.min(n, igjen - ekstra));
     if (blokk === 'gress') {
       const n = maks(1 + Math.floor(rng() * 3));
       for (let i = 0; i < n; i++) { this.leggTil({ type: 'gress' }); }
@@ -93,8 +137,8 @@ export class Bane {
       const n = maks(1 + Math.floor(rng() * 2));
       for (let i = 0; i < n; i++) { this.leggTil({ type: 'park' }); }
     } else if (blokk === 'vei' || blokk === 'by') {
-      const n = maks(1 + Math.floor(rng() * (2 + d * 3.2)));
       const by = blokk === 'by';
+      const n = maks(1 + Math.floor(rng() * (2 + d * 3.2)), by ? 2 : 0);
       if (by) { this.leggTil({ type: 'fortau', kant: 'foran' }); }
       const zebra = by && rng() < 0.6 ? Math.floor(rng() * 5) - 2 : null;
       let retning = rng() < 0.5 ? 1 : -1;
@@ -104,10 +148,19 @@ export class Bane {
       }
       if (by) { this.leggTil({ type: 'fortau', kant: 'bak' }); }
     } else if (blokk === 'elv') {
-      const n = maks(1 + Math.floor(rng() * (1.6 + d * 2.4)));
+      const n = maks(1 + Math.floor(rng() * (1.6 + d * 2.4)), 1);
       let retning = rng() < 0.5 ? 1 : -1;
       for (let i = 0; i < n; i++) { this.leggTil({ type: 'elv', retning }); retning = -retning; }
       this.leggTil({ type: 'gress', lett: true });
+    } else if (blokk === 'grill') {
+      /* Én eller to grillplater; to på rad er i utakt, så det alltid er en luke */
+      const n = maks(rng() < 0.35 ? 2 : 1);
+      for (let i = 0; i < n; i++) { this.leggTil({ type: 'grill', fase: i }); }
+    } else if (blokk === 'mølle') {
+      /* En rolig rad først, så tredemøllene alltid dytter deg ned på trygg grunn */
+      const n = maks(1 + Math.floor(rng() * 2), 1);
+      this.leggTil({ type: 'gress', lett: true });
+      for (let i = 0; i < n; i++) { this.leggTil({ type: 'mølle' }); }
     } else {
       this.leggTil({ type: 'bane' });
     }
@@ -121,7 +174,7 @@ export class Bane {
     const spek = this.spek(r), liste = [];
     if (r >= 4 && r !== JOBB - 3 && PAKKELAND.includes(spek.type)) {
       const rng = lagRng(bland(this.frø, r, SALT_PAKKE));
-      const sjanse = (spek.type === 'vei' ? 0.16 : 0.24) * (iKV(r) ? 1.7 : 1);
+      const sjanse = (spek.type === 'vei' ? 0.16 : 0.24) * (spek.verden === 'kylling' ? 1.7 : 1);
       if (rng() < sjanse) {
         liste.push({ x: Math.floor(rng() * (KOL * 2 + 1)) - KOL, slag: rng() < 0.5 ? 'original' : 'paprika' });
       }
@@ -137,6 +190,7 @@ export class Bane {
      u12 / d8 / l3 / r1a  hopp (retning + hundredeler siden forrige hopp, base 36)
      p1f.5                plukket pakke på rad 0x1f (base 36), kolonne 5 (x + 4)
      m                    måka stjal en pakke
+     b                    tredemølla dyttet kyllingen én rad bakover
    lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs } eller
    { feil }. Samme funksjon brukes av serveren og testene.
    --------------------------------------------------------------------------- */
@@ -173,6 +227,11 @@ export function lesLogg(logg, frø) {
       kol = px;
       tatt.add(nokkel);
       pakker++;
+    } else if (bit === 'b') {
+      /* Bare lov på en tredemølle. Kolonnen er den samme (mølla går rett bakover). */
+      const spek = bane.spek(rad);
+      if (!spek || spek.type !== 'mølle') { return { feil: 'Ugyldig logg.' }; }
+      rad -= 1;
     } else if (bit === 'm') {
       if (stjalet || pakker < 1) { return { feil: 'Ugyldig logg.' }; }
       stjalet = true;

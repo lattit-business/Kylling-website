@@ -201,15 +201,27 @@ på topp 10. Databasen beholder de 100 beste per liste; når den er full, slette
 den svakeste. Bryteren «Topp 10 / Topp 100» over lista velger hvor mange som
 vises (`GET /api/toppliste?antall=100`), og valget huskes på enheten.
 
-### Butikken og Kylling Verden
+### Butikken og verdenene
 
 - **Butikken** (`js/spill/butikk.js`): pakkene du plukker opp, legges i en
   lommebok på enheten (`bk-spill-lommebok`). For dem kjøper du pynt
   (kokkelue, solbriller, caps, krone) og farger (Paprika, Original, Gull) til
   kyllingen. Alt lagres i nettleseren og gir ingen fordel på topplista.
-- **Kylling Verden** (rad 63–250, `KV` i `verden.js`): honningbakke,
-  hønsehus, kornsiloer, eggkartonger, sausebekker, Bare Kylling-biler og
-  flere pakker. Port inn, skilt ut, og vanlig by igjen etter 250.
+- **Verdenene** (`VERDENER` og `verdenFor()` i `js/spill/bane.mjs`): etter
+  Jobbsenteret kommer Kylling Verden (63–130), Bryggen (131–200), Fabrikken
+  (201–270) og Treningssenteret (271–340). Deretter går ringen rundt igjen fra
+  Kylling Verden, litt raskere for hver runde. Hver verden har egen bakke,
+  egne hindringer, egen himmel, en port med skilt og sin egen variant av
+  musikken. Vei, elv og bybane ser forskjellige ut i hver verden:
+  | Verden | Vei | Elv | Bane | Eget |
+  |---|---|---|---|---|
+  | Kylling Verden | varebiler, traktorer | sausebekk med kyllingfilet | kyllingtoget | høner som titter ut, flere pakker |
+  | Bryggen | fiskevogner | havna med båter og ferger | Fløibanen | regn, sultnere måker |
+  | Fabrikken | trucker, trillebord | samlebånd («Du ble krydret!») | stempel («Du ble pakket inn») | grillplater |
+  | Treningssenteret | vektskiver, baller | – | vektstang | tredemøller som dytter deg bakover |
+
+  Tredemølla logges som `b` i trekkloggen, og serveren godtar den bare på en
+  tredemølle-rad. Test en verden med `?test` og `__bkSpill.hoppTil(202)`.
 - **Premier:** Stråhatt låses opp på rad 150 og Gull-kokkelue på rad 250
   (din beste poengsum på enheten). De tas på av seg selv når du låser dem
   opp, og ligger i butikken etterpå. De kan ikke kjøpes for pakker.

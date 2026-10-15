@@ -11,7 +11,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
-import { Verden, KOL, JOBB, KV, iKV, vanske } from './verden.js';
+import { Verden, KOL, JOBB, vanske, verdenFor } from './verden.js';
 import { Bane } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
@@ -106,7 +106,7 @@ async function start() {
   const spiller = {
     gruppe: new THREE.Group(), snu: new THREE.Group(), kropp: new THREE.Mesh(kyllingGeo, MATERIALE),
     x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null,
-    yaw: Math.PI / 2, maalYaw: Math.PI / 2, paa: null, tomgang: 0, klemt: 0
+    yaw: Math.PI / 2, maalYaw: Math.PI / 2, paa: null, tomgang: 0, klemt: 0, molle: 0, glid: false
   };
   spiller.kropp.castShadow = true;
   spiller.snu.add(spiller.kropp);
@@ -208,7 +208,8 @@ async function start() {
   const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
   let billett = null, logg = [], sisteTrekk = 0;
-  let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0;
+  let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0, dodVerden = 'by';
+  let pakketKylling = null;   /* pakken kyllingen blir til i stempelet */
   /* «Redusert bevegelse»: kameraet rister ikke */
   const ristSkala = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1;
   /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
@@ -230,11 +231,37 @@ async function start() {
     vann: ['Plask! Kyllinger er ikke laget for svømming.', 'Kyllingfilet skal stekes, ikke kokes.'],
     drift: ['Du drev til havs. Ha det!', 'Neste stopp: Nordsjøen.'],
     maake: ['Måka tok deg. Typisk Bergen.', 'Ikke stå stille – måkene følger med.'],
+    traktor: ['Traktoren hadde forkjørsrett.'],
+    fiskevogn: ['Overkjørt av en fiskevogn. Ferskvare!'],
+    truck: ['Trucken leverte deg til feil avdeling.'],
+    trillebord: ['Trillebordet tok deg med til kjøkkenet.'],
+    vektskive: ['Den skiva var 20 kilo for mye.', 'Vektskiva rullet rett over deg.'],
+    ball: ['Treningsballen vant.'],
+    kyllingtog: ['Kyllingtoget stopper ikke for kyllinger.'],
+    floibane: ['Fløibanen skulle til Fløyen, ikke over deg.'],
+    stang: ['Vektstanga tok deg. Husk å varme opp.'],
+    stempel: ['Du ble pakket inn. Klar for butikk!'],
+    grill: ['Grillkylling var ikke planen.', 'Varmt! Grillplata var på.'],
+    vannKylling: ['Plask! Rett i sausen.', 'Kyllingfilet i saus. Ikke helt planen.'],
+    vannBrygge: ['Plask! Rett i Vågen.', 'Kyllinger er ikke laget for svømming.'],
+    driftBrygge: ['Du drev ut Vågen. Neste stopp: Nordsjøen.'],
+    krydret: ['Du ble krydret!'],
+    molle: ['Tredemølla vant den runden.', 'Ikke stå stille på mølla!'],
     tyveri: ['Måka stjal en pakke! Neste gang tar den deg.', 'Typisk Bergen: måka tok matpakka.', 'Måka fikk lunsj. Du får ikke ny sjanse.'],
     rekord: ['Du er offisielt en legendekylling!'],
     jobb: ['Gratulerer! Du kom deg på jobb!']
   };
   const velg = (liste) => liste[Math.floor(Math.random() * liste.length)];
+  /* Meldingen når du går inn i en ny verden */
+  function velkommen(v) {
+    if (v.runde > 0 && v.id === 'kylling') { return `Runde ${v.runde + 1}! Alt går litt fortere nå.`; }
+    return {
+      kylling: 'Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.',
+      brygge: 'Bryggen! Det regner, selvfølgelig. Måkene er sultne.',
+      fabrikk: 'Fabrikken. Hold deg unna stempelet.',
+      trening: pakker > 0 ? 'Ekte mat etter trening.' : 'Glemte du matpakka?'
+    }[v.id];
+  }
 
   function melding(tekst, varighet = 2.2) {
     if (!ui.melding) { return; }
@@ -248,13 +275,13 @@ async function start() {
     if (ui.poeng) { ui.poeng.textContent = String(poeng); }
     if (ui.pakker) { ui.pakker.textContent = String(pakker); }
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
+    const forbi = jobbNaadd || poeng > JOBB + 2, v = verdenFor(poeng);
     if (ui.maal) {
-      ui.maal.textContent = !jobbNaadd ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`
-        : iKV(poeng) ? `Kylling Verden · ${KV.til - poeng + 1} igjen` : 'Uendelig modus';
+      ui.maal.textContent = !forbi ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}` : `${v.navn} · ${v.til - poeng + 1} igjen`;
     }
     if (ui.maalFyll) {
-      const fyll = !jobbNaadd ? Math.min(1, poeng / JOBB) : iKV(poeng) ? (poeng - KV.fra) / (KV.til - KV.fra) : 1;
-      ui.maalFyll.style.transform = `scaleX(${fyll})`;
+      const fyll = !forbi ? Math.min(1, poeng / JOBB) : (poeng - v.fra) / (v.til - v.fra);
+      ui.maalFyll.style.transform = `scaleX(${Math.max(0, Math.min(1, fyll))})`;
     }
   }
 
@@ -269,7 +296,7 @@ async function start() {
     if (verden) { verden.fjernAlt(); }
     verden = new Verden(scene, teksturer, reklame, new Bane(b ? b.frø : (Math.random() * 2 ** 32) >>> 0));
     verden.sikre(-10, 26);
-    Object.assign(spiller, { x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null, paa: null, tomgang: 0, klemt: 0 });
+    Object.assign(spiller, { x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null, paa: null, tomgang: 0, klemt: 0, molle: 0, glid: false });
     spiller.yaw = spiller.maalYaw = Math.PI / 2;
     spiller.gruppe.position.set(0, 0, 0);
     spiller.gruppe.visible = true;
@@ -279,9 +306,11 @@ async function start() {
     poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
-    maakeHarStjaalet = false; tyveri = null;
+    maakeHarStjaalet = false; tyveri = null; molleMeldt = false;
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
+    if (pakketKylling) { pakketKylling.visible = false; }
+    lyd.settVerden('by');
     plasserKamera(1);
     oppdaterHud();
   }
@@ -345,6 +374,8 @@ async function start() {
     spiller.hopp = 0;
     spiller.paa = null;
     spiller.tomgang = 0;
+    spiller.molle = 0;
+    spiller.glid = false;
     lyd.hopp();
     const radStoev = radNa ? radNa.type : 'gress';
     const stoev = radStoev === 'vei' ? [F.veiMork, F.stein] : radStoev === 'fortau' || radStoev === 'start' ? [F.fortauMork, F.creamHi] : radStoev === 'elv' ? [F.skum, F.vann] : [F.gressMork, F.lov];
@@ -361,9 +392,9 @@ async function start() {
       if (poeng === 10) { melding('10 ruter! Godt i gang.'); }
       else if (poeng === 25) { melding('25! Nå snakker vi.'); }
       else if (poeng === JOBB - 10) { melding('Jobbsenteret er rett der fremme!'); }
-      else if (poeng === KV.fra) { melding('Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.', 3); lyd.poeng(); }
-      else if (poeng === KV.til + 1) { melding('Du klarte Kylling Verden! Tilbake til byen.', 3); lyd.seier(); }
       else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
+      const v = verdenFor(poeng);
+      if (poeng === v.fra && v.id !== 'by') { melding(velkommen(v), 3); lyd.poeng(); }
       /* Premier: første gang du når rad 150 og 250 */
       const premie = B.PREMIER.find((v) => v.rad === poeng && forrigeRekord < v.rad && !opplast.has(v.id));
       if (premie) {
@@ -381,7 +412,8 @@ async function start() {
 
   function landet() {
     spiller.x = spiller.tilX; spiller.rad = spiller.tilRad;
-    spiller.klemt = 0.1;
+    spiller.klemt = spiller.glid ? 0 : 0.1;
+    spiller.glid = false;
     const rad = verden.rad(spiller.rad);
     if (rad && rad.type === 'elv') {
       const m = verden.flyter(spiller.x, spiller.rad);
@@ -432,23 +464,36 @@ async function start() {
     lyd.stoppMusikk();
     const x = spiller.gruppe.position.x, z = spiller.gruppe.position.z;
     let tekst;
+    const verdenId = verdenFor(spiller.rad).id;
+    dodVerden = verdenId;
     if (aarsak === 'bil') {
       const len = kjoretoy && kjoretoy.len;
-      tekst = velg(len === 1.75 ? MELDINGER.varebil : len === 2.6 ? MELDINGER.lastebil : len === 2.9 ? MELDINGER.buss : MELDINGER.bil);
+      tekst = velg(MELDINGER[kjoretoy && kjoretoy.slag] || (len === 1.75 ? MELDINGER.varebil : len === 2.6 ? MELDINGER.lastebil : len === 2.9 ? MELDINGER.buss : MELDINGER.bil));
       lyd.krasj();
       risting = 0.35 * ristSkala;
       sprut(x, 0.4, z, 22, [F.creamHi, F.beige, F.creamHi, F.paprika], { fart: 2.6, opp: 3.4, liv: 1.1, str: 0.09, tyngde: 4 });
+    } else if (aarsak === 'stempel') {
+      tekst = velg(MELDINGER.stempel);
+      lyd.stempel();
+      risting = 0.4 * ristSkala;
+      sprut(x, 0.3, z, 18, [F.honey, F.creamHi, 0xA9ADB2], { fart: 2.4, opp: 2.5, liv: 0.8, str: 0.08 });
+    } else if (aarsak === 'grill') {
+      tekst = velg(MELDINGER.grill);
+      lyd.fres();
+      sprut(x, 0.3, z, 22, [0x8E8E8E, 0xBFBFBF, F.oransje], { fart: 0.6, opp: 2.2, liv: 1.2, str: 0.1, tyngde: -0.5 });
     } else if (aarsak === 'bane') {
-      tekst = velg(MELDINGER.bane);
       const rad = verden.rad(r);
+      tekst = velg(MELDINGER[rad && rad.bane && rad.bane.variant] || MELDINGER.bane);
       dodTog = kjoretoy; dodBane = rad && rad.bane;
       lyd.krasj(); lyd.bjelle();
       risting = 0.5 * ristSkala;
       sprut(x, 0.4, z, 30, [F.creamHi, F.beige, F.paprika], { fart: 4, opp: 4, liv: 1.2, str: 0.1, tyngde: 4 });
     } else if (aarsak === 'vann' || aarsak === 'drift') {
-      tekst = velg(MELDINGER[aarsak]);
+      const egne = verdenId === 'fabrikk' ? MELDINGER.krydret : verdenId === 'kylling' ? MELDINGER.vannKylling
+        : verdenId === 'brygge' ? (aarsak === 'drift' ? MELDINGER.driftBrygge : MELDINGER.vannBrygge) : null;
+      tekst = velg(egne || MELDINGER[aarsak]);
       lyd.plask();
-      sprut(x, 0, z, 26, [F.skum, F.vann, F.hvit], { fart: 1.6, opp: 4.2, liv: 0.9, str: 0.08 });
+      sprut(x, 0, z, 26, verdenId === 'fabrikk' ? [F.paprika, F.honey, F.paprikaDeep] : [F.skum, F.vann, F.hvit], { fart: 1.6, opp: 4.2, liv: 0.9, str: 0.08 });
     } else {
       tekst = velg(MELDINGER.maake);
       lyd.maake();
@@ -475,6 +520,21 @@ async function start() {
       spiller.snu.rotation.y = spiller.yaw;
       k.scale.set(1 - 0.6 * t, 1 + 0.12 * t, 1 + 0.2 * t);
       spiller.snu.rotation.x = Math.sin(dodTid * 9) * 0.12;
+    } else if (dodAarsak === 'stempel') {
+      /* Flatklemt, og så: en ferdig pakke */
+      const t = Math.min(1, dodTid / 0.1);
+      k.scale.set(1 + 0.3 * t, 1 - 0.9 * t, 1 + 0.3 * t);
+      if (dodTid > 0.35 && spiller.gruppe.visible) {
+        spiller.gruppe.visible = false;
+        if (!pakketKylling) { pakketKylling = M.pakke('original'); pakketKylling.scale.setScalar(1.9); scene.add(pakketKylling); }
+        pakketKylling.visible = true;
+        pakketKylling.position.set(spiller.gruppe.position.x, 0.05, spiller.gruppe.position.z);
+        pakketKylling.rotation.set(0, 0.4, 0);
+      }
+    } else if (dodAarsak === 'grill') {
+      const t = Math.min(1, dodTid / 0.5);
+      spiller.gruppe.position.y = Math.sin(Math.min(1, dodTid / 0.4) * Math.PI) * 0.6;
+      k.scale.set(1 - 0.15 * t, 1 - 0.15 * t, 1 - 0.15 * t);
     } else if (dodAarsak === 'bil' || dodAarsak === 'bane') {
       const t = Math.min(1, dodTid / 0.12);
       k.scale.set(1 + 0.45 * t, 1 - 0.86 * t, 1 + 0.45 * t);
@@ -515,8 +575,10 @@ async function start() {
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
     if (ui.sluttRekord) { ui.sluttRekord.textContent = String(rekord); }
-    const TITLER = { bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!' };
-    if (ui.sluttTittel) { ui.sluttTittel.textContent = jobbNaadd ? 'Du kom deg på jobb!' : TITLER[dodAarsak] || 'Runden er over'; }
+    const TITLER = { bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!', stempel: 'Pakket inn!', grill: 'Grillet!' };
+    const tittel = (dodAarsak === 'vann' || dodAarsak === 'drift') && dodVerden === 'fabrikk' ? 'Krydret!'
+      : dodAarsak === 'bane' && dodVerden !== 'by' ? 'Overkjørt!' : TITLER[dodAarsak];
+    if (ui.sluttTittel) { ui.sluttTittel.textContent = jobbNaadd ? 'Du kom deg på jobb!' : tittel || 'Runden er over'; }
     if (ui.sluttTekst) {
       const fram = jobbNaadd
         ? `Du nådde Jobbsenteret og kom ${poeng - JOBB} ${poeng - JOBB === 1 ? 'rute' : 'ruter'} videre.`
@@ -946,7 +1008,7 @@ async function start() {
   /* -------------------------------------------------------------------------
      MÅKA – første gang du er for treg, stjeler den en pakke i stedet for deg
      ------------------------------------------------------------------------- */
-  let maakeHarStjaalet = false, tyveri = null;
+  let maakeHarStjaalet = false, tyveri = null, molleMeldt = false;
   const tyvPakke = M.pakke('original');
   tyvPakke.scale.setScalar(1.1);
   tyvPakke.position.set(0.82, -0.35, 0);
@@ -1003,11 +1065,14 @@ async function start() {
 
   function oppdaterRull(dt) {
     const spillerRad = -spiller.gruppe.position.z;
+    const v = verdenFor(Math.max(0, Math.round(spillerRad)));
+    /* Ringen går litt raskere for hver runde, og måkene på Bryggen er ekstra sultne */
+    const brygge = v.id === 'brygge';
     if (tilstand === 'spill' && rullAktiv && feiringTid <= 0) {
-      rull += (0.3 + vanske(poeng) * 0.5) * dt;
+      rull += (0.3 + vanske(poeng) * 0.5) * (1 + 0.12 * v.runde) * (brygge ? 1.15 : 1) * dt;
     }
     if (spillerRad > rull + 1) { rull += (spillerRad - 1 - rull) * Math.min(1, dt * 3.5); }
-    if (tilstand === 'spill' && spillerRad < rull - 4.2 && !gud()) {
+    if (tilstand === 'spill' && spillerRad < rull - (brygge ? 3.5 : 4.2) && !gud()) {
       if (!maakeHarStjaalet && pakker > 0) { stjelPakke(spillerRad); } else { do_('maake'); }
     }
   }
@@ -1028,7 +1093,12 @@ async function start() {
 
     const hendelser = verden.oppdater(dt);
     for (const h of hendelser) {
-      if (h.type === 'bybane' && Math.abs(h.rad - spiller.rad) < 7) { lyd.bjelle(); }
+      const naer = Math.abs(h.rad - spiller.rad);
+      if (h.type === 'bybane' && naer < 7) { lyd.bjelle(); }
+      else if (h.type === 'stempelvarsel' && naer < 6) { lyd.alarm(); }
+      else if (h.type === 'stempel' && naer < 6) { lyd.stempel(naer > 1 ? 0.5 : 1); }
+      else if (h.type === 'grill' && naer < 3) { lyd.fres(0.5); }
+      else if (h.type === 'kakle' && naer < 4 && Math.random() < 0.35) { lyd.kakle(); }
     }
 
     if (feiringTid > 0) { feiringTid -= dt; }
@@ -1042,18 +1112,66 @@ async function start() {
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
     toneHimmel(dt);
+    oppdaterVaer(dt);
     malKvalitet(dt);
     verden.sikre(Math.floor(rull) - 10, Math.floor(rull) + 28);
     oppdaterPartikler(dt);
     tegner.render(scene, kamera);
   }
 
-  /* Himmelen blir varmere i Kylling Verden */
-  const HIMMEL = new THREE.Color(F.cream), HIMMEL_KV = new THREE.Color(0xF7DFA4), himmelMaal = new THREE.Color();
+  /* Hver verden har sin egen himmel, og sin egen variant av musikken */
+  const HIMMEL = { by: F.cream, kylling: 0xF7DFA4, brygge: 0xD6DEE4, fabrikk: 0xF3EBDD, trening: 0xE2E6EE };
+  const himmelMaal = new THREE.Color();
+  let himmelVerden = 'by';
   function toneHimmel(dt) {
-    himmelMaal.copy(iKV(-fokus.z) ? HIMMEL_KV : HIMMEL);
+    const id = verdenFor(Math.max(0, Math.round(-fokus.z))).id;
+    himmelMaal.setHex(HIMMEL[id]);
     scene.background.lerp(himmelMaal, Math.min(1, dt * 1.5));
     scene.fog.color.copy(scene.background);
+    const her = verdenFor(Math.max(0, spiller.rad)).id;
+    if (her !== himmelVerden) { himmelVerden = her; lyd.settVerden(her); }
+  }
+
+  /* -------------------------------------------------------------------------
+     VÆR OG MÅKER PÅ BRYGGEN – regn (ikke med «redusert bevegelse») og
+     måker som sirkler over havna. Én instansmodell for alle regndråpene.
+     ------------------------------------------------------------------------- */
+  const DRAAPER = 160;
+  const regn = new THREE.InstancedMesh(new THREE.BoxGeometry(0.025, 0.34, 0.025), new THREE.MeshBasicMaterial({ color: 0x9FB4C2, transparent: true, opacity: 0.7 }), DRAAPER);
+  regn.frustumCulled = false;
+  regn.visible = false;
+  const draaper = [];
+  for (let i = 0; i < DRAAPER; i++) { draaper.push({ x: (Math.random() - 0.5) * 20, y: Math.random() * 9, z: (Math.random() - 0.5) * 20 }); }
+  scene.add(regn);
+  const pyntMaaker = [M.maake(), M.maake()];
+  pyntMaaker.forEach((m) => { m.visible = false; m.scale.setScalar(0.8); scene.add(m); });
+  let vaerTid = 0;
+  function oppdaterVaer(dt) {
+    vaerTid += dt;
+    const brygge = verdenFor(Math.max(0, Math.round(-fokus.z))).id === 'brygge';
+    pyntMaaker.forEach((m, i) => {
+      m.visible = brygge && !maake.visible;
+      if (!m.visible) { return; }
+      const v = vaerTid * (0.5 + i * 0.15) + i * 3;
+      m.position.set(fokus.x + Math.cos(v) * (5 + i * 2), 4.5 + i, fokus.z - 3 + Math.sin(v) * 4);
+      m.rotation.set(0, -v - Math.PI / 2, 0.25);
+      m.userData.venstre.rotation.x = Math.sin(vaerTid * 8 + i) * 0.5;
+      m.userData.hoyre.rotation.x = -Math.sin(vaerTid * 8 + i) * 0.5;
+    });
+    regn.visible = brygge && ristSkala > 0;
+    if (!regn.visible) { return; }
+    for (let i = 0; i < DRAAPER; i++) {
+      const d = draaper[i];
+      d.y -= dt * 11;
+      d.x -= dt * 1.2;
+      if (d.y < 0) {
+        if (i % 9 === 0) { sprut(fokus.x + d.x, 0.02, fokus.z + d.z, 2, [0xC9D6DE], { fart: 0.5, opp: 1, liv: 0.25, str: 0.04 }); }
+        d.y += 9; d.x = (Math.random() - 0.5) * 20;
+      }
+      mtx.makeTranslation(fokus.x + d.x, d.y, fokus.z + d.z);
+      regn.setMatrixAt(i, mtx);
+    }
+    regn.instanceMatrix.needsUpdate = true;
   }
 
   /* Jobbsenteret tones ned når kyllingen er bak det, så den ikke forsvinner */
@@ -1093,12 +1211,12 @@ async function start() {
   function oppdaterSpiller(dt) {
     const s = spiller, g = s.gruppe;
     if (s.hopp < 1) {
-      s.hopp = Math.min(1, s.hopp + dt / HOPP);
+      s.hopp = Math.min(1, s.hopp + dt / (s.glid ? 0.3 : HOPP));
       const t = s.hopp;
       const x = s.fraX + (s.tilX - s.fraX) * t;
       const zRad = s.fraRad + (s.tilRad - s.fraRad) * t;
-      g.position.set(x, Math.sin(t * Math.PI) * 0.42, -zRad);
-      s.kropp.scale.set(0.94, 1.12, 0.94);
+      g.position.set(x, s.glid ? 0 : Math.sin(t * Math.PI) * 0.42, -zRad);
+      if (!s.glid) { s.kropp.scale.set(0.94, 1.12, 0.94); }
       if (s.hopp >= 1) { g.position.y = 0; landet(); }
     } else {
       /* Står stille: puster, og blir med stokken hvis den står på en */
@@ -1111,6 +1229,20 @@ async function start() {
       }
       g.position.set(s.x, s.paa ? s.paa.mesh.position.y : 0, -s.rad);
       s.tomgang += dt;
+      /* Tredemølla: står du stille i ett sekund, blir du dyttet én rad bakover */
+      const radHer = verden.rad(s.rad);
+      if (tilstand === 'spill' && radHer && radHer.type === 'mølle') {
+        s.molle += dt;
+        if (s.molle >= 1.0) {
+          s.molle = 0;
+          if (!verden.blokkert(Math.round(s.x), s.rad - 1)) {
+            logg.push('b');                       /* serveren sjekker at dette var en tredemølle */
+            Object.assign(s, { fraX: s.x, fraRad: s.rad, tilX: s.x, tilRad: s.rad - 1, hopp: 0, glid: true });
+            if (!molleMeldt) { molleMeldt = true; melding(velg(MELDINGER.molle), 2); }
+            lyd.molle();
+          }
+        }
+      } else { s.molle = 0; }
       const pust = 1 + Math.sin(s.tomgang * 4) * 0.025;
       if (s.klemt > 0) {
         s.klemt -= dt;
@@ -1130,7 +1262,7 @@ async function start() {
     if (tilstand === 'spill') {
       const radNa = s.hopp < 0.55 ? s.fraRad : s.tilRad;
       const m = verden.treff(g.position.x, radNa);
-      if (m) { do_(m.tog ? 'bane' : 'bil', m, radNa); }
+      if (m) { do_(m.tog ? 'bane' : m.stempel ? 'stempel' : m.grill ? 'grill' : 'bil', m, radNa); }
       /* Lyd når noe kjører tett forbi */
       for (const dr of [-1, 0, 1]) {
         const rad = verden.rad(s.rad + dr);
@@ -1177,12 +1309,13 @@ async function start() {
     window.__bkSpill = {
       trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
+      verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
       pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
       rad: (r) => { const d = verden.rad(r); return d ? { type: d.type, blokk: [...d.blokk], fart: d.fart, flytt: d.flytt.map((m) => ({ x: m.x, len: m.len })) } : null },
       hoppTil: (n, x = 0) => {
-        verden.sikre(-10, n + 28);
+        verden.sikre(n - 10, n + 28);
         Object.assign(spiller, { x, rad: n, tilX: x, tilRad: n, hopp: 1, paa: null });
         spiller.gruppe.position.set(x, 0, -n);
         poeng = n; rull = n - 1; oppdaterHud();
