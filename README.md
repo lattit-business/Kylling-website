@@ -208,6 +208,12 @@ vises (`GET /api/toppliste?antall=100`), og valget huskes på enheten.
 - **Kylling Verden** (rad 63–250, `KV` i `verden.js`): honningbakke,
   hønsehus, kornsiloer, eggkartonger, sausebekker, Bare Kylling-biler og
   flere pakker. Port inn, skilt ut, og vanlig by igjen etter 250.
+- **Premier:** Stråhatt låses opp på rad 150 og Gull-kokkelue på rad 250
+  (din beste poengsum på enheten). De tas på av seg selv når du låser dem
+  opp, og ligger i butikken etterpå. De kan ikke kjøpes for pakker.
+- **Gud-modus:** med kallenavnet «barefjær» dør ikke kyllingen (biler,
+  bybanen, vann, drift og måka). Merket «Gud-modus» vises i hjørnet. Rundene
+  sendes aldri til topplista, og serveren har navnet som reservert.
 
 ### Kallenavn og stygge ord
 

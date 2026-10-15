@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261015d" />
+<link rel="stylesheet" href="css/style.css?v=20261015e" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -129,7 +129,7 @@
                 aria-label="Spillet Veien til Jobbsenteret: en kylling som hopper over veier, elver og bybaneskinner i en liten by. Bruk piltastene eller WASD for å hoppe."></canvas>
 
         <div class="hud">
-          <p class="hud__poeng"><span class="sr-only">Poeng: </span><b data-poeng>0</b><span class="hud__rekord">Rekord <b data-rekord>0</b></span><span class="hud__pakker" title="Bare Kylling-pakker"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg><span class="sr-only">Pakker: </span><b data-pakker>0</b></span></p>
+          <p class="hud__poeng"><span class="sr-only">Poeng: </span><b data-poeng>0</b><span class="hud__rekord">Rekord <b data-rekord>0</b></span><span class="hud__pakker" title="Bare Kylling-pakker"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg><span class="sr-only">Pakker: </span><b data-pakker>0</b></span><span class="hud__gud" data-gud hidden>Gud-modus</span></p>
           <div class="hud__knapper">
             <button class="hud__knapp" type="button" data-lyd aria-pressed="true" aria-label="Lydeffekter">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" /><path class="hud__paa" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /><path class="hud__av" d="M16 9l5 6M21 9l-5 6" /></svg>
@@ -287,6 +287,6 @@
 
 <script src="js/content.js?v=20261014c"></script>
 <script src="js/main.js?v=20261014c"></script>
-<script type="module" src="js/spill/spill.js?v=20261015d"></script>
+<script type="module" src="js/spill/spill.js?v=20261015f"></script>
 </body>
 </html>
