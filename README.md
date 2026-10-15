@@ -166,12 +166,14 @@ cacher svaret i 5 sekunder, så mange spillere samtidig gir få databasekall.
 Grensene per IP-adresse (800 runder og 60 innsendinger per 10 minutter) er
 satt høyt nok til at en hel skoleklasse bak samme nettverk kan spille samtidig.
 
-Vern mot juks: hver runde får en signert billett som bare kan brukes én gang,
-spillet sender en logg over hoppene som serveren regner etter (samme poeng,
-ingen hopp raskere enn mulig, ikke lenger runde enn billetten har levd),
-grenser per IP (bare en hash lagres) og sjekk av kallenavn. Kallenavn er ikke
-kontoer – samme navn deler plass. Et nettleserspill kan aldri bli helt
-juksesikkert, men dette gjør det tungvint.
+Vern mot juks: hver runde får en signert billett med et frø som bare kan
+brukes én gang. Banen og pakkene lages av frøet i
+`bare-kylling/js/spill/bane.mjs`, som spillet og serveren deler. Spillet
+sender en logg over hoppene og pakkene; serveren spiller den av mot banen
+(samme poeng, ingen hopp raskere enn mulig, hver pakke må ha ligget der
+kyllingen sto, måka kan stjele én) og teller pakkene selv. I tillegg:
+grenser per IP (bare en hash lagres) og sjekk av kallenavn. Et
+nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 
 ### Kallenavn huskes, og tilhører én enhet
 

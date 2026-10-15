@@ -101,36 +101,45 @@ export async function hentListe() {
 
 /* ---------------------------------------------------------------------------
    Billetter
-   Én billett holdes klar på forhånd (hentet ved sidelasting og etter hver
-   runde), så runden kan sendes inn selv om kyllingen dør før en treg
-   forespørsel er ferdig. Billetten gjelder i to timer på serveren; en
-   eldre enn en time byttes ut.
+   Hver runde spilles på en bane laget av et frø fra serveren. Billetten
+   (med frøet) hentes på forhånd, så verdenen kan bygges før runden starter,
+   og serveren kan regne ut nøyaktig samme bane når runden sendes inn.
+   Billetten gjelder i to timer på serveren; en eldre enn en time byttes ut.
    --------------------------------------------------------------------------- */
 const BILLETT_MAKS_ALDER = 60 * 60 * 1000;
-let klar = null;     /* { billett, hentet } */
+let klar = null;     /* { billett, frø, hentet } */
 let henter = null;   /* pågående forhåndshenting */
 const fersk = (b) => b && Date.now() - b.hentet < BILLETT_MAKS_ALDER;
 
 async function hentBillett() {
   const { status, data } = await kall('POST', { handling: 'start' });
-  return status === 200 && data && data.billett ? { billett: data.billett, hentet: Date.now() } : null;
+  return status === 200 && data && data.billett && Number.isInteger(data.frø)
+    ? { billett: data.billett, frø: data.frø >>> 0, hentet: Date.now() } : null;
 }
 
 /* Henter neste billett i bakgrunnen hvis det ikke ligger en klar */
 export function forberedBillett() {
   if (!henter && !fersk(klar)) {
-    henter = hentBillett().then((b) => { henter = null; if (b) { klar = b; } });
+    henter = hentBillett().then((b) => { henter = null; if (b) { klar = b; } return b; });
   }
+  return henter || Promise.resolve(klar);
 }
 
-/* Gir billetten til en ny runde. Hver billett brukes av én runde. */
-export async function startRunde() {
-  if (!fersk(klar) && henter) { await henter; }
-  let b = fersk(klar) ? klar : null;
+/* Tar den klare billetten med en gang (eller null). Hver billett brukes én gang. */
+export function taKlarBillett() {
+  const b = fersk(klar) ? klar : null;
   klar = null;
-  if (!b) { b = await hentBillett(); }
-  return b ? b.billett : null;
+  return b;
 }
+
+/* Venter på en billett (henter en hvis ingen er klar) */
+export async function nesteBillett() {
+  if (!fersk(klar)) { await forberedBillett(); }
+  return taKlarBillett();
+}
+
+/* Legger en ubrukt billett tilbake (f.eks. hvis runden startet før den kom) */
+export function leggTilbake(b) { if (b && !fersk(klar)) { klar = b; } }
 
 /* { ok, plass, liste } eller { ok: false, melding } */
 export async function sendInn({ billett, navn, poeng, pakker, logg }) {

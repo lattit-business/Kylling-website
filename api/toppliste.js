@@ -18,10 +18,14 @@
    gjør det tungvint):
    - Hver runde starter med en signert billett (HMAC). Billetten ligger i
      databasen og kan bare brukes én gang.
+   - Billetten har et frø (lagret hos oss). Banen og pakkene lages av frøet i
+     bare-kylling/js/spill/bane.mjs, som spillet og serveren deler.
    - Spillet sender med en logg over hoppene (retning + tid siden forrige
-     hopp). Serveren regner ut hvor langt kyllingen kom og sjekker at det er
-     samme poengsum, at ingen hopp kom raskere enn et hopp tar, og at runden
-     ikke kan ha vart lenger enn tiden siden billetten ble laget.
+     hopp), pakkene den plukket og om måka stjal en. Serveren spiller loggen
+     av mot banen: samme poengsum, ingen hopp raskere enn et hopp tar, hver
+     pakke må ha ligget der kyllingen sto og tas bare én gang, og runden kan
+     ikke ha vart lenger enn tiden siden billetten ble laget. Antall pakker
+     regnes ut av serveren, ikke av spillet.
    - Grenser per IP-adresse (bare en hash lagres, aldri selve adressen).
    - Kallenavn: 2–16 tegn, bokstaver/tall/mellomrom/._-, og et lite filter
      mot stygge ord.
@@ -61,9 +65,7 @@ const NOKKEL = {
 };
 
 const RUNDE_LEVETID = 2 * 60 * 60;   /* sekunder en billett gjelder */
-const MIN_HOPP_CS = 10;              /* et hopp tar 0,135 s – raskere er ikke mulig */
 const MAKS_POENG = 5000;
-const MAKS_TREKK = 30000;
 const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
 /* Grensene gjelder per IP-adresse. En hel skole eller et kontor deler ofte én
@@ -217,26 +219,11 @@ async function eierAv(nokkel, eier) {
   return naa === null ? 'ledig' : naa === eier ? 'din' : 'tatt';
 }
 
-/* Spiller loggen av: gir { poeng, tidMs } eller { feil } */
-function lesLogg(logg) {
-  if (typeof logg !== 'string' || logg.length > MAKS_TREKK * 8) { return { feil: 'Ugyldig logg.' }; }
-  const trekk = logg ? logg.split(',') : [];
-  if (trekk.length > MAKS_TREKK) { return { feil: 'Ugyldig logg.' }; }
-  let rad = 0, beste = 0, cs = 0;
-  for (let i = 0; i < trekk.length; i++) {
-    const m = /^([udlr])([0-9a-z]{1,6})$/.exec(trekk[i]);
-    if (!m) { return { feil: 'Ugyldig logg.' }; }
-    const d = parseInt(m[2], 36);
-    if (i > 0 && d < MIN_HOPP_CS) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
-    cs += d;
-    if (m[1] === 'u') { rad += 1; } else if (m[1] === 'd') { rad -= 1; }
-    if (rad > beste) { beste = rad; }
-  }
-  return { poeng: beste, tidMs: cs * 10 };
-}
+/* Banen og trekkloggen er felles med spillet (bare-kylling/js/spill/bane.mjs),
+   så serveren regner ut nøyaktig samme rader og pakker som nettleseren. */
+let baneModul = null;
+const hentBane = async () => baneModul || (baneModul = await import('../bare-kylling/js/spill/bane.mjs'));
 
-/* Topp N fra et sortert sett, med navn og dato fra hashen ved siden av.
-   felt er 'poeng' (lengst) eller 'pakker' (flest Bare Kylling-pakker). */
 async function hentListe(antall = 10, sett = NOKKEL.topp, info = NOKKEL.navn, felt = 'poeng') {
   const par = await en('ZRANGE', sett, '0', String(antall - 1), 'REV', 'WITHSCORES');
   if (!Array.isArray(par) || !par.length) { return []; }
@@ -328,8 +315,10 @@ module.exports = async function toppliste(req, res) {
       if (await forMange('start', ip)) { return send(res, 429, { melding: 'For mange runder akkurat nå.' }); }
       const id = crypto.randomBytes(12).toString('base64url');
       const t = Date.now();
-      await en('SET', NOKKEL.runde(id), String(t), 'EX', String(RUNDE_LEVETID));
-      return send(res, 200, { billett: `${id}.${t}.${hmac(id + '.' + t)}` });
+      /* Frøet til banen lagres hos oss; spilleren får det, men kan ikke bytte det */
+      const frø = crypto.randomBytes(4).readUInt32BE(0);
+      await en('SET', NOKKEL.runde(id), `${t}:${frø}`, 'EX', String(RUNDE_LEVETID));
+      return send(res, 200, { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø });
     }
 
     /* Sjekk et nytt kallenavn før det tas i bruk (lagrer ingenting) */
@@ -361,7 +350,8 @@ module.exports = async function toppliste(req, res) {
       return send(res, 400, { melding: 'Runden kunne ikke bekreftes. Spill en ny runde.' });
     }
     const lagret = await en('GETDEL', NOKKEL.runde(deler[0]));
-    if (lagret === null || lagret !== deler[1]) {
+    const [lagretT, lagretFrø] = String(lagret || '').split(':');
+    if (lagret === null || lagretT !== deler[1] || !/^\d+$/.test(lagretFrø || '')) {
       return send(res, 400, { melding: 'Denne runden er allerede sendt inn, eller den er for gammel.' });
     }
 
@@ -370,14 +360,16 @@ module.exports = async function toppliste(req, res) {
     if (typeof poeng !== 'number' || !Number.isInteger(poeng) || poeng < 1 || poeng > MAKS_POENG) {
       return send(res, 400, { melding: 'Poengsummen kunne ikke godkjennes.' });
     }
-    /* Pakker: maks én per rad, så aldri flere enn hvor langt kyllingen kom */
-    const pakker = kropp.pakker === undefined ? 0 : kropp.pakker;
-    if (typeof pakker !== 'number' || !Number.isInteger(pakker) || pakker < 0 || pakker > poeng) {
-      return send(res, 400, { melding: 'Antall pakker kunne ikke godkjennes.' });
-    }
-    const logg = lesLogg(kropp.logg);
+    /* Loggen spilles av mot banen fra frøet: poeng fra hoppene, og hver pakke
+       må ha ligget der kyllingen sto (minus den måka stjal) */
+    const { lesLogg } = await hentBane();
+    const logg = lesLogg(kropp.logg, Number(lagretFrø));
     if (logg.feil) { return send(res, 400, { melding: logg.feil }); }
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
+    const pakker = logg.pakker;
+    if (kropp.pakker !== undefined && kropp.pakker !== pakker) {
+      return send(res, 400, { melding: 'Antall pakker stemmer ikke med runden.' });
+    }
     const gikk = Date.now() - Number(deler[1]);
     if (logg.tidMs > gikk + SLINGRINGSMONN_MS) { return send(res, 400, { melding: 'Runden gikk for fort.' }); }
 
@@ -403,4 +395,3 @@ module.exports = async function toppliste(req, res) {
 
 /* Til testene i tools/test-toppliste.js */
 module.exports.sjekkNavn = sjekkNavn;
-module.exports.lesLogg = lesLogg;
