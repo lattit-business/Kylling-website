@@ -104,8 +104,8 @@ function last(env) {
   return mod;
 }
 
-async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no' } = {}) {
-  const req = { method, headers: { 'x-forwarded-for': ip + ', 1.1.1.1', host }, body };
+async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no', url = '/api/toppliste' } = {}) {
+  const req = { method, url, headers: { 'x-forwarded-for': ip + ', 1.1.1.1', host }, body };
   if (origin) { req.headers.origin = origin; }
   const res = {
     statusCode: 200, hode: {},
@@ -308,7 +308,7 @@ async function test(navn, fn) {
     nyttVindu();
     const ip = '10.0.0.9';
     let siste;
-    for (let i = 0; i < 61; i++) { siste = await sendInn(await start('10.0.1.' + i), { navn: 'Spammer' + i, ip }); }
+    for (let i = 0; i < 801; i++) { siste = await sendInn(await start('10.0.1.' + (i % 250)), { navn: 'Spammer' + i, ip, poeng: 1, logg: logg(1) }); }
     assert.strictEqual(siste.status, 429);
     const annen = await sendInn(await start('10.0.2.1'), { navn: 'Annen', ip: '10.0.0.10' });
     assert.strictEqual(annen.status, 200);
@@ -400,6 +400,13 @@ async function test(navn, fn) {
     assert.strictEqual(z.size, 100);
     assert.strictEqual(h.size, 100);
     assert.strictEqual(r.data.liste.length, 10);
+    /* Topp 100: ?antall=100 gir hele lista, sortert, og den svakeste er fjernet */
+    const alle = await kall(fn, { method: 'GET', ip: nyIp(), url: '/api/toppliste?antall=100' });
+    assert.strictEqual(alle.data.liste.length, 100);
+    for (let i = 1; i < 100; i++) { assert.ok(alle.data.liste[i - 1].poeng >= alle.data.liste[i].poeng); }
+    assert.strictEqual(alle.data.liste[0].navn, 'Siste');
+    const ti = await kall(fn, { method: 'GET', ip: nyIp(), url: '/api/toppliste?antall=7' });
+    assert.strictEqual(ti.data.liste.length, 10, 'andre tall gir topp 10');
   });
 
   console.log(`\n${ok} tester ok${process.exitCode ? ', noen feilet' : ''} (${dbKall} databasekall)`);

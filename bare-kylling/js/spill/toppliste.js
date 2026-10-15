@@ -61,11 +61,11 @@ export function navngiLokal(poeng, navn) {
   return liste;
 }
 
-async function kall(metode, kropp) {
+async function kall(metode, kropp, sti = API) {
   const ctrl = 'AbortController' in window ? new AbortController() : null;
   const stopp = ctrl ? window.setTimeout(() => ctrl.abort(), 5000) : 0;
   try {
-    const svar = await fetch(API, {
+    const svar = await fetch(sti, {
       method: metode,
       headers: kropp ? { 'Content-Type': 'application/json' } : {},
       body: kropp ? JSON.stringify(kropp) : undefined,
@@ -86,8 +86,12 @@ async function kall(metode, kropp) {
    grunn: 'ikke-koblet' – ingen database, eller en side uten api/ (GitHub Pages, lokalt)
           'opptatt'     – for mange forespørsler akkurat nå
           'nett'        – fikk ikke svar; prøv igjen senere */
+/* Hvor mange plasser som vises: 10 eller 100 (huskes på enheten) */
+export const visAntall = () => (les('bk-spill-antall', 10) === 100 ? 100 : 10);
+export const settVisAntall = (n) => skriv('bk-spill-antall', n === 100 ? 100 : 10);
+
 export async function hentListe() {
-  const { status, data } = await kall('GET');
+  const { status, data } = await kall('GET', null, visAntall() === 100 ? API + '?antall=100' : API);
   if (status === 200 && data && Array.isArray(data.liste)) {
     return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [] };
   }
@@ -130,7 +134,7 @@ export async function startRunde() {
 
 /* { ok, plass, liste } eller { ok: false, melding } */
 export async function sendInn({ billett, navn, poeng, pakker, logg }) {
-  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, pakker, logg, enhet: enhet() });
+  const { status, data } = await kall('POST', { handling: 'send', billett, navn, poeng, pakker, logg, enhet: enhet(), antall: visAntall() });
   if (status === 200 && data && data.ok) {
     return { ok: true, plass: data.plass, pakkePlass: data.pakkePlass, liste: data.liste || [], pakker: data.pakker || [] };
   }

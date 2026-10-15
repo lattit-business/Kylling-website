@@ -507,6 +507,45 @@ function lagMesh(geo, lengde) {
 }
 
 /* Måka som tar kyllinger som står for lenge stille (dette er tross alt Bergen) */
+/* ---------------------------------------------------------------------------
+   KYLLING VERDEN – hønsehus, kornsiloer, eggkartonger og halmballer
+   --------------------------------------------------------------------------- */
+export function honsehusBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.82, h: 0.52, d: 0.7, c: F.paprika },
+    { x, y: 0.52, z, w: 0.94, h: 0.12, d: 0.82, c: F.paprikaDeep },
+    { x, y: 0.64, z, w: 0.7, h: 0.12, d: 0.6, c: F.paprikaDeep },
+    { x, y: 0.02, z: z + 0.36, w: 0.24, h: 0.32, d: 0.02, c: F.ink },
+    { x, y: 0.04, z: z + 0.5, w: 0.2, h: 0.03, d: 0.3, c: F.bark },
+    { x: x + 0.24, y: 0.32, z: z + 0.36, w: 0.16, h: 0.12, d: 0.02, c: F.creamHi }
+  ];
+}
+export function siloBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.6, h: 1.25, d: 0.6, c: F.creamHi },
+    { x, y: 0.3, z, w: 0.64, h: 0.05, d: 0.64, c: F.fortauMork },
+    { x, y: 0.75, z, w: 0.64, h: 0.05, d: 0.64, c: F.fortauMork },
+    { x, y: 1.25, z, w: 0.66, h: 0.1, d: 0.66, c: F.honeyDeep },
+    { x, y: 1.35, z, w: 0.42, h: 0.1, d: 0.42, c: F.honeyDeep },
+    { x, y: 1.45, z, w: 0.16, h: 0.08, d: 0.16, c: F.honeyDeep }
+  ];
+}
+export function eggBokser(x, z) {
+  const l = [{ x, y: 0, z, w: 0.82, h: 0.16, d: 0.52, c: F.beige }];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 2; j++) { l.push({ x: x - 0.26 + i * 0.26, y: 0.16, z: z - 0.12 + j * 0.24, w: 0.16, h: 0.2, d: 0.16, c: F.creamHi }); }
+  }
+  return l;
+}
+export function halmBokser(x, z) {
+  return [
+    { x, y: 0, z, w: 0.78, h: 0.44, d: 0.52, c: 0xD9B65A },
+    { x, y: 0.44, z, w: 0.78, h: 0.03, d: 0.52, c: 0xE8CC7A },
+    { x: x - 0.2, y: 0, z, w: 0.04, h: 0.45, d: 0.54, c: F.honeyDeep },
+    { x: x + 0.2, y: 0, z, w: 0.04, h: 0.45, d: 0.54, c: F.honeyDeep }
+  ];
+}
+
 /* En Bare Kylling-pakke å plukke opp: klar pose med kyllingfilet og etikett
    i smakens farge (Original grønn, Sweet Paprika rød). Geometrien deles. */
 const PAKKE_GEO = {};

@@ -11,7 +11,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
-import { Verden, KOL, JOBB, vanske } from './verden.js';
+import { Verden, KOL, JOBB, KV, iKV, vanske } from './verden.js';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 
@@ -92,7 +92,7 @@ async function start() {
     sluttTekst: $('[data-slutt-tekst]'), nyRekord: $('[data-ny-rekord]'), navnSkjema: $('[data-navn-skjema]'),
     navn: $('[data-navn]'), navnStatus: $('[data-navn-status]'), igjen: $('[data-igjen]'),
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
-    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'),
+    liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
     pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
     startRekord: $('[data-start-rekord]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-bytt-navn]'), feiring: $('[data-feiring]')
   };
@@ -218,9 +218,13 @@ async function start() {
     if (ui.pakker) { ui.pakker.textContent = String(pakker); }
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
     if (ui.maal) {
-      ui.maal.textContent = jobbNaadd ? 'Uendelig modus' : `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`;
+      ui.maal.textContent = !jobbNaadd ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}`
+        : iKV(poeng) ? `Kylling Verden · ${KV.til - poeng + 1} igjen` : 'Uendelig modus';
     }
-    if (ui.maalFyll) { ui.maalFyll.style.transform = `scaleX(${jobbNaadd ? 1 : Math.min(1, poeng / JOBB)})`; }
+    if (ui.maalFyll) {
+      const fyll = !jobbNaadd ? Math.min(1, poeng / JOBB) : iKV(poeng) ? (poeng - KV.fra) / (KV.til - KV.fra) : 1;
+      ui.maalFyll.style.transform = `scaleX(${fyll})`;
+    }
   }
 
   /* -------------------------------------------------------------------------
@@ -321,6 +325,8 @@ async function start() {
       if (poeng === 10) { melding('10 ruter! Godt i gang.'); }
       else if (poeng === 25) { melding('25! Nå snakker vi.'); }
       else if (poeng === JOBB - 10) { melding('Jobbsenteret er rett der fremme!'); }
+      else if (poeng === KV.fra) { melding('Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.', 3); lyd.poeng(); }
+      else if (poeng === KV.til + 1) { melding('Du klarte Kylling Verden! Tilbake til byen.', 3); lyd.seier(); }
       else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
       if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
       oppdaterHud();
@@ -488,13 +494,13 @@ async function start() {
     if (ui.byttNavn) { ui.byttNavn.hidden = !(listeModus === 'global' && T.sisteNavn()); }
     if (poeng > 0 && tilstand === 'over' && ui.navnSkjema) {
       if (listeModus === 'global') {
-        /* Topp 10 på lengst, eller topp 10 på flest pakker */
-        const paaLista = (l, felt, v) => v > 0 && (l.length < 10 || v > l[l.length - 1][felt]);
-        const kvalifisert = paaLista(globalListe, 'poeng', poeng) || paaLista(globalPakker, 'pakker', pakker);
-        if (kvalifisert && billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }   /* husket navn: rett inn */
-        else if (kvalifisert && billett) { visNavnSkjema('send', 'Du er på topp 10! Skriv inn et kallenavn:'); }
-        else if (kvalifisert && ui.sluttInfo) {
-          ui.sluttInfo.textContent = 'Du kom på topp 10, men runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
+        /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
+           den svakeste når lista er full. Med husket navn skjer det av seg selv. */
+        const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
+        if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
+        else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
+        else if (ui.sluttInfo) {
+          ui.sluttInfo.textContent = 'Runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
         }
       } else if (listeModus === 'lokal' && !T.sisteNavn() && T.lokalListe().some((r) => r.navn === 'Deg' && r.poeng === poeng)) {
         /* Uten global liste: gi runden et navn på enhetens egen liste */
@@ -531,8 +537,8 @@ async function start() {
       T.lagreNavn(navn);
       billett = null;
       ui.navnSkjema.hidden = true;
-      const plasser = [svar.plass && svar.plass <= 10 ? `nummer ${svar.plass} på topplista` : '',
-        svar.pakkePlass && svar.pakkePlass <= 10 ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
+      const plasser = [svar.plass ? `nummer ${svar.plass} på topplista` : '',
+        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
       if (ui.sluttInfo) { ui.sluttInfo.textContent = plasser ? `Lagret som «${navn}» – ${plasser}!` : `Lagret som «${navn}».`; }
       if (ui.byttNavn) { ui.byttNavn.hidden = false; }
       melding(plasser ? `Du er ${plasser}!` : 'Lagret!', 3);
@@ -566,6 +572,22 @@ async function start() {
     return henterListe;
   }
 
+  /* Bryter: topp 10 eller topp 100 */
+  function settBryter() {
+    const n = T.visAntall();
+    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(Number(k.dataset.antall) === n)));
+    if (ui.listeTittel) { ui.listeTittel.textContent = `Topp ${n}`; }
+    if (ui.pakkeTittelTall) { ui.pakkeTittelTall.textContent = n === 100 ? ' (topp 100)' : ''; }
+    [ui.liste, ui.pakkeliste].forEach((ol) => ol && ol.classList.toggle('toppliste__liste--lang', n === 100));
+  }
+  document.querySelectorAll('[data-antall]').forEach((k) => k.addEventListener('click', () => {
+    T.settVisAntall(Number(k.dataset.antall));
+    settBryter();
+    tegnListe();
+    if (listeModus !== 'lokal') { oppdaterToppliste(); }
+  }));
+  settBryter();
+
   /* Startkortet: din rekord, og rekorden du skal slå */
   function oppdaterStartKort() {
     if (!ui.startRekord) { return; }
@@ -591,7 +613,7 @@ async function start() {
     if (ui.listeMerke) { ui.listeMerke.textContent = global ? 'Global toppliste' : 'Bare denne enheten'; }
     if (ui.listeInfo) {
       ui.listeInfo.textContent = global
-        ? 'Topplista er felles for alle som spiller, og oppdaterer seg selv. Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over.'
+        ? 'Topplista er felles for alle som spiller, og oppdaterer seg selv. Skriv inn et kallenavn etter første runde, så kommer rundene dine på lista. De 100 beste lagres.'
         : 'Rekordene her lagres bare i denne nettleseren. Andre som spiller, ser dem ikke.';
     }
     if (ui.listeStatus) {
@@ -621,7 +643,7 @@ async function start() {
     /* Ditt kallenavn markeres (navn er like uansett store og små bokstaver) */
     const meg = T.sisteNavn().toLowerCase();
     ol.textContent = '';
-    liste.slice(0, 10).forEach((rad, i) => {
+    liste.slice(0, T.visAntall()).forEach((rad, i) => {
       const li = document.createElement('li');
       const erDeg = meg && String(rad.navn).toLowerCase() === meg;
       if (erDeg) { li.classList.add('er-deg'); }
@@ -790,10 +812,19 @@ async function start() {
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
+    toneHimmel(dt);
     malKvalitet(dt);
     verden.sikre(Math.floor(rull) - 10, Math.floor(rull) + 28);
     oppdaterPartikler(dt);
     tegner.render(scene, kamera);
+  }
+
+  /* Himmelen blir varmere i Kylling Verden */
+  const HIMMEL = new THREE.Color(F.cream), HIMMEL_KV = new THREE.Color(0xF7DFA4), himmelMaal = new THREE.Color();
+  function toneHimmel(dt) {
+    himmelMaal.copy(iKV(-fokus.z) ? HIMMEL_KV : HIMMEL);
+    scene.background.lerp(himmelMaal, Math.min(1, dt * 1.5));
+    scene.fog.color.copy(scene.background);
   }
 
   /* Jobbsenteret tones ned når kyllingen er bak det, så den ikke forsvinner */

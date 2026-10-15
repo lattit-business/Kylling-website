@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261015b" />
+<link rel="stylesheet" href="css/style.css?v=20261015c" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -203,9 +203,13 @@
     <aside class="toppliste" aria-labelledby="toppliste-tittel">
       <p class="marker" data-toppliste-merke>Global toppliste</p>
       <h2 class="display toppliste__h2" id="toppliste-tittel">Topp 10</h2>
+      <div class="toppliste__bryter" role="group" aria-label="Hvor mange plasser som vises">
+        <button type="button" data-antall="10" aria-pressed="true">Topp 10</button>
+        <button type="button" data-antall="100" aria-pressed="false">Topp 100</button>
+      </div>
       <p class="toppliste__status" data-toppliste-status role="status">Henter topplista …</p>
       <ol class="toppliste__liste" data-toppliste></ol>
-      <h3 class="toppliste__h3" id="pakkeliste-tittel"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg> Flest pakker</h3>
+      <h3 class="toppliste__h3" id="pakkeliste-tittel"><svg class="pakkeikon" viewBox="0 0 10 13" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><path fill="#FAF8F3" d="M0 1h10v12H0z"/><path fill="#11110F" d="M0 0h10v1H0zM0 0h1v13H0zM9 0h1v13H9zM0 12h10v1H0z"/><path fill="#D98A3D" d="M2 4h6v4H2z"/><path fill="#334D29" d="M1 9h8v3H1z"/></svg> Flest pakker<span data-pakke-tittel-tall></span></h3>
       <p class="toppliste__status" data-pakkeliste-status></p>
       <ol class="toppliste__liste toppliste__liste--pakker" data-pakkeliste aria-labelledby="pakkeliste-tittel"></ol>
       <p class="toppliste__info" data-toppliste-info>Topplista er felles for alle som spiller, og oppdaterer seg selv. Kommer du på topp 10, kan du skrive inn et kallenavn når runden er over.</p>
@@ -269,6 +273,6 @@
 
 <script src="js/content.js?v=20261014c"></script>
 <script src="js/main.js?v=20261014c"></script>
-<script type="module" src="js/spill/spill.js?v=20261015b"></script>
+<script type="module" src="js/spill/spill.js?v=20261015c"></script>
 </body>
 </html>

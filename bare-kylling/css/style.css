@@ -1395,6 +1395,14 @@ body.meny-apen .sticky-cta { display: none; }
 .hud__pakker { display: inline-flex; align-items: center; gap: .3rem; margin-top: .35rem; font-size: 1.15rem; }
 .hud__pakker b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-variant-numeric: tabular-nums; }
 .pakkeikon { width: .85em; height: auto; flex: none; }
+.toppliste__bryter { display: inline-flex; padding: 3px; margin-bottom: .8rem; border-radius: 999px; background: var(--cream); box-shadow: inset 0 0 0 2px var(--ink); }
+.toppliste__bryter button {
+  border: 0; background: none; cursor: pointer; padding: .4rem .9rem; border-radius: 999px;
+  font: inherit; font-size: .84rem; font-weight: 800; color: var(--ink);
+}
+.toppliste__bryter button[aria-pressed="true"] { background: var(--ink); color: var(--cream-hi); }
+.toppliste__bryter button:focus-visible { outline: 2px solid var(--honey-deep); outline-offset: 2px; }
+.toppliste__liste--lang { max-height: 28rem; overflow-y: auto; overscroll-behavior: contain; padding-right: .3rem; }
 .toppliste__h3 { display: flex; align-items: center; gap: .45rem; margin: 1.6rem 0 .5rem; font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: 1.5rem; }
 .toppliste__h3 .pakkeikon { width: .8em; }
 .hud__rekord { font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; margin-top: .3rem; }

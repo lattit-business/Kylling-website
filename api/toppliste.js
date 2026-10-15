@@ -1,7 +1,7 @@
 /* =============================================================================
    BARE KYLLING: VEIEN TIL JOBBSENTERET — GLOBAL TOPPLISTE (Vercel-funksjon)
 
-   GET  /api/toppliste                         → { liste: [{ navn, poeng, dato }],
+   GET  /api/toppliste[?antall=100]            → { liste: [{ navn, poeng, dato }],
                                                    pakker: [{ navn, pakker, dato }] }
    POST /api/toppliste { handling: 'start' }   → { billett }
    POST /api/toppliste { handling: 'send', billett, navn, poeng, pakker, logg, enhet }
@@ -68,10 +68,11 @@ const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
 /* Grensene gjelder per IP-adresse. En hel skole eller et kontor deler ofte én
    adresse, så de må tåle en klasse som spiller samtidig (30 elever, en runde
-   hvert halvminutt ≈ 600 runder på 10 minutter). */
+   hvert halvminutt ≈ 600 runder på 10 minutter). Alle runder sendes inn, ikke
+   bare de som kommer på topp 10, så «send» må tåle like mange som «start». */
 const GRENSER = {
   start: { antall: 800, vindu: 600 },
-  send: { antall: 60, vindu: 600 },
+  send: { antall: 800, vindu: 600 },
   navn: { antall: 60, vindu: 600 },
   hent: { antall: 600, vindu: 60 }
 };
@@ -306,7 +307,9 @@ module.exports = async function toppliste(req, res) {
 
     if (req.method === 'GET') {
       if (await forMange('hent', ip)) { return send(res, 429, { melding: 'For mange forespørsler.' }); }
-      const [liste, pakker] = await Promise.all([hentListe(10), hentPakkeliste(10)]);
+      /* ?antall=100 gir hele lista (topp 100); ellers topp 10 */
+      const antall = /[?&]antall=100\b/.test(req.url || '') ? BEHOLD : 10;
+      const [liste, pakker] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
       return send(res, 200, { liste, pakker }, LISTE_CACHE);
     }
 
@@ -388,7 +391,8 @@ module.exports = async function toppliste(req, res) {
     const pakkePlass = pakker > 0
       ? await lagreBeste(NOKKEL.pakker, NOKKEL.pnavn, navn.nokkel, pakker, { navn: navn.navn, pakker, dato }, naa)
       : null;
-    const [liste, pakkeliste] = await Promise.all([hentListe(10), hentPakkeliste(10)]);
+    const antall = kropp.antall === 100 ? BEHOLD : 10;
+    const [liste, pakkeliste] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
     return send(res, 200, { ok: true, plass, pakkePlass, liste, pakker: pakkeliste });
   } catch (e) {
     console.error('toppliste:', e && e.message);
