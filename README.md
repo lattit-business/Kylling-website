@@ -235,10 +235,20 @@ aksenter («nëger»). Ord som også er vanlige navn eller ord (f.eks. «hore» 
 «Thoresen», «ass» i «Glass») stoppes bare når de står alene. Listene står
 øverst i avsnittet «Kallenavn» i filen; legg til ord der.
 
-Ingen filter er perfekt. Slipper et stygt navn gjennom, fjerner du det slik:
-Upstash-konsollen (Vercel → Storage → databasen → *Open in Upstash*) →
-**Data Browser** → nøkkelen `bk:topp` → slett navnet. Slett det også fra
-`bk:navn`.
+Ingen filter er perfekt. Slipper et stygt navn gjennom, kan du slette det
+med admin-endepunktet. Legg først inn en lang tilfeldig tekst som
+`TOPPLISTE_ADMIN_NOKKEL` under *Settings → Environment Variables* i Vercel
+(og publiser på nytt). Uten den finnes ikke endepunktet.
+
+```bash
+curl -X DELETE "https://barekylling.no/api/toppliste?navn=Stygtnavn" \
+     -H "Authorization: Bearer <TOPPLISTE_ADMIN_NOKKEL>"
+# valgfritt: &liste=topp eller &liste=pakker (standard: begge)
+```
+
+Det går også an å slette for hånd: Upstash-konsollen (Vercel → Storage →
+databasen → *Open in Upstash*) → **Data Browser** → slett navnet fra `bk:topp`
+og `bk:navn` (og `bk:pakker` / `bk:pnavn`).
 
 Testene kjøres uten database (fetch byttes ut med en Redis i minnet):
 

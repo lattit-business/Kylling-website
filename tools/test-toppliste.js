@@ -66,6 +66,7 @@ function kjor([cmd, ...a]) {
       v.verdi.set(a[1], a[2]); lager.set(a[0], v); return 1;
     }
     case 'HGET': { const v = levende(a[0]); return v && v.verdi.has(a[1]) ? v.verdi.get(a[1]) : null; }
+    case 'ZREM': { const v = levende(a[0]); return v && v.verdi.delete(a[1]) ? 1 : 0; }
     case 'HMGET': { const v = levende(a[0]); return a.slice(1).map((f) => (v && v.verdi.has(f) ? v.verdi.get(f) : null)); }
     case 'HDEL': { const v = levende(a[0]); let n = 0; a.slice(1).forEach((f) => { if (v && v.verdi.delete(f)) { n++; } }); return n; }
     default: throw new Error('ukjent kommando ' + cmd);
@@ -95,7 +96,7 @@ const FIL = path.join(__dirname, '..', 'api', 'toppliste.js');
 function last(env) {
   delete require.cache[require.resolve(FIL)];
   const gammel = { ...process.env };
-  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET',
+  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET', 'TOPPLISTE_ADMIN_NOKKEL',
     'REDIS_URL', 'KV_URL', 'POSTGRES_URL', 'DATABASE_URL', 'BLOB_READ_WRITE_TOKEN']
     .forEach((k) => delete process.env[k]);
   Object.assign(process.env, env);
@@ -104,8 +105,9 @@ function last(env) {
   return mod;
 }
 
-async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no', url = '/api/toppliste' } = {}) {
+async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no', url = '/api/toppliste', auth } = {}) {
   const req = { method, url, headers: { 'x-forwarded-for': ip + ', 1.1.1.1', host }, body };
+  if (auth) { req.headers.authorization = auth; }
   if (origin) { req.headers.origin = origin; }
   const res = {
     statusCode: 200, hode: {},
@@ -277,13 +279,19 @@ async function test(navn, fn) {
   await test('kallenavn sjekkes', async () => {
     const { sjekkNavn } = fn;
     const ok = ['Kari', 'Ola N.', 'Åse_99', 'Thoresen', 'Thore', 'Kylling-Kåre', 'Bjørn Ståle', 'Glass', 'Bass', 'Nazir',
-      'Niger', 'Nigeria', 'Montenegro', 'Spikkestad', 'Analyse', 'Scunthorpe', 'Slutten', 'Horten', 'Mikkel', 'Assar', 'José'];
+      'Niger', 'Nigeria', 'Montenegro', 'Spikkestad', 'Analyse', 'Scunthorpe', 'Slutten', 'Horten', 'Mikkel', 'Assar', 'José',
+      'Kat', 'Katrine', 'Fakkel', 'Fokker', 'Brunkeflo', 'Helvetia', 'Mongolia', 'Satanowski', 'Kattepus'];
     for (const g of ok) { assert.ok(!sjekkNavn(g).feil, 'stoppet ved en feil: ' + g); }
     const stopp = ['a', 'x'.repeat(17), '<script>', '   ', '...', 'faen', 'Bare Kylling', 'ADMIN', 'h.o.r.e',
       'neger', 'NEGER', 'n e g e r', 'n.e.g.e.r', 'n-e-g-e-r', 'neeeger', 'n3g3r', 'nëger', 'nègre', 'sandneger',
       'nigger', 'N1gg3r', 'niggggerrr', 'nigga', 'нeгер', 'hitler88', 'heil hitler', '14 88', 'Drittsekk', 'kukhue',
-      'fuck you', 'Fuuuck', 'F u c k', 'fitte', 'H O R E', 'Kuk', 'K.u.k', 'p0rn0', 'montenegroneger'];
+      'fuck you', 'Fuuuck', 'F u c k', 'fitte', 'H O R E', 'Kuk', 'K.u.k', 'p0rn0', 'montenegroneger',
+      /* norske banneord og seksuelle ord, også med tall og mellomrom */
+      'helvete', 'h3lv3t3', 'HÆLVETE', 'satan', 'f4en', 'faaan', 'jævla', 'j3vla', 'faenskap', 'fitta', 'tispe', 't1spe',
+      'ballesekk', 'pikkhue', 'p1kkhue', 'hestkuk', 'føkk', 'runke', 'mongo', 'pupper', 's3xy', 'kuksuger', 'rævhøl',
+      'ræva', 'horer', 'onani', 'p u l e r'];
     for (const d of stopp) { assert.ok(sjekkNavn(d).feil, 'slapp gjennom: ' + d); }
+    assert.strictEqual(sjekkNavn('helvete').feil, 'Det kallenavnet går ikke.');
     assert.strictEqual(sjekkNavn('  Kari   Nord ').navn, 'Kari Nord');
     const r = await sendInn(await start(), { navn: '<b>hei</b>' });
     assert.strictEqual(r.status, 400);
@@ -453,6 +461,20 @@ async function test(navn, fn) {
     const r4 = await kall(fn, { method: 'GET', ip: nyIp() });
     assert.ok(Array.isArray(r4.data.pakker));
     assert.ok(!r4.data.pakker.some((x) => x.navn === 'Ingen Pakker'));
+  });
+
+  await test('admin kan slette en rad med riktig nøkkel', async () => {
+    const adm = last({ KV_REST_API_URL: 'https://falsk.upstash.io', KV_REST_API_TOKEN: 'test-token', TOPPLISTE_ADMIN_NOKKEL: 'superhemmelig-nokkel' });
+    const r0 = await kall(fn, { method: 'GET', ip: nyIp() });
+    const offer = r0.data.liste[0].navn;
+    assert.strictEqual((await kall(fn, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer superhemmelig-nokkel' })).status, 404, 'uten nøkkel i miljøet finnes ikke endepunktet');
+    assert.strictEqual((await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer feil' })).status, 403);
+    assert.strictEqual((await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp() })).status, 403);
+    const r = await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer superhemmelig-nokkel' });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.slettet >= 1);
+    const etter = await kall(adm, { method: 'GET', ip: nyIp(), url: '/api/toppliste?antall=100' });
+    assert.ok(!etter.data.liste.some((x) => x.navn === offer), offer + ' er fortsatt på lista');
   });
 
   await test('IP-adresser lagres aldri i klartekst', async () => {

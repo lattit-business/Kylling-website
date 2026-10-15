@@ -51,6 +51,8 @@ const { url: URL_DB, token: TOKEN } = finnDatabase(process.env);
    REDIS_URL)? Da sier 503-svaret fra hva som er galt, uten å vise verdiene. */
 const ANNEN_DATABASE = !URL_DB &&
   Object.keys(process.env).some((k) => /(^|_)(REDIS_URL|KV_URL|POSTGRES_URL|DATABASE_URL|BLOB_READ_WRITE_TOKEN)$/.test(k));
+/* Nøkkel til admin-sletting (DELETE). Uten den finnes ikke endepunktet. */
+const ADMIN_NOKKEL = process.env.TOPPLISTE_ADMIN_NOKKEL || '';
 const HEMMELIG = process.env.TOPPLISTE_HEMMELIGHET ||
   (TOKEN ? crypto.createHash('sha256').update('bk-toppliste:' + TOKEN).digest('hex') : '');
 
@@ -153,13 +155,19 @@ const STYGT_DEL = [
   /* seksuelt og grovt */
   'fitte', 'kukk', 'kukhue', 'kuksug', 'knull', 'horunge', 'porn', 'dildo', 'pedofil', 'voldt',
   'incest', 'cunt', 'whore', 'bitch', 'fuck', 'motherf', 'wank', 'pussy', 'penis', 'vagina',
-  'dritt', 'jaevl', 'rasshol', 'raevhol', 'killyourself'
+  'dritt', 'jaevl', 'rasshol', 'raevhol', 'killyourself',
+  /* norske banneord og skjellsord (med vanlige skrivemåter) */
+  'helvete', 'haelvete', 'faensk', 'jaevel', 'jaevla', 'jevla', 'fitta', 'tispe', 'ballesekk',
+  'pikkh', 'pikkans', 'hestkuk', 'mongis', 'kukshug',
+  /* seksuelt */
+  'sexy', 'puler', 'pupper', 'orgasm', 'onani'
 ];
 /* Stoppes når det er et eget ord eller hele navnet («Thoresen» og «Glass» går fint) */
 const STYGT_ORD = [
   'hore', 'hora', 'kuk', 'pikk', 'pule', 'sex', 'anal', 'anus', 'tits', 'dick', 'cock', 'cum', 'ass',
   'rape', 'pedo', 'fag', 'homo', 'homse', 'soper', 'dyke', 'coon', 'spic', 'gook', 'kike', 'nazi',
-  'faen', 'shit', 'piss', 'kys', 'slut', 'raev'
+  'faen', 'shit', 'piss', 'kys', 'slut', 'raev',
+  'raeva', 'horer', 'pupp', 'mongo', 'faan', 'satan', 'satans', 'satanist', 'fakk', 'fokk', 'fakka', 'runk', 'runke', 'runker', 'runking'
 ];
 /* barefjaer er gud-modus-navnet i spillet; de rundene skal aldri på lista */
 const RESERVERT = ['barekylling', 'admin', 'administrator', 'moderator', 'jobbsenteret', 'barefjaer'];
@@ -196,7 +204,7 @@ function sjekkNavn(raa) {
   if (!/^[A-Za-z0-9æøÆØß ._-]+$/.test(enkel) || !/[A-Za-z0-9æøÆØß]/.test(enkel)) {
     return { feil: 'Bruk bare bokstaver (a–å), tall, mellomrom, punktum, bindestrek og understrek.' };
   }
-  if (stygt(navn)) { return { feil: 'Det kallenavnet går ikke. Prøv et annet!' }; }
+  if (stygt(navn)) { return { feil: 'Det kallenavnet går ikke.' }; }
   if (['i', 'l'].some((en) => RESERVERT_RE.test(vask(navn, en)))) { return { feil: 'Det kallenavnet er reservert. Prøv et annet!' }; }
   return { navn, nokkel: navn.toLowerCase() };
 }
@@ -301,9 +309,31 @@ module.exports = async function toppliste(req, res) {
       return send(res, 200, { liste, pakker }, LISTE_CACHE);
     }
 
+    /* Admin: DELETE /api/toppliste?navn=Kari[&liste=topp|pakker|alle]
+       med «Authorization: Bearer <TOPPLISTE_ADMIN_NOKKEL>». Sletter raden. */
+    if (req.method === 'DELETE') {
+      const admin = ADMIN_NOKKEL;
+      if (!admin) { return send(res, 404, { melding: 'Ikke tilgjengelig.' }); }
+      if (await forMange('navn', ip)) { return send(res, 429, { melding: 'For mange forsøk.' }); }
+      const gitt = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+      if (!likt(gitt, admin)) { return send(res, 403, { melding: 'Feil nøkkel.' }); }
+      const sp = new URL(req.url || '/', 'http://x').searchParams;
+      const nokkel = String(sp.get('navn') || '').normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!nokkel) { return send(res, 400, { melding: 'Mangler navn.' }); }
+      const hvilke = sp.get('liste') || 'alle';
+      const kommandoer = [];
+      if (hvilke === 'topp' || hvilke === 'alle') { kommandoer.push(['ZREM', NOKKEL.topp, nokkel], ['HDEL', NOKKEL.navn, nokkel]); }
+      if (hvilke === 'pakker' || hvilke === 'alle') { kommandoer.push(['ZREM', NOKKEL.pakker, nokkel], ['HDEL', NOKKEL.pnavn, nokkel]); }
+      if (!kommandoer.length) { return send(res, 400, { melding: 'liste må være topp, pakker eller alle.' }); }
+      const svar = await db(kommandoer);
+      const slettet = svar.filter((x, i) => i % 2 === 0).reduce((a, b) => a + Number(b || 0), 0);
+      console.log(`toppliste: admin slettet «${nokkel}» (${hvilke}), ${slettet} rad(er)`);
+      return send(res, 200, { ok: true, slettet });
+    }
+
     if (req.method !== 'POST') {
-      res.setHeader('Allow', 'GET, POST');
-      return send(res, 405, { melding: 'Bare GET og POST.' });
+      res.setHeader('Allow', 'GET, POST, DELETE');
+      return send(res, 405, { melding: 'Bare GET, POST og DELETE.' });
     }
 
     let kropp;
