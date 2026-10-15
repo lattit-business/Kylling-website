@@ -170,23 +170,17 @@ Vern mot juks: hver runde får en signert billett med et frø som bare kan
 brukes én gang. Banen og pakkene lages av frøet i
 `bare-kylling/js/spill/bane.mjs`, som spillet og serveren deler. Spillet
 sender en logg over hoppene og pakkene; serveren spiller den av mot banen
-(samme poeng, ingen hopp raskere enn mulig, hver pakke må ha ligget der
-kyllingen sto, måka kan stjele én) og teller pakkene selv. I tillegg:
+(samme poeng, ingen hopp raskere enn mulig) og teller pakkene selv: en pakke
+som ikke lå der kyllingen sto, telles ikke, men runden og poengene godtas. I tillegg:
 grenser per IP (bare en hash lagres) og sjekk av kallenavn. Et
 nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 
-### Kallenavn huskes, og tilhører én enhet
+### Kallenavn huskes
 
 Første gang du kommer på lista, skriver du et kallenavn. Det huskes i
-nettleseren, så senere topp 10-runder sendes inn av seg selv. «Bytt
-kallenavn» på sluttkortet lar deg velge et nytt.
-
-Hver nettleser får en tilfeldig enhetsnøkkel (`bk-spill-enhet` i
-localStorage). Et kallenavn tilhører enheten som først kom på lista med det
-(`bk:eier` i databasen, bare en hash av nøkkelen lagres), så ingen andre kan
-sende inn under ditt navn. Det er enhet og ikke IP-adresse fordi en hel skole
-ofte deler én IP. Tømmer noen nettleseren, mister de navnet sitt; slett da
-navnet fra `bk:eier` i Upstash-konsollen så de kan ta det igjen.
+nettleseren, så senere runder sendes inn av seg selv. «Bytt kallenavn» lar deg
+velge et nytt. Alle kan bruke hvilket navn de vil: samme navn deler én plass
+på lista, og den beste runden står. En ny rekord oppdaterer plassen.
 
 ### Bare Kylling-pakker
 

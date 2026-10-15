@@ -298,10 +298,11 @@ export class Bane {
      b                    tredemølla dyttet kyllingen én rad bakover
      k1f.5                tok kraftpakken på rad 0x1f, kolonne 5 (fart og magnet
                           gir raskere hopp / pakker på avstand i en kort tid)
-   lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs } eller
-   { feil }. Samme funksjon brukes av serveren og testene.
+   lesLogg() spiller loggen av mot banen og gir { poeng, pakker, tidMs,
+   forkastet } eller { feil }. Bare hoppene kan stoppe en runde (for raske
+   hopp eller ødelagt logg). Pakker som ikke stemmer, telles bare ikke. Samme funksjon brukes av serveren og testene.
    --------------------------------------------------------------------------- */
-export const MIN_HOPP_CS = 10;   /* et hopp tar 0,135 s – raskere er ikke mulig */
+export const MIN_HOPP_CS = 8;    /* et hopp tar 0,135 s – litt slingring for klokka */
 export const MAKS_TREKK = 30000;
 
 export function lesLogg(logg, frø) {
@@ -310,7 +311,7 @@ export function lesLogg(logg, frø) {
   if (biter.length > MAKS_TREKK) { return { feil: 'Ugyldig logg.' }; }
   const bane = new Bane(frø);
   const tatt = new Set();
-  let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false;
+  let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false, forkastet = 0;
   let kol = 0;                     /* kolonnen kyllingen står i (null = ukjent etter elv) */
   let fartTil = -1, magnetTil = -1;   /* når kraftene slutter (hundredeler, med litt slingring) */
   const kraftTatt = new Set();
@@ -330,12 +331,12 @@ export function lesLogg(logg, frø) {
       if (spek && spek.type === 'elv') { kol = null; }
     } else if ((m = /^p([0-9a-z]{1,4})\.([0-8])$/.exec(bit))) {
       const pr = parseInt(m[1], 36), px = Number(m[2]) - KOL;
-      /* Med magnet kan pakker i raden og raden foran, to kolonner unna, trekkes inn */
+      /* Med magnet kan pakker i raden og raden foran, to kolonner unna, trekkes
+         inn. En pakke som ikke stemmer, telles ikke – men runden godtas likevel. */
       const magnet = cs <= magnetTil;
-      if (pr !== rad && !(magnet && pr === rad + 1)) { return { feil: 'En pakke ble tatt på en rad kyllingen ikke sto på.' }; }
       const nokkel = pr + ':' + px;
-      if (tatt.has(nokkel) || !bane.pakker(pr).some((p) => p.x === px)) { return { feil: 'Den pakken fantes ikke.' }; }
-      if (kol !== null && (magnet ? Math.abs(kol - px) > MAGNET_REKKEVIDDE : kol !== px)) { return { feil: 'Kyllingen sto ikke ved pakken.' }; }
+      if ((pr !== rad && !(magnet && pr === rad + 1)) || tatt.has(nokkel) || !bane.pakker(pr).some((p) => p.x === px)) { forkastet++; continue; }
+      if (kol !== null && (magnet ? Math.abs(kol - px) > MAGNET_REKKEVIDDE : kol !== px)) { forkastet++; kol = null; continue; }
       if (!magnet) { kol = px; }
       tatt.add(nokkel);
       pakker++;
@@ -343,24 +344,22 @@ export function lesLogg(logg, frø) {
       /* Kraftpakke: må ligge der kyllingen står, og tas bare én gang */
       const pr = parseInt(m[1], 36), px = Number(m[2]) - KOL;
       const k = bane.kraft(pr);
-      if (pr !== rad || !k || k.x !== px || kraftTatt.has(pr)) { return { feil: 'Den kraftpakken fantes ikke.' }; }
-      if (kol !== null && kol !== px) { return { feil: 'Kyllingen sto ikke ved kraftpakken.' }; }
+      if (pr !== rad || !k || k.x !== px || kraftTatt.has(pr)) { forkastet++; continue; }
+      if (kol !== null && kol !== px) { forkastet++; kol = null; continue; }
       kol = px;
       kraftTatt.add(pr);
       if (k.slag === 'fart') { fartTil = cs + KRAFT.fart + 50; }
       if (k.slag === 'magnet') { magnetTil = cs + KRAFT.magnet + 50; }
     } else if (bit === 'b') {
-      /* Bare lov på en tredemølle. Kolonnen er den samme (mølla går rett bakover). */
-      const spek = bane.spek(rad);
-      if (!spek || spek.type !== 'mølle') { return { feil: 'Ugyldig logg.' }; }
+      /* Tredemølla: kyllingen flyttes én rad bakover (gir aldri poeng). */
       rad -= 1;
     } else if (bit === 'm') {
-      if (stjalet || pakker < 1) { return { feil: 'Ugyldig logg.' }; }
+      if (stjalet || pakker < 1) { forkastet++; continue; }
       stjalet = true;
       pakker--;
     } else {
-      return { feil: 'Ugyldig logg.' };
+      forkastet++;   /* ukjent hendelse (f.eks. fra en nyere versjon av spillet) */
     }
   }
-  return { poeng: beste, pakker, tidMs: cs * 10 };
+  return { poeng: beste, pakker, tidMs: cs * 10, forkastet };
 }

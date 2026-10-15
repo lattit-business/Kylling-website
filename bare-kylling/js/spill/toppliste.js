@@ -171,7 +171,7 @@ export async function sendInn({ billett, navn, poeng, pakker, logg }) {
     409: (data && data.melding) || 'Det kallenavnet er tatt av en annen spiller.',
     503: 'Den globale topplista er ikke koblet til ennå.'
   };
-  return { ok: false, tatt: status === 409, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
+  return { ok: false, status, melding: meldinger[status] || 'Fikk ikke kontakt med topplista. Prøv igjen.' };
 }
 
 /* Sjekker at et nytt kallenavn er lov og ikke tatt. { ok, navn } eller { ok: false, melding } */
