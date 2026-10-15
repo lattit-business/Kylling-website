@@ -12,7 +12,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
 import { Verden, KOL, JOBB, vanske, verdenFor } from './verden.js';
-import { Bane } from './bane.mjs';
+import { Bane, dagFrø, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
@@ -231,7 +231,8 @@ async function start() {
   /* Topplista: 'global' (felles for alle), 'lokal' (ingen database – bare
      enhetens egen liste) eller 'ukjent' (ikke fått svar ennå). listeFeil er
      satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
-  let listeModus = 'ukjent', globalListe = [], globalPakker = [], listeFeil = '';
+  let listeModus = 'ukjent', globalListe = [], globalPakker = [], globalDag = [], listeFeil = '';
+  let dagensRunde = false;   /* runden spilles på dagens rute */
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -326,6 +327,7 @@ async function start() {
     poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
+    dagensRunde = !!(b && b.dagens);
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
     Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
     runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
@@ -348,7 +350,8 @@ async function start() {
     gudIRunden = gud();
     ui.start && (ui.start.hidden = true);
     ui.slutt && (ui.slutt.hidden = true);
-    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute! Samme bane for alle i dag.' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    if (dagensRunde) { T.registrerDag(osloDato()); }
     lyd.startMusikk();
     sisteTrekk = performance.now();
   }
@@ -758,11 +761,12 @@ async function start() {
       billett = null;
       ui.navnSkjema.hidden = true;
       const plasser = [svar.plass ? `nummer ${svar.plass} på topplista` : '',
-        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : ''].filter(Boolean).join(' og ');
+        svar.pakkePlass ? `nummer ${svar.pakkePlass} på pakkelista` : '',
+        svar.dagPlass ? `nummer ${svar.dagPlass} på dagens rute` : ''].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' og $1');
       if (ui.sluttInfo) { ui.sluttInfo.textContent = plasser ? `Lagret som «${navn}» – ${plasser}!` : `Lagret som «${navn}».`; }
       if (ui.byttNavn) { ui.byttNavn.hidden = false; }
       melding(plasser ? `Du er ${plasser}!` : 'Lagret!', 3);
-      globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = '';
+      globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = '';
       tegnListe();
       oppdaterStartKort();
       lyd.poeng();
@@ -781,7 +785,7 @@ async function start() {
       henterListe = T.hentListe().then((svar) => {
         henterListe = null;
         sistHentet = performance.now();
-        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; listeFeil = ''; }
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = ''; }
         else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
         else { listeFeil = svar.grunn; }
         tegnListe();
@@ -794,13 +798,23 @@ async function start() {
 
   /* Bryter: topp 10 eller topp 100 */
   function settBryter() {
-    const n = T.visAntall();
-    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(Number(k.dataset.antall) === n)));
-    if (ui.listeTittel) { ui.listeTittel.textContent = `Topp ${n}`; }
+    const n = T.visAntall(), dag = T.listeValg() === 'dag';
+    document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(!dag && Number(k.dataset.antall) === n)));
+    document.querySelectorAll('[data-dagliste]').forEach((k) => k.setAttribute('aria-pressed', String(dag)));
+    if (ui.listeTittel) { ui.listeTittel.textContent = dag ? 'Dagens rute' : `Topp ${n}`; }
+    /* Dagens liste har bare poeng, så pakkedelen skjules */
+    [document.querySelector('[data-pakkedel]'), ui.pakkeStatus, ui.pakkeliste].forEach((el) => { if (el) { el.hidden = dag; } });
     if (ui.pakkeTittelTall) { ui.pakkeTittelTall.textContent = n === 100 ? ' (topp 100)' : ''; }
     [ui.liste, ui.pakkeliste].forEach((ol) => ol && ol.classList.toggle('toppliste__liste--lang', n === 100));
   }
+  document.querySelectorAll('[data-dagliste]').forEach((k) => k.addEventListener('click', () => {
+    T.settListeValg('dag');
+    settBryter();
+    tegnListe();
+    if (listeModus !== 'lokal') { oppdaterToppliste(); }
+  }));
   document.querySelectorAll('[data-antall]').forEach((k) => k.addEventListener('click', () => {
+    T.settListeValg('alle');
     T.settVisAntall(Number(k.dataset.antall));
     settBryter();
     tegnListe();
@@ -828,8 +842,8 @@ async function start() {
 
   function tegnListe() {
     if (!ui.liste) { return; }
-    const global = listeModus === 'global';
-    const liste = global ? globalListe : T.lokalListe();
+    const global = listeModus === 'global', dag = T.listeValg() === 'dag';
+    const liste = dag ? (global ? globalDag : []) : global ? globalListe : T.lokalListe();
     if (ui.listeMerke) { ui.listeMerke.textContent = global ? 'Global toppliste' : 'Bare denne enheten'; }
     if (ui.listeInfo) {
       ui.listeInfo.textContent = global
@@ -841,6 +855,10 @@ async function start() {
       s.textContent = '';
       if (listeFeil) {
         s.textContent = global ? 'Fikk ikke oppdatert topplista akkurat nå. Prøver igjen …' : 'Fikk ikke kontakt med topplista. Prøver igjen …';
+      } else if (dag && !global) {
+        s.textContent = 'Lista for dagens rute finnes bare når den felles topplista er koblet til.';
+      } else if (dag && !liste.length) {
+        s.textContent = 'Ingen har spilt dagens rute ennå. Bli den første! Ruta er ny hver dag ved midnatt.';
       } else if (global && !liste.length) {
         s.textContent = 'Ingen på lista ennå. Bli den første!';
       } else if (!global && paaKopi) {
@@ -1035,10 +1053,30 @@ async function start() {
     lyd.vekk(); lyd.settMusikk(!lyd.musikkPaa); settKnapp(ui.musikkKnapp, lyd.musikkPaa);
     if (lyd.musikkPaa && tilstand === 'spill') { lyd.startMusikk(); }
   });
-  const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill(); };
+  const omstart = () => {
+    if (dagensRunde) { startDagens(); return; }
+    lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill();
+  };
+  /* DAGENS RUTE: samme bane for alle i dag. Uten kontakt med topplista
+     spilles den likevel (frøet regnes ut fra datoen), men kan ikke sendes inn. */
+  let henterDag = false;
+  async function startDagens() {
+    if (henterDag) { return; }
+    henterDag = true;
+    lyd.vekk(); lyd.klikk(); lyd.stoppMusikk();
+    const knapper = document.querySelectorAll('[data-dagens]');
+    knapper.forEach((k) => { k.disabled = true; k.textContent = 'Henter …'; });
+    const b = (listeModus !== 'lokal' && await T.dagensBillett()) || { billett: null, frø: dagFrø(osloDato()), dagens: true };
+    knapper.forEach((k) => { k.disabled = false; k.textContent = 'Dagens rute'; });
+    henterDag = false;
+    nyVerden(b);
+    tilstand = 'meny';
+    startSpill();
+  }
+  document.querySelectorAll('[data-dagens]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); startDagens(); }));
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
-  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn]')) { trekk('u'); } });
+  ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn], [data-dagens]')) { trekk('u'); } });
 
   /* -------------------------------------------------------------------------
      BUTIKKEN – bruk pakkene på pynt til kyllingen

@@ -69,6 +69,7 @@ function kjor([cmd, ...a]) {
     case 'ZREM': { const v = levende(a[0]); return v && v.verdi.delete(a[1]) ? 1 : 0; }
     case 'HMGET': { const v = levende(a[0]); return a.slice(1).map((f) => (v && v.verdi.has(f) ? v.verdi.get(f) : null)); }
     case 'HDEL': { const v = levende(a[0]); let n = 0; a.slice(1).forEach((f) => { if (v && v.verdi.delete(f)) { n++; } }); return n; }
+    case 'EXPIRE': { const v = levende(a[0]); if (!v) { return 0; } v.utloper = Date.now() + Number(a[1]) * 1000; return 1; }
     default: throw new Error('ukjent kommando ' + cmd);
   }
 }
@@ -510,6 +511,35 @@ async function test(navn, fn) {
       assert.strictEqual(ok.feil, undefined, JSON.stringify(ok));
       assert.strictEqual(ok.pakker, 1);
     }
+  });
+
+  await test('dagens rute: samme frø for alle i dag, og egen liste', async () => {
+    const { dagFrø, osloDato } = await import('../bare-kylling/js/spill/bane.mjs');
+    const a = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
+    const b = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
+    assert.strictEqual(a.frø, b.frø);
+    assert.strictEqual(a.dato, osloDato());
+    assert.strictEqual(a.frø, dagFrø(a.dato));
+    assert.notStrictEqual(dagFrø('2026-10-15'), dagFrø('2026-10-16'), 'ny rute hver dag');
+    const run = samleLogg(a.frø, 14);
+    const r = await sendInn(a.billett, { navn: 'Dagfinn', poeng: 14, logg: run.logg });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.strictEqual(r.data.dagPlass, 1);
+    assert.ok(r.data.dag.some((x) => x.navn === 'Dagfinn' && x.poeng === 14));
+    /* En vanlig runde havner ikke på dagens liste */
+    const c = (await kall(fn, { body: { handling: 'start' }, ip: nyIp() })).data;
+    const r2 = await sendInn(c.billett, { navn: 'Vanlig Vera', poeng: 9, logg: samleLogg(c.frø, 9).logg });
+    assert.strictEqual(r2.data.dagPlass, null);
+    const g = await kall(fn, { method: 'GET', ip: nyIp() });
+    assert.ok(g.data.dag.some((x) => x.navn === 'Dagfinn') && !g.data.dag.some((x) => x.navn === 'Vanlig Vera'));
+    assert.strictEqual(g.data.dato, osloDato());
+  });
+
+  await test('norsk midnatt: datoen skifter klokka 00 i Norge, ikke UTC', async () => {
+    const { osloDato } = await import('../bare-kylling/js/spill/bane.mjs');
+    assert.strictEqual(osloDato(Date.UTC(2026, 9, 15, 21, 59)), '2026-10-15');   /* 23.59 sommertid */
+    assert.strictEqual(osloDato(Date.UTC(2026, 9, 15, 22, 1)), '2026-10-16');    /* 00.01 */
+    assert.strictEqual(osloDato(Date.UTC(2026, 11, 31, 23, 1)), '2027-01-01');   /* vintertid */
   });
 
   await test('verdenene ligger i ring etter Treningssenteret', async () => {

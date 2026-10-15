@@ -1401,6 +1401,7 @@ body.meny-apen .sticky-cta { display: none; }
 .pakkeikon { width: .85em; height: auto; flex: none; }
 /* Butikken */
 .spill__butikkknapp { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; }
+.spill__dagknapp { min-height: 44px; margin-top: .5rem; }
 .spill__butikkknapp .pakkeikon { width: .8em; }
 .spill__butikk[hidden] { display: none; }
 .butikk__saldo { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; }

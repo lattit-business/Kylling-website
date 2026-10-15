@@ -63,10 +63,13 @@ const NOKKEL = {
   pakker: 'bk:pakker',        /* sortert sett: navnenøkkel → flest pakker (+ tidsbrøk) */
   pnavn: 'bk:pnavn',          /* hash: navnenøkkel → { navn, pakker, dato } */            /* hash: navnenøkkel → hash av enheten som eier navnet */
   runde: (id) => 'bk:runde:' + id,
+  dag: (d) => 'bk:dag:' + d,          /* dagens rute: sortert sett (poeng) for datoen */
+  dnavn: (d) => 'bk:dagnavn:' + d,    /* hash: navnenøkkel → { navn, poeng, dato } */
   fart: (hva, ip, vindu) => `bk:fart:${hva}:${ip}:${vindu}`
 };
 
 const RUNDE_LEVETID = 2 * 60 * 60;   /* sekunder en billett gjelder */
+const DAG_LEVETID = 3 * 24 * 60 * 60; /* dagens liste slettes etter tre dager */
 const MAKS_POENG = 5000;
 const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
@@ -305,8 +308,11 @@ module.exports = async function toppliste(req, res) {
       if (await forMange('hent', ip)) { return send(res, 429, { melding: 'For mange forespørsler.' }); }
       /* ?antall=100 gir hele lista (topp 100); ellers topp 10 */
       const antall = /[?&]antall=100\b/.test(req.url || '') ? BEHOLD : 10;
-      const [liste, pakker] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
-      return send(res, 200, { liste, pakker }, LISTE_CACHE);
+      /* dag: lista for dagens rute (norsk dato, nullstilles ved midnatt) */
+      const { osloDato } = await hentBane();
+      const dato = osloDato();
+      const [liste, pakker, dag] = await Promise.all([hentListe(antall), hentPakkeliste(antall), hentListe(antall, NOKKEL.dag(dato), NOKKEL.dnavn(dato))]);
+      return send(res, 200, { liste, pakker, dag, dato }, LISTE_CACHE);
     }
 
     /* Admin: DELETE /api/toppliste?navn=Kari[&liste=topp|pakker|alle]
@@ -324,7 +330,11 @@ module.exports = async function toppliste(req, res) {
       const kommandoer = [];
       if (hvilke === 'topp' || hvilke === 'alle') { kommandoer.push(['ZREM', NOKKEL.topp, nokkel], ['HDEL', NOKKEL.navn, nokkel]); }
       if (hvilke === 'pakker' || hvilke === 'alle') { kommandoer.push(['ZREM', NOKKEL.pakker, nokkel], ['HDEL', NOKKEL.pnavn, nokkel]); }
-      if (!kommandoer.length) { return send(res, 400, { melding: 'liste må være topp, pakker eller alle.' }); }
+      if (hvilke === 'dag' || hvilke === 'alle') {
+        const dato = (await hentBane()).osloDato();
+        kommandoer.push(['ZREM', NOKKEL.dag(dato), nokkel], ['HDEL', NOKKEL.dnavn(dato), nokkel]);
+      }
+      if (!kommandoer.length) { return send(res, 400, { melding: 'liste må være topp, pakker, dag eller alle.' }); }
       const svar = await db(kommandoer);
       const slettet = svar.filter((x, i) => i % 2 === 0).reduce((a, b) => a + Number(b || 0), 0);
       console.log(`toppliste: admin slettet «${nokkel}» (${hvilke}), ${slettet} rad(er)`);
@@ -345,10 +355,17 @@ module.exports = async function toppliste(req, res) {
       if (await forMange('start', ip)) { return send(res, 429, { melding: 'For mange runder akkurat nå.' }); }
       const id = crypto.randomBytes(12).toString('base64url');
       const t = Date.now();
-      /* Frøet til banen lagres hos oss; spilleren får det, men kan ikke bytte det */
-      const frø = crypto.randomBytes(4).readUInt32BE(0);
-      await en('SET', NOKKEL.runde(id), `${t}:${frø}`, 'EX', String(RUNDE_LEVETID));
-      return send(res, 200, { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø });
+      /* Frøet til banen lagres hos oss; spilleren får det, men kan ikke bytte det.
+         Dagens rute: frøet kommer fra datoen (norsk tid), og runden huskes som
+         en dagens-runde, så den også havner på dagens liste. */
+      let frø = crypto.randomBytes(4).readUInt32BE(0), dato = '';
+      if (kropp.dagens === true) {
+        const b = await hentBane();
+        dato = b.osloDato(t);
+        frø = b.dagFrø(dato);
+      }
+      await en('SET', NOKKEL.runde(id), dato ? `${t}:${frø}:${dato}` : `${t}:${frø}`, 'EX', String(RUNDE_LEVETID));
+      return send(res, 200, dato ? { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø, dato } : { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø });
     }
 
     /* Sjekk et nytt kallenavn før det tas i bruk (lagrer ingenting) */
@@ -380,7 +397,7 @@ module.exports = async function toppliste(req, res) {
       return send(res, 400, { melding: 'Runden kunne ikke bekreftes. Spill en ny runde.' });
     }
     const lagret = await en('GETDEL', NOKKEL.runde(deler[0]));
-    const [lagretT, lagretFrø] = String(lagret || '').split(':');
+    const [lagretT, lagretFrø, lagretDato] = String(lagret || '').split(':');
     if (lagret === null || lagretT !== deler[1] || !/^\d+$/.test(lagretFrø || '')) {
       return send(res, 400, { melding: 'Denne runden er allerede sendt inn, eller den er for gammel.' });
     }
@@ -414,9 +431,17 @@ module.exports = async function toppliste(req, res) {
     const pakkePlass = pakker > 0
       ? await lagreBeste(NOKKEL.pakker, NOKKEL.pnavn, navn.nokkel, pakker, { navn: navn.navn, pakker, dato }, naa)
       : null;
+    /* Dagens rute: også på lista for datoen runden startet */
+    let dagPlass = null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(lagretDato || '')) {
+      dagPlass = await lagreBeste(NOKKEL.dag(lagretDato), NOKKEL.dnavn(lagretDato), navn.nokkel, poeng, { navn: navn.navn, poeng, dato: lagretDato }, naa);
+      await db([['EXPIRE', NOKKEL.dag(lagretDato), String(DAG_LEVETID)], ['EXPIRE', NOKKEL.dnavn(lagretDato), String(DAG_LEVETID)]]);
+    }
     const antall = kropp.antall === 100 ? BEHOLD : 10;
-    const [liste, pakkeliste] = await Promise.all([hentListe(antall), hentPakkeliste(antall)]);
-    return send(res, 200, { ok: true, plass, pakkePlass, liste, pakker: pakkeliste });
+    const { osloDato } = await hentBane();
+    const iDag = osloDato();
+    const [liste, pakkeliste, dag] = await Promise.all([hentListe(antall), hentPakkeliste(antall), hentListe(antall, NOKKEL.dag(iDag), NOKKEL.dnavn(iDag))]);
+    return send(res, 200, { ok: true, plass, pakkePlass, dagPlass, liste, pakker: pakkeliste, dag });
   } catch (e) {
     console.error('toppliste:', e && e.message);
     return send(res, 500, { melding: 'Noe gikk galt med topplista.' });
