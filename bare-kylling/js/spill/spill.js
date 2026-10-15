@@ -113,6 +113,15 @@ async function start() {
   scene.add(spiller.gruppe);
   const HOPP = 0.135;   /* sekunder per hopp */
 
+  /* GUD-MODUS: kallenavnet «barefjær» gjør kyllingen udødelig. Slike runder
+     sendes ikke til topplista (serveren har også navnet som reservert). */
+  const erGudNavn = (n) => String(n || '').trim().toLowerCase().replace(/æ/g, 'ae') === 'barefjaer';
+  const gud = () => erGudNavn(T.sisteNavn());
+  function oppdaterGud() {
+    const el = document.querySelector('[data-gud]');
+    if (el) { el.hidden = !gud(); }
+  }
+
   /* Pynt og farge fra butikken */
   const kroppGeo = new Map([[B.kroppsfarge(), kyllingGeo]]);
   function kleKylling() {
@@ -273,7 +282,7 @@ async function start() {
     runder++;
     ui.start && (ui.start.hidden = true);
     ui.slutt && (ui.slutt.hidden = true);
-    melding(velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     lyd.startMusikk();
     sisteTrekk = performance.now();
     /* Billetten hører til denne runden; en sen billett fra en avbrutt runde brukes ikke */
@@ -404,6 +413,7 @@ async function start() {
      ------------------------------------------------------------------------- */
   function do_(aarsak, kjoretoy, r) {
     if (tilstand !== 'spill') { return; }
+    if (gud()) { return; }   /* gud-modus: ingenting tar livet av kyllingen */
     tilstand = 'dod';
     dodTid = 0;
     dodAarsak = aarsak;
@@ -527,7 +537,8 @@ async function start() {
         /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
            den svakeste når lista er full. Med husket navn skjer det av seg selv. */
         const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
-        if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
+        if (gud()) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus: runden kommer ikke på topplista.'; } }
+        else if (billett && T.sisteNavn()) { await sendRunde(T.sisteNavn()); }
         else if (billett) { visNavnSkjema('send', topp10 ? 'Du er på topp 10! Skriv inn et kallenavn:' : 'Skriv inn et kallenavn for å komme på topplista:'); }
         else if (ui.sluttInfo) {
           ui.sluttInfo.textContent = 'Runden fikk ikke kontakt med topplista da den startet, så den kan ikke sendes inn. Prøv en runde til!';
@@ -707,6 +718,16 @@ async function start() {
         lyd.poeng();
         return;
       }
+      /* Gud-modus-navnet lagres bare på enheten og sendes aldri til topplista */
+      if (erGudNavn(navn)) {
+        T.lagreNavn(navn);
+        ui.navnSkjema.hidden = true;
+        ui.navnStatus.textContent = '';
+        if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus er på fra neste runde. Runder i gud-modus kommer ikke på topplista.'; }
+        oppdaterGud();
+        lyd.seier();
+        return;
+      }
       if (navnModus === 'bytt') {
         const knapp = $('button', ui.navnSkjema);
         knapp.disabled = true;
@@ -718,6 +739,7 @@ async function start() {
         ui.navnSkjema.hidden = true;
         ui.navnStatus.textContent = '';
         if (ui.sluttInfo) { ui.sluttInfo.textContent = `Fra neste runde heter du «${svar.navn}».`; }
+        oppdaterGud();
         tegnListe();
         lyd.klikk();
         return;
@@ -974,7 +996,9 @@ async function start() {
       if (s.paa) {
         const rad = verden.rad(s.rad);
         s.x += (rad ? rad.fart : 0) * dt;
-        if (Math.abs(s.x) > KOL + 0.75) { do_('drift'); return; }
+        if (Math.abs(s.x) > KOL + 0.75) {
+          if (gud()) { s.x = Math.sign(s.x) * (KOL + 0.75); } else { do_('drift'); return; }
+        }
       }
       g.position.set(s.x, s.paa ? s.paa.mesh.position.y : 0, -s.rad);
       s.tomgang += dt;
@@ -1019,6 +1043,7 @@ async function start() {
      ------------------------------------------------------------------------- */
   nyVerden();
   oppdaterStartKort();
+  oppdaterGud();
   oppdaterToppliste().then((svar) => { if (svar.ok) { T.forberedBillett(); } });
 
   /* Topplista oppdateres av seg selv mens siden er synlig, så nye rekorder fra

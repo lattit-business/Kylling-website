@@ -159,7 +159,8 @@ const STYGT_ORD = [
   'rape', 'pedo', 'fag', 'homo', 'homse', 'soper', 'dyke', 'coon', 'spic', 'gook', 'kike', 'nazi',
   'faen', 'shit', 'piss', 'kys', 'slut', 'raev'
 ];
-const RESERVERT = ['barekylling', 'admin', 'administrator', 'moderator', 'jobbsenteret'];
+/* barefjaer er gud-modus-navnet i spillet; de rundene skal aldri på lista */
+const RESERVERT = ['barekylling', 'admin', 'administrator', 'moderator', 'jobbsenteret', 'barefjaer'];
 /* Ekte ord som inneholder noe fra lista over */
 const UNNTAK = ['montenegro', 'negroni', 'nigeria', 'scunthorpe'];
 const LEET = { 0: 'o', 3: 'e', 4: 'a', 5: 's', 6: 'g', 7: 't', 8: 'b', 9: 'g' };

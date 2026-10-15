@@ -342,6 +342,14 @@ async function test(navn, fn) {
     assert.ok(!lager.get('bk:eier').verdi.has('helt ny'), 'sjekken reserverer ikke navnet');
   });
 
+  await test('gud-modus-navnet «barefjær» kommer aldri på lista', async () => {
+    for (const navn of ['barefjær', 'BareFjaer', 'bare fjær']) {
+      const r = await sendInn(await start(), { navn, enhet: 'gud-enhet-1234567890' });
+      assert.strictEqual(r.status, 400, navn);
+      assert.match(r.data.melding, /reservert/);
+    }
+  });
+
   await test('innsending uten enhet avvises', async () => {
     const r = await sendInn(await start(), { navn: 'Uten', enhet: undefined });
     assert.strictEqual(r.status, 400);
