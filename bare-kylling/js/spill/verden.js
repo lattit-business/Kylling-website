@@ -229,6 +229,13 @@ export class Verden {
           if (rng() < tetthet) { hindring(x, rng()); antall++; }
           else if (park && v === 'by' && rng() < 0.3) { l.push(...M.blomsterBokser(x, z, rng)); }
         }
+        if (spek.jobb && r === JOBB - 3) {
+          /* Starten på den trygge sonen rundt Jobbsenteret */
+          const skilt = M.skiltCachet('Trygg sone\nmåkefritt', F.forest, F.creamHi, 1.3, 0.5);
+          skilt.position.set(-KOL - 1.2, 1.15, z + 0.3);
+          rad.gruppe.add(skilt);
+          l.push({ x: -KOL - 1.2, y: 0, z, w: 0.08, h: 0.9, d: 0.08, c: F.inkSoft });
+        }
         if (park && v === 'by' && !this.harEgg && r > 14 && rng() < 0.5) {
           /* Påskeegget: et kjempeegg med et skilt (hva kom først?) */
           this.harEgg = true;
@@ -689,8 +696,9 @@ export class Verden {
     return rad.blokk.has(Math.round(x));
   }
 
-  /* Et kjøretøy (eller bybanen) som treffer x i rad r */
-  treff(x, r) {
+  /* Et kjøretøy (eller bybanen) som treffer x i rad r. halv er halve
+     bredden til kyllingen langs veien (avhenger av hvilken vei den ser). */
+  treff(x, r, halv = 0.28) {
     const rad = this.rader.get(r);
     if (!rad) { return null; }
     if (rad.grill) { return rad.grill.het && Math.abs(x) <= KOL + 0.5 ? rad.grill.treff : null; }
@@ -698,7 +706,7 @@ export class Verden {
     if (rad.type !== 'vei' && rad.type !== 'bane') { return null; }
     for (const m of rad.flytt) {
       if (m.tog && !rad.bane.aktiv) { continue; }
-      if (Math.abs(x - m.x) < m.len / 2 + 0.28) { return m; }
+      if (Math.abs(x - m.x) < m.len / 2 + halv) { return m; }
     }
     return null;
   }

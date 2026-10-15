@@ -306,7 +306,7 @@ async function start() {
     poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
-    maakeHarStjaalet = false; tyveri = null; molleMeldt = false;
+    maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     if (pakketKylling) { pakketKylling.visible = false; }
@@ -1008,7 +1008,7 @@ async function start() {
   /* -------------------------------------------------------------------------
      MÅKA – første gang du er for treg, stjeler den en pakke i stedet for deg
      ------------------------------------------------------------------------- */
-  let maakeHarStjaalet = false, tyveri = null, molleMeldt = false;
+  let maakeHarStjaalet = false, tyveri = null, molleMeldt = false, tryggMeldt = false;
   const tyvPakke = M.pakke('original');
   tyvPakke.scale.setScalar(1.1);
   tyvPakke.position.set(0.82, -0.35, 0);
@@ -1068,11 +1068,14 @@ async function start() {
     const v = verdenFor(Math.max(0, Math.round(spillerRad)));
     /* Ringen går litt raskere for hver runde, og måkene på Bryggen er ekstra sultne */
     const brygge = v.id === 'brygge';
-    if (tilstand === 'spill' && rullAktiv && feiringTid <= 0) {
+    /* Trygg sone rundt Jobbsenteret: måka venter, og skjermen står stille */
+    const trygg = Math.abs(Math.round(spillerRad) - JOBB) <= 3;
+    if (trygg && tilstand === 'spill' && !tryggMeldt) { tryggMeldt = true; melding('Trygg sone. Pust ut, måka venter her ute.', 2.4); }
+    if (tilstand === 'spill' && rullAktiv && feiringTid <= 0 && !trygg) {
       rull += (0.3 + vanske(poeng) * 0.5) * (1 + 0.12 * v.runde) * (brygge ? 1.15 : 1) * dt;
     }
     if (spillerRad > rull + 1) { rull += (spillerRad - 1 - rull) * Math.min(1, dt * 3.5); }
-    if (tilstand === 'spill' && spillerRad < rull - (brygge ? 3.5 : 4.2) && !gud()) {
+    if (tilstand === 'spill' && !trygg && spillerRad < rull - (brygge ? 3.5 : 4.2) && !gud()) {
       if (!maakeHarStjaalet && pakker > 0) { stjelPakke(spillerRad); } else { do_('maake'); }
     }
   }
@@ -1258,10 +1261,14 @@ async function start() {
     s.yaw += (s.maalYaw - s.yaw) * Math.min(1, dt * 22);
     s.snu.rotation.y = s.yaw;
 
-    /* Kollisjoner med trafikken (også midt i hoppet) */
+    /* Kollisjoner. Hitboxen følger figuren: smal når kyllingen ser fram eller
+       bak, bredere når den ser til siden. Midt i et hopp mellom to rader
+       (40–60 %) er den i lufta og kan ikke bli truffet. */
     if (tilstand === 'spill') {
-      const radNa = s.hopp < 0.55 ? s.fraRad : s.tilRad;
-      const m = verden.treff(g.position.x, radNa);
+      const iLufta = s.fraRad !== s.tilRad && s.hopp > 0.4 && s.hopp < 0.6;
+      const radNa = s.hopp < 0.5 ? s.fraRad : s.tilRad;
+      const halv = Math.abs(Math.cos(s.yaw)) > 0.7 ? 0.4 : 0.22;
+      const m = iLufta ? null : verden.treff(g.position.x, radNa, halv);
       if (m) { do_(m.tog ? 'bane' : m.stempel ? 'stempel' : m.grill ? 'grill' : 'bil', m, radNa); }
       /* Lyd når noe kjører tett forbi */
       for (const dr of [-1, 0, 1]) {
