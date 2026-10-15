@@ -9,122 +9,46 @@
    alltid luft mellom bilene, og hullene mellom stokkene er aldri for store.
    Vanskeligheten øker jevnt med avstanden (vanske()).
 
-   Bare Kylling-pakker: noen rader på land har en pakke som kan plukkes opp.
-   Det er aldri mer enn én pakke per rad, så antall pakker kan aldri bli
-   høyere enn hvor langt du kom (serveren sjekker det).
+   Hvilke rader som kommer, og hvor pakkene ligger, avgjøres av banen i
+   bane.mjs (felles med serveren). Her bygges radene i 3D. Rutene der det
+   ligger pakker, holdes fri for hindringer.
    ============================================================================= */
 import * as THREE from '../vendor/three.module.min.js';
 import { F, modell } from './voxel.js';
 import * as M from './modeller.js';
 
-export const KOL = 4;            /* spillbare kolonner: −4 … 4 */
-export const JOBB = 60;          /* raden der Jobbsenteret står */
+import { KOL, JOBB, KV, iKV, vanske, lagRng } from './bane.mjs';
+export { KOL, JOBB, KV, iKV, vanske, lagRng };
+
 const VID = 14;                  /* hvor bred bakken tegnes (halv bredde) */
 const SYKLUS = 26;               /* kjøretøy og stokker går i ring over denne lengden */
-
-/* Frøbasert tilfeldighet, så samme frø gir samme verden */
-export function lagRng(frø) {
-  let a = frø >>> 0;
-  return function () {
-    a = (a + 0x6D2B79F5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/* Kylling Verden: en egen kyllingby fra rett etter Jobbsenteret til rad 250 */
-export const KV = { fra: JOBB + 3, til: 250 };
-export const iKV = (r) => r >= KV.fra && r <= KV.til;
 const KV_BILER = [F.honey, F.paprika, F.forest, F.creamHi, F.honeyDeep];
 
-export const vanske = (r) => Math.max(0, Math.min(1, (r - 4) / 130));
 const mellom = (a, b, t) => a + (b - a) * t;
 const BILFARGER = [F.roed, F.blaa, F.gul, F.creamHi, F.sage, F.paprika, F.inkSoft, F.oransje, F.lilla];
 
 export class Verden {
-  constructor(scene, teksturer, reklame, frø) {
+  /* bane: en Bane fra bane.mjs (radene og pakkene, laget av frøet) */
+  constructor(scene, teksturer, reklame, bane) {
     this.scene = scene;
     this.tex = teksturer;
     this.reklame = reklame;
-    this.rng = lagRng(frø);
-    /* Egen tilfeldighet for pakkene, så de ikke endrer resten av verdenen */
-    this.pakkeRng = lagRng((frø ^ 0x9E3779B9) >>> 0);
+    this.bane = bane;
+    /* Egen tilfeldighet for pynt, trafikk og hindringer (påvirker ikke poeng) */
+    this.rng = lagRng((bane.frø ^ 0x5BD1E995) >>> 0);
     this.rader = new Map();
-    this.plan = [];            /* kommende rader (spesifikasjoner) */
-    this.neste = -10;          /* neste rad som skal planlegges */
     this.laget = -11;          /* høyeste rad som er bygget */
     this.sti = 0;              /* kolonnen som alltid holdes åpen gjennom gresset */
-    this.forrigeBlokk = '';
     this.tavler = 0;
     this.harEgg = false;
     this.tid = 0;
   }
 
-  /* ---------------------------------------------------------------------------
-     PLANLEGGING – hvilke rader kommer, i blokker
-     --------------------------------------------------------------------------- */
-  planlegg() {
-    const r = this.neste;
-    if (r <= 2) { this.leggTil({ type: r <= -2 ? 'plass' : 'start' }); return; }
-    if (r === 3) { this.leggTil({ type: 'gress', lett: true }); return; }
-    if (r >= JOBB - 3 && r <= JOBB + 2) {
-      const typer = { [JOBB - 3]: 'gress', [JOBB - 2]: 'fortau', [JOBB - 1]: 'fortau', [JOBB]: 'jobb', [JOBB + 1]: 'jobb', [JOBB + 2]: 'fortau' };
-      this.leggTil({ type: typer[r], jobb: true, lett: r === JOBB - 3 });
-      return;
-    }
-    const d = vanske(r);
-    const igjen = JOBB - 3 - r;          /* plass før Jobbsenteret */
-    const rng = this.rng;
-    const valg = [
-      ['gress', 3], ['park', 1.1], ['by', 3.2], ['vei', 1.6],
-      ['elv', r >= 8 ? 2.2 : 0], ['bane', r >= 18 ? 1 + d : 0]
-    ].filter(([n, w]) => w > 0 && (n !== this.forrigeBlokk || n === 'gress'));
-    let sum = valg.reduce((s, v) => s + v[1], 0), pil = rng() * sum, blokk = 'gress';
-    for (const [n, w] of valg) { if ((pil -= w) <= 0) { blokk = n; break; } }
-    this.forrigeBlokk = blokk;
-
-    const maks = (n) => (igjen > 0 ? Math.max(1, Math.min(n, igjen)) : n);
-    if (blokk === 'gress') {
-      const n = maks(1 + Math.floor(rng() * 3));
-      for (let i = 0; i < n; i++) { this.leggTil({ type: 'gress' }); }
-    } else if (blokk === 'park') {
-      const n = maks(1 + Math.floor(rng() * 2));
-      for (let i = 0; i < n; i++) { this.leggTil({ type: 'park' }); }
-    } else if (blokk === 'vei' || blokk === 'by') {
-      const n = maks(1 + Math.floor(rng() * (2 + d * 3.2)));
-      const by = blokk === 'by';
-      if (by) { this.leggTil({ type: 'fortau', kant: 'foran' }); }
-      const zebra = by && rng() < 0.6 ? Math.floor(rng() * 5) - 2 : null;
-      let retning = rng() < 0.5 ? 1 : -1;
-      for (let i = 0; i < n; i++) {
-        this.leggTil({ type: 'vei', retning, zebra, stripe: i > 0 });
-        retning = rng() < 0.7 ? -retning : retning;
-      }
-      if (by) { this.leggTil({ type: 'fortau', kant: 'bak' }); }
-    } else if (blokk === 'elv') {
-      const n = maks(1 + Math.floor(rng() * (1.6 + d * 2.4)));
-      let retning = rng() < 0.5 ? 1 : -1;
-      for (let i = 0; i < n; i++) { this.leggTil({ type: 'elv', retning }); retning = -retning; }
-      this.leggTil({ type: 'gress', lett: true });
-    } else {
-      this.leggTil({ type: 'bane' });
-    }
-  }
-
-  leggTil(spek) {
-    spek.rad = this.neste++;
-    this.plan.push(spek);
-  }
-
   /* Sørger for at radene fra «fra» til «til» finnes, og fjerner de som er bak */
   sikre(fra, til) {
     while (this.laget < til) {
-      while (!this.plan.length) { this.planlegg(); }
-      const spek = this.plan.shift();
-      this.bygg(spek);
-      this.laget = spek.rad;
+      this.laget++;
+      if (this.laget >= -10) { this.bygg(this.bane.spek(this.laget)); }
     }
     for (const [r, rad] of this.rader) {
       if (r < fra) { this.fjernRad(rad); this.rader.delete(r); }
@@ -147,6 +71,8 @@ export class Verden {
   bygg(spek) {
     const r = spek.rad, z = -r, rng = this.rng, d = vanske(r), kv = iKV(r);
     const rad = { rad: r, type: spek.type, blokk: new Set(), flytt: [], fart: 0, gruppe: new THREE.Group(), spek };
+    /* Ruter med pakker skal aldri få hindringer */
+    const pakkeRuter = new Set(this.bane.pakker(r).map((p) => p.x));
     const l = [];                         /* klosser som slås sammen */
     const lys = r % 2 === 0;
 
@@ -219,6 +145,14 @@ export class Verden {
             rad.blokk.add(-3);
           }
           if (r === 1) { l.push(...M.skiltBokser(KOL + 0.9, z, F.blaa)); }
+          if (r === -1) {
+            /* Bergens viktigste regel, rett bak startstreken */
+            const skilt = M.skiltPlate(M.lappSkilt('Ikke mat\nmåkene.', F.honey, F.ink), 1.8, 0.68);
+            skilt.position.set(2, 1.15, z + 0.06);
+            rad.gruppe.add(skilt);
+            l.push({ x: 2, y: 0, z, w: 0.1, h: 0.82, d: 0.1, c: F.ink });
+            rad.blokk.add(2);
+          }
         }
         break;
       }
@@ -243,7 +177,7 @@ export class Verden {
         const tetthet = spek.lett ? 0.1 : mellom(park ? 0.12 : 0.2, park ? 0.22 : 0.34, d);
         let antall = 0;
         for (let x = -KOL; x <= KOL; x++) {
-          if (Math.abs(x - this.sti) <= 0 || antall >= 4) { continue; }
+          if (Math.abs(x - this.sti) <= 0 || pakkeRuter.has(x) || antall >= 4) { continue; }
           if (rng() < tetthet) { hindring(x, rng()); antall++; }
           else if (park && !kv && rng() < 0.3) { l.push(...M.blomsterBokser(x, z, rng)); }
         }
@@ -292,7 +226,7 @@ export class Verden {
         /* Av og til en benk eller søppelkasse på selve fortauet */
         if (!spek.jobb && rng() < 0.4) {
           const x = (rng() < 0.5 ? -1 : 1) * (2 + Math.floor(rng() * 3));
-          if (x !== this.sti) { l.push(...(rng() < 0.5 ? M.benkBokser(x, z) : M.soppelBokser(x, z))); rad.blokk.add(x); }
+          if (x !== this.sti && !pakkeRuter.has(x)) { l.push(...(rng() < 0.5 ? M.benkBokser(x, z) : M.soppelBokser(x, z))); rad.blokk.add(x); }
         }
         break;
       }
@@ -421,31 +355,25 @@ export class Verden {
     return rad;
   }
 
-  /* En pakke på en ledig rute i noen av radene på land */
+  /* Pakkene i raden (fra banen) */
   leggPakke(rad) {
-    const r = rad.rad, rng = this.pakkeRng;
-    if (r < 4 || r === JOBB - 3 || !['gress', 'park', 'fortau', 'vei'].includes(rad.type)) { return; }
-    const sjanse = (rad.type === 'vei' ? 0.16 : 0.24) * (iKV(r) ? 1.7 : 1);
-    if (rng() > sjanse) { return; }
-    const ledige = [];
-    for (let x = -KOL; x <= KOL; x++) { if (!rad.blokk.has(x)) { ledige.push(x); } }
-    if (!ledige.length) { return; }
-    const x = ledige[Math.floor(rng() * ledige.length)];
-    const mesh = M.pakke(rng() < 0.5 ? 'original' : 'paprika');
-    mesh.scale.setScalar(1.45);
-    mesh.position.set(x, 0.2, -r);
-    rad.gruppe.add(mesh);
-    rad.pakke = { x, mesh, fase: rng() * 6, tatt: false };
+    for (const p of this.bane.pakker(rad.rad)) {
+      const mesh = M.pakke(p.slag);
+      mesh.scale.setScalar(1.45);
+      mesh.position.set(p.x, 0.2, -rad.rad);
+      rad.gruppe.add(mesh);
+      rad.pakke = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7) % 6, tatt: false };
+    }
   }
 
-  /* Plukker pakken på (x, r) hvis det ligger en der. Gir true én gang. */
+  /* Plukker pakken på (x, r) hvis det ligger en der. Gir pakken én gang, ellers null. */
   plukk(x, r) {
     const rad = this.rader.get(r);
     const p = rad && rad.pakke;
-    if (!p || p.tatt || Math.round(x) !== p.x || Math.abs(x - p.x) > 0.3) { return false; }
+    if (!p || p.tatt || Math.round(x) !== p.x || Math.abs(x - p.x) > 0.3) { return null; }
     p.tatt = true;
     p.mesh.visible = false;
-    return true;
+    return p;
   }
 
   /* ---------------------------------------------------------------------------

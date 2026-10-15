@@ -66,6 +66,7 @@ function kjor([cmd, ...a]) {
       v.verdi.set(a[1], a[2]); lager.set(a[0], v); return 1;
     }
     case 'HGET': { const v = levende(a[0]); return v && v.verdi.has(a[1]) ? v.verdi.get(a[1]) : null; }
+    case 'ZREM': { const v = levende(a[0]); return v && v.verdi.delete(a[1]) ? 1 : 0; }
     case 'HMGET': { const v = levende(a[0]); return a.slice(1).map((f) => (v && v.verdi.has(f) ? v.verdi.get(f) : null)); }
     case 'HDEL': { const v = levende(a[0]); let n = 0; a.slice(1).forEach((f) => { if (v && v.verdi.delete(f)) { n++; } }); return n; }
     default: throw new Error('ukjent kommando ' + cmd);
@@ -95,7 +96,7 @@ const FIL = path.join(__dirname, '..', 'api', 'toppliste.js');
 function last(env) {
   delete require.cache[require.resolve(FIL)];
   const gammel = { ...process.env };
-  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET',
+  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'KV_REST_API_URL', 'KV_REST_API_TOKEN', 'TOPPLISTE_HEMMELIGHET', 'TOPPLISTE_ADMIN_NOKKEL',
     'REDIS_URL', 'KV_URL', 'POSTGRES_URL', 'DATABASE_URL', 'BLOB_READ_WRITE_TOKEN']
     .forEach((k) => delete process.env[k]);
   Object.assign(process.env, env);
@@ -104,8 +105,9 @@ function last(env) {
   return mod;
 }
 
-async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no', url = '/api/toppliste' } = {}) {
+async function kall(fn, { method = 'POST', body, ip = '10.0.0.1', origin, host = 'barekylling.no', url = '/api/toppliste', auth } = {}) {
   const req = { method, url, headers: { 'x-forwarded-for': ip + ', 1.1.1.1', host }, body };
+  if (auth) { req.headers.authorization = auth; }
   if (origin) { req.headers.origin = origin; }
   const res = {
     statusCode: 200, hode: {},
@@ -155,6 +157,28 @@ async function test(navn, fn) {
   let nr = 0;
   const nyIp = () => `10.9.${Math.floor(++nr / 250)}.${nr % 250}`;
   const start = async (ip) => (await kall(fn, { body: { handling: 'start' }, ip: ip || nyIp() })).data.billett;
+  const startMedFrø = async (ip) => (await kall(fn, { body: { handling: 'start' }, ip: ip || nyIp() })).data;
+  const { Bane, KOL } = await import('../bare-kylling/js/spill/bane.mjs');
+
+  /* Lager en ekte logg: hopper opp n rader og plukker pakkene på veien (går
+     sidelengs til pakken), slik spillet gjør. Gir { logg, pakker, rader }. */
+  const samleLogg = (frø, n, { maks = Infinity, cs = 20 } = {}) => {
+    const bane = new Bane(frø), biter = [], rader = [];
+    let kol = 0, pakker = 0;
+    for (let r = 1; r <= n; r++) {
+      biter.push('u' + (biter.length ? cs : 30).toString(36));
+      if (bane.spek(r).type === 'elv') { kol = null; continue; }
+      for (const p of bane.pakker(r)) {
+        if (pakker >= maks) { break; }
+        if (kol !== null) {
+          while (kol !== p.x) { biter.push((p.x > kol ? 'r' : 'l') + cs.toString(36)); kol += p.x > kol ? 1 : -1; }
+        }
+        biter.push(`p${r.toString(36)}.${p.x + KOL}`);
+        kol = p.x; pakker++; rader.push(r);
+      }
+    }
+    return { logg: biter.join(','), pakker, rader };
+  };
   const sendInn = (b, over = {}) => {
     /* Hvert navn sendes fra sin egen «enhet» med mindre testen sier noe annet */
     const body = { handling: 'send', billett: b, navn: 'Kari', poeng: 12, logg: logg(12), ...over };
@@ -255,13 +279,19 @@ async function test(navn, fn) {
   await test('kallenavn sjekkes', async () => {
     const { sjekkNavn } = fn;
     const ok = ['Kari', 'Ola N.', 'Åse_99', 'Thoresen', 'Thore', 'Kylling-Kåre', 'Bjørn Ståle', 'Glass', 'Bass', 'Nazir',
-      'Niger', 'Nigeria', 'Montenegro', 'Spikkestad', 'Analyse', 'Scunthorpe', 'Slutten', 'Horten', 'Mikkel', 'Assar', 'José'];
+      'Niger', 'Nigeria', 'Montenegro', 'Spikkestad', 'Analyse', 'Scunthorpe', 'Slutten', 'Horten', 'Mikkel', 'Assar', 'José',
+      'Kat', 'Katrine', 'Fakkel', 'Fokker', 'Brunkeflo', 'Helvetia', 'Mongolia', 'Satanowski', 'Kattepus'];
     for (const g of ok) { assert.ok(!sjekkNavn(g).feil, 'stoppet ved en feil: ' + g); }
     const stopp = ['a', 'x'.repeat(17), '<script>', '   ', '...', 'faen', 'Bare Kylling', 'ADMIN', 'h.o.r.e',
       'neger', 'NEGER', 'n e g e r', 'n.e.g.e.r', 'n-e-g-e-r', 'neeeger', 'n3g3r', 'nëger', 'nègre', 'sandneger',
       'nigger', 'N1gg3r', 'niggggerrr', 'nigga', 'нeгер', 'hitler88', 'heil hitler', '14 88', 'Drittsekk', 'kukhue',
-      'fuck you', 'Fuuuck', 'F u c k', 'fitte', 'H O R E', 'Kuk', 'K.u.k', 'p0rn0', 'montenegroneger'];
+      'fuck you', 'Fuuuck', 'F u c k', 'fitte', 'H O R E', 'Kuk', 'K.u.k', 'p0rn0', 'montenegroneger',
+      /* norske banneord og seksuelle ord, også med tall og mellomrom */
+      'helvete', 'h3lv3t3', 'HÆLVETE', 'satan', 'f4en', 'faaan', 'jævla', 'j3vla', 'faenskap', 'fitta', 'tispe', 't1spe',
+      'ballesekk', 'pikkhue', 'p1kkhue', 'hestkuk', 'føkk', 'runke', 'mongo', 'pupper', 's3xy', 'kuksuger', 'rævhøl',
+      'ræva', 'horer', 'onani', 'p u l e r'];
     for (const d of stopp) { assert.ok(sjekkNavn(d).feil, 'slapp gjennom: ' + d); }
+    assert.strictEqual(sjekkNavn('helvete').feil, 'Det kallenavnet går ikke.');
     assert.strictEqual(sjekkNavn('  Kari   Nord ').navn, 'Kari Nord');
     const r = await sendInn(await start(), { navn: '<b>hei</b>' });
     assert.strictEqual(r.status, 400);
@@ -355,29 +385,96 @@ async function test(navn, fn) {
     assert.strictEqual(r.status, 400);
   });
 
-  await test('pakker: egen liste, beste per navn, og aldri flere enn poengene', async () => {
-    const r0 = await kall(fn, { method: 'GET', ip: nyIp() });
-    assert.ok(Array.isArray(r0.data.pakker), 'GET gir også pakkelista');
-    const r1 = await sendInn(await start(), { navn: 'Samler', poeng: 10, pakker: 7, logg: logg(10) });
+  await test('billetten har et frø, og banen er lik hos server og spill', async () => {
+    const a = await startMedFrø(), b = await startMedFrø();
+    assert.ok(Number.isInteger(a.frø) && a.frø >= 0 && a.frø < 2 ** 32);
+    assert.notStrictEqual(a.frø, b.frø);
+    const x = new Bane(a.frø), y = new Bane(a.frø);
+    for (let r = 0; r < 300; r += 7) { assert.deepStrictEqual(y.pakker(r), x.pakker(r)); assert.strictEqual(y.spek(r).type, x.spek(r).type); }
+  });
+
+  await test('pakker kontrolleres mot banen fra frøet', async () => {
+    /* Finn et frø med pakker tidlig */
+    let st, run;
+    do { st = await startMedFrø(); run = samleLogg(st.frø, 30); } while (run.pakker < 3);
+    const r1 = await sendInn(st.billett, { navn: 'Samler', poeng: 30, pakker: run.pakker, logg: run.logg });
     assert.strictEqual(r1.status, 200, JSON.stringify(r1.data));
-    assert.strictEqual(r1.data.pakkePlass, 1);
-    assert.deepStrictEqual(r1.data.pakker[0], { navn: 'Samler', pakker: 7, dato: r1.data.pakker[0].dato });
-    /* Lengre runde, men færre pakker: poengene oppdateres, pakkene beholdes */
-    const r2 = await sendInn(await start(), { navn: 'Samler', poeng: 14, pakker: 2, logg: logg(14) });
-    assert.strictEqual(r2.status, 200);
-    assert.strictEqual(r2.data.pakker.find((x) => x.navn === 'Samler').pakker, 7);
-    assert.strictEqual(r2.data.liste.find((x) => x.navn === 'Samler').poeng, 14);
-    /* Flere pakker enn rader er umulig */
-    const r3 = await sendInn(await start(), { navn: 'Juksemaker', poeng: 5, pakker: 6, logg: logg(5) });
+    assert.strictEqual(r1.data.pakker.find((x) => x.navn === 'Samler').pakker, run.pakker);
+    /* Uten pakke-feltet regner serveren selv ut antallet */
+    const st2 = await startMedFrø(), run2 = samleLogg(st2.frø, 30);
+    const r2 = await sendInn(st2.billett, { navn: 'Teller', poeng: 30, logg: run2.logg });
+    assert.strictEqual(r2.status, 200, JSON.stringify(r2.data));
+    /* Påstått antall som ikke stemmer med loggen */
+    const st3 = await startMedFrø(), run3 = samleLogg(st3.frø, 30);
+    const r3 = await sendInn(st3.billett, { navn: 'Juksemaker', poeng: 30, pakker: run3.pakker + 5, logg: run3.logg });
     assert.strictEqual(r3.status, 400);
-    assert.match(r3.data.melding, /pakker/);
-    for (const feil of [-1, 1.5, '3', null]) {
-      assert.strictEqual((await sendInn(await start(), { navn: 'Rar', poeng: 5, pakker: feil, logg: logg(5) })).status, 400);
+    assert.match(r3.data.melding, /pakker/i);
+  });
+
+  await test('juks med pakker avvises: feil rad, pakke som ikke finnes, to ganger, feil kolonne', async () => {
+    let st, run;
+    do { st = await startMedFrø(); run = samleLogg(st.frø, 25); } while (run.pakker < 1);
+    const r0 = run.rader[0], bane = new Bane(st.frø), p = bane.pakker(r0)[0];
+    const tok = `p${r0.toString(36)}.${p.x + KOL}`;
+    const biter = run.logg.split(',');
+    const i = biter.indexOf(tok);
+    const varianter = {
+      'feil rad': [...biter.slice(0, i), `p${(r0 + 1).toString(36)}.${p.x + KOL}`, ...biter.slice(i + 1)],
+      'finnes ikke': [...biter.slice(0, i), `p${r0.toString(36)}.${((p.x + KOL + 3) % 9)}`, ...biter.slice(i + 1)],
+      'to ganger': [...biter.slice(0, i + 1), tok, ...biter.slice(i + 1)],
+      'to måker': [...biter.slice(0, i + 1), 'm', 'm', ...biter.slice(i + 1)],
+      'måke uten pakker': ['m', ...biter]
+    };
+    for (const [hva, liste] of Object.entries(varianter)) {
+      const b = await startMedFrø();
+      /* Samme frø som loggen ble laget for: bytt frøet i databasen */
+      const id = b.billett.split('.')[0], t = b.billett.split('.')[1];
+      lager.set('bk:runde:' + id, { verdi: `${t}:${st.frø}`, utloper: 0 });
+      const r = await sendInn(b.billett, { navn: 'Juks ' + hva.slice(0, 9), poeng: 25, logg: liste.join(',') });
+      assert.strictEqual(r.status, 400, hva + ': ' + JSON.stringify(r.data));
     }
-    /* Runder uten pakker havner ikke på pakkelista */
-    await sendInn(await start(), { navn: 'Ingen Pakker', poeng: 8, pakker: 0, logg: logg(8) });
+    /* Feil kolonne: står i kolonne 0 og påstår en pakke lenger bort (før rad 8
+       finnes ingen elv, så serveren vet nøyaktig hvor kyllingen står) */
+    let b, rr = 0;
+    while (!rr) {
+      b = await startMedFrø();
+      const bane = new Bane(b.frø);
+      for (let r = 4; r < 8 && !rr; r++) { if (bane.pakker(r).length && bane.pakker(r)[0].x !== 0) { rr = r; } }
+    }
+    const px = new Bane(b.frø).pakker(rr)[0].x;
+    const ups = Array.from({ length: rr }, (_, k) => 'u' + (k ? 20 : 30).toString(36));
+    const r = await sendInn(b.billett, { navn: 'Langt Unna', poeng: rr, logg: [...ups, `p${rr.toString(36)}.${px + KOL}`].join(',') });
+    assert.strictEqual(r.status, 400, JSON.stringify(r.data));
+    assert.match(r.data.melding, /sto ikke ved pakken/);
+  });
+
+  await test('måka stjeler: pakken trekkes fra, og loggen godtas', async () => {
+    let st, run;
+    do { st = await startMedFrø(); run = samleLogg(st.frø, 30); } while (run.pakker < 2);
+    const r = await sendInn(st.billett, { navn: 'Måkeoffer', poeng: 30, pakker: run.pakker - 1, logg: run.logg + ',m' });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.strictEqual(r.data.pakker.find((x) => x.navn === 'Måkeoffer').pakker, run.pakker - 1);
+  });
+
+  await test('runder uten pakker havner ikke på pakkelista', async () => {
+    await sendInn(await start(), { navn: 'Ingen Pakker', poeng: 8, logg: logg(8) });
     const r4 = await kall(fn, { method: 'GET', ip: nyIp() });
+    assert.ok(Array.isArray(r4.data.pakker));
     assert.ok(!r4.data.pakker.some((x) => x.navn === 'Ingen Pakker'));
+  });
+
+  await test('admin kan slette en rad med riktig nøkkel', async () => {
+    const adm = last({ KV_REST_API_URL: 'https://falsk.upstash.io', KV_REST_API_TOKEN: 'test-token', TOPPLISTE_ADMIN_NOKKEL: 'superhemmelig-nokkel' });
+    const r0 = await kall(fn, { method: 'GET', ip: nyIp() });
+    const offer = r0.data.liste[0].navn;
+    assert.strictEqual((await kall(fn, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer superhemmelig-nokkel' })).status, 404, 'uten nøkkel i miljøet finnes ikke endepunktet');
+    assert.strictEqual((await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer feil' })).status, 403);
+    assert.strictEqual((await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp() })).status, 403);
+    const r = await kall(adm, { method: 'DELETE', url: '/api/toppliste?navn=' + encodeURIComponent(offer), ip: nyIp(), auth: 'Bearer superhemmelig-nokkel' });
+    assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+    assert.ok(r.data.slettet >= 1);
+    const etter = await kall(adm, { method: 'GET', ip: nyIp(), url: '/api/toppliste?antall=100' });
+    assert.ok(!etter.data.liste.some((x) => x.navn === offer), offer + ' er fortsatt på lista');
   });
 
   await test('IP-adresser lagres aldri i klartekst', async () => {

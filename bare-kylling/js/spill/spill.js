@@ -12,6 +12,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
 import { Verden, KOL, JOBB, KV, iKV, vanske } from './verden.js';
+import { Bane } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
@@ -229,6 +230,7 @@ async function start() {
     vann: ['Plask! Kyllinger er ikke laget for svømming.', 'Kyllingfilet skal stekes, ikke kokes.'],
     drift: ['Du drev til havs. Ha det!', 'Neste stopp: Nordsjøen.'],
     maake: ['Måka tok deg. Typisk Bergen.', 'Ikke stå stille – måkene følger med.'],
+    tyveri: ['Måka stjal en pakke! Neste gang tar den deg.', 'Typisk Bergen: måka tok matpakka.', 'Måka fikk lunsj. Du får ikke ny sjanse.'],
     rekord: ['Du er offisielt en legendekylling!'],
     jobb: ['Gratulerer! Du kom deg på jobb!']
   };
@@ -259,9 +261,13 @@ async function start() {
   /* -------------------------------------------------------------------------
      NY RUNDE
      ------------------------------------------------------------------------- */
-  function nyVerden() {
+  /* b: billetten fra serveren ({ billett, frø }) eller null. Verdenen bygges
+     fra frøet i billetten, så serveren kan regne ut den samme banen. Uten
+     billett (frakoblet eller lokalt) får runden et tilfeldig frø og kan ikke
+     sendes inn. */
+  function nyVerden(b = null) {
     if (verden) { verden.fjernAlt(); }
-    verden = new Verden(scene, teksturer, reklame, (Math.random() * 2 ** 32) >>> 0);
+    verden = new Verden(scene, teksturer, reklame, new Bane(b ? b.frø : (Math.random() * 2 ** 32) >>> 0));
     verden.sikre(-10, 26);
     Object.assign(spiller, { x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null, paa: null, tomgang: 0, klemt: 0 });
     spiller.yaw = spiller.maalYaw = Math.PI / 2;
@@ -272,7 +278,9 @@ async function start() {
     spiller.kropp.position.set(0, 0, 0);
     poeng = 0; pakker = 0; gudIRunden = false; rull = -1; rullAktiv = false; jobbNaadd = false; feiringTid = 0; rekordMeldt = false;
     forrigeRekord = rekord = T.personligRekord();
-    logg = []; billett = null; dodTog = dodBane = null; dodTekst = '';
+    logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
+    maakeHarStjaalet = false; tyveri = null;
+    if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     plasserKamera(1);
     oppdaterHud();
@@ -280,7 +288,7 @@ async function start() {
 
   function startSpill() {
     lyd.vekk();
-    if (tilstand === 'over' || tilstand === 'dod') { nyVerden(); }
+    if (tilstand === 'over' || tilstand === 'dod') { nyVerden(T.taKlarBillett()); }
     tilstand = 'spill';
     runder++;
     gudIRunden = gud();
@@ -289,9 +297,6 @@ async function start() {
     melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     lyd.startMusikk();
     sisteTrekk = performance.now();
-    /* Billetten hører til denne runden; en sen billett fra en avbrutt runde brukes ikke */
-    const runde = runder;
-    if (listeModus !== 'lokal') { T.startRunde().then((b) => { if (runde === runder) { billett = b; } }); }
   }
 
   /* -------------------------------------------------------------------------
@@ -386,8 +391,10 @@ async function start() {
         sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
       } else { do_('vann'); return; }
     }
-    if (verden.plukk(spiller.x, spiller.rad)) {
+    const tattPakke = verden.plukk(spiller.x, spiller.rad);
+    if (tattPakke) {
       pakker++;
+      logg.push(`p${spiller.rad.toString(36)}.${tattPakke.x + KOL}`);   /* serveren kontrollerer pakken */
       lyd.pakke();
       sprut(spiller.x, 0.5, -spiller.rad, 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
       if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
@@ -860,7 +867,7 @@ async function start() {
     lyd.vekk(); lyd.settMusikk(!lyd.musikkPaa); settKnapp(ui.musikkKnapp, lyd.musikkPaa);
     if (lyd.musikkPaa && tilstand === 'spill') { lyd.startMusikk(); }
   });
-  const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(); tilstand = 'meny'; startSpill(); };
+  const omstart = () => { lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill(); };
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
   ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn]')) { trekk('u'); } });
@@ -937,6 +944,47 @@ async function start() {
   });
 
   /* -------------------------------------------------------------------------
+     MÅKA – første gang du er for treg, stjeler den en pakke i stedet for deg
+     ------------------------------------------------------------------------- */
+  let maakeHarStjaalet = false, tyveri = null;
+  const tyvPakke = M.pakke('original');
+  tyvPakke.scale.setScalar(1.1);
+  tyvPakke.position.set(0.82, -0.35, 0);
+  tyvPakke.rotation.set(0, 0, -0.5);
+  function stjelPakke(spillerRad) {
+    maakeHarStjaalet = true;
+    pakker--;
+    logg.push('m');                         /* serveren trekker fra pakken */
+    oppdaterHud();
+    rull = spillerRad - 1;                  /* måka er mett en stund */
+    const p = spiller.gruppe.position;
+    tyveri = { tid: 0, x: p.x, z: p.z };
+    maake.visible = true;
+    maake.add(tyvPakke);
+    tyvPakke.visible = false;
+    lyd.maake();
+    melding(velg(MELDINGER.tyveri), 2.8);
+  }
+  function oppdaterTyveri(dt) {
+    if (!tyveri) { return; }
+    tyveri.tid += dt;
+    const t = tyveri.tid, v = maake.userData;
+    v.venstre.rotation.x = Math.sin(t * 22) * 0.7;
+    v.hoyre.rotation.x = -Math.sin(t * 22) * 0.7;
+    if (t < 0.5) {
+      const k = t / 0.5;
+      maake.position.set(tyveri.x + 6 * (1 - k), 1.1 + 5 * (1 - k) * (1 - k), tyveri.z + 2 * (1 - k));
+      maake.rotation.set(0, Math.PI * 0.85, 0);
+    } else {
+      tyvPakke.visible = true;
+      const k = t - 0.5;
+      maake.position.set(tyveri.x - k * 5, 1.1 + k * 4, tyveri.z - k * 3);
+      maake.rotation.set(0, Math.PI * 0.85, 0.3);
+      if (k > 1.6) { maake.visible = false; maake.remove(tyvPakke); tyveri = null; }
+    }
+  }
+
+  /* -------------------------------------------------------------------------
      KAMERA – følger kyllingen og glir sakte framover (måka følger med!)
      ------------------------------------------------------------------------- */
   const kamX = { v: 0 };
@@ -959,7 +1007,9 @@ async function start() {
       rull += (0.3 + vanske(poeng) * 0.5) * dt;
     }
     if (spillerRad > rull + 1) { rull += (spillerRad - 1 - rull) * Math.min(1, dt * 3.5); }
-    if (tilstand === 'spill' && spillerRad < rull - 4.2) { do_('maake'); }
+    if (tilstand === 'spill' && spillerRad < rull - 4.2 && !gud()) {
+      if (!maakeHarStjaalet && pakker > 0) { stjelPakke(spillerRad); } else { do_('maake'); }
+    }
   }
 
   /* -------------------------------------------------------------------------
@@ -987,6 +1037,7 @@ async function start() {
 
     if (tilstand === 'spill' || tilstand === 'meny') { oppdaterSpiller(dt); }
     if (tilstand === 'dod') { oppdaterDod(dt); }
+    oppdaterTyveri(dt);
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1102,7 +1153,13 @@ async function start() {
   nyVerden();
   oppdaterStartKort();
   oppdaterGud();
-  oppdaterToppliste().then((svar) => { if (svar.ok) { T.forberedBillett(); } });
+  /* Første billett: bygg verdenen på nytt fra frøet hvis spillet ikke har startet */
+  oppdaterToppliste().then(async (svar) => {
+    if (!svar.ok) { return; }
+    const b = await T.nesteBillett();
+    if (!b) { return; }
+    if (tilstand === 'meny') { nyVerden(b); } else { T.leggTilbake(b); }
+  });
 
   /* Topplista oppdateres av seg selv mens siden er synlig, så nye rekorder fra
      andre dukker opp uten at noen må laste siden på nytt. */
@@ -1119,6 +1176,7 @@ async function start() {
   if (/[?&]test\b/.test(location.search)) {
     window.__bkSpill = {
       trekk, tilstand: () => tilstand, poeng: () => poeng, pakker: () => pakker,
+      logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       pakkeRader: () => [...Array(80).keys()].map((r) => verden.rad(r)).filter((d) => d && d.pakke).map((d) => ({ rad: d.rad, x: d.pakke.x, tatt: d.pakke.tatt })), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),
       treg: (k) => { treg = k; }, sakte: (k) => { tidsSkala = k; },
