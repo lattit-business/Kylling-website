@@ -14,8 +14,12 @@ export const VARER = [
   { id: 'paprika', navn: 'Paprika-kylling', pris: 30, type: 'farge', farge: 0xE07A4F },
   { id: 'original', navn: 'Original-kylling', pris: 30, type: 'farge', farge: 0x8DB86A },
   { id: 'krone', navn: 'Krone', pris: 50, type: 'hode' },
-  { id: 'gull', navn: 'Gullkylling', pris: 100, type: 'farge', farge: 0xF2C14E }
+  { id: 'gull', navn: 'Gullkylling', pris: 100, type: 'farge', farge: 0xF2C14E },
+  /* Premier: låses opp ved å komme langt, kan ikke kjøpes */
+  { id: 'strahatt', navn: 'Stråhatt', rad: 150, type: 'hode' },
+  { id: 'gullkokkelue', navn: 'Gull-kokkelue', rad: 250, type: 'hode' }
 ];
+export const PREMIER = VARER.filter((v) => v.rad);
 export const KROPP_STANDARD = F.creamHi;
 
 const les = (n, std) => { try { const v = localStorage.getItem(n); return v === null ? std : JSON.parse(v); } catch (e) { return std; } };
@@ -23,7 +27,13 @@ const skriv = (n, v) => { try { localStorage.setItem(n, JSON.stringify(v)); } ca
 
 export const saldo = () => Math.max(0, Math.floor(Number(les('bk-spill-lommebok', 0)) || 0));
 export function leggTil(n) { if (n > 0) { skriv('bk-spill-lommebok', saldo() + n); } return saldo(); }
-export const eier = (id) => les('bk-spill-eier', []).includes(id);
+/* Beste poengsum på enheten (samme nøkkel som toppliste.js bruker) */
+const rekord = () => Number(les('bk-spill-rekord', 0)) || 0;
+export const eier = (id) => {
+  const v = VARER.find((x) => x.id === id);
+  if (v && v.rad) { return rekord() >= v.rad; }
+  return les('bk-spill-eier', []).includes(id);
+};
 /* { hode, ansikt, farge }: id-ene du har på deg */
 export const paaDeg = () => Object.assign({ hode: null, ansikt: null, farge: null }, les('bk-spill-paa', {}));
 export const vare = (id) => VARER.find((v) => v.id === id);
@@ -32,6 +42,7 @@ export const vare = (id) => VARER.find((v) => v.id === id);
 export function kjop(id) {
   const v = vare(id);
   if (!v) { return { ok: false, melding: 'Fant ikke varen.' }; }
+  if (v.rad) { return { ok: false, melding: `${v.navn} låses opp når du kommer til rad ${v.rad}.` }; }
   if (eier(id)) { return { ok: true }; }
   if (saldo() < v.pris) { return { ok: false, melding: `Du trenger ${v.pris - saldo()} pakker til.` }; }
   skriv('bk-spill-lommebok', saldo() - v.pris);
@@ -48,6 +59,15 @@ export function bruk(id) {
   paa[v.type] = paa[v.type] === id ? null : id;
   skriv('bk-spill-paa', paa);
   return paa;
+}
+
+/* Tar på en premie uten å bytte ut noe annet enn hodeplagget */
+export function taPaa(id) {
+  const v = vare(id);
+  if (!v) { return; }
+  const paa = paaDeg();
+  paa[v.type] = id;
+  skriv('bk-spill-paa', paa);
 }
 
 export function kroppsfarge() {

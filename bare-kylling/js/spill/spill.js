@@ -192,6 +192,7 @@ async function start() {
   let tilstand = 'meny';             /* meny | spill | dod | over */
   let poeng = 0, rekord = T.personligRekord(), forrigeRekord = rekord;
   let pakker = 0;                    /* Bare Kylling-pakker plukket opp denne runden */
+  const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
   let billett = null, logg = [], sisteTrekk = 0;
   let dodTid = 0, dodAarsak = '', dodTekst = '', dodTog = null, dodBane = null, risting = 0;
@@ -345,6 +346,16 @@ async function start() {
       else if (poeng === KV.fra) { melding('Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.', 3); lyd.poeng(); }
       else if (poeng === KV.til + 1) { melding('Du klarte Kylling Verden! Tilbake til byen.', 3); lyd.seier(); }
       else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
+      /* Premier: første gang du når rad 150 og 250 */
+      const premie = B.PREMIER.find((v) => v.rad === poeng && forrigeRekord < v.rad && !opplast.has(v.id));
+      if (premie) {
+        opplast.add(premie.id);
+        T.settRekord(Math.max(T.personligRekord(), poeng));   /* låser opp med en gang, også om runden ender straks */
+        B.taPaa(premie.id); kleKylling();
+        melding(`Du låste opp ${premie.navn.toLowerCase()}! Finn den i butikken.`, 3.5);
+        lyd.seier();
+        sprut(spiller.x, 1.2, -spiller.rad, 30, [F.honey, F.creamHi, F.paprika], { fart: 2.4, opp: 4, liv: 1.2, str: 0.09, tyngde: 5 });
+      }
       if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
       oppdaterHud();
     }
@@ -794,12 +805,14 @@ async function start() {
       if (har) { li.classList.add('er-paa'); }
       const navn = document.createElement('span'); navn.className = 'butikk__navn'; navn.textContent = v.navn;
       const pris = document.createElement('span'); pris.className = 'butikk__pris';
-      pris.textContent = eier ? (har ? 'På deg' : 'Din') : `${v.pris} pakker`;
+      pris.textContent = v.rad ? (eier ? (har ? 'Premie · på deg' : 'Premie · opplåst') : `Premie · lås opp på rad ${v.rad}`)
+        : eier ? (har ? 'På deg' : 'Din') : `${v.pris} pakker`;
       const knapp = document.createElement('button');
       knapp.type = 'button';
       knapp.className = 'btn ' + (eier ? 'btn--ghost' : 'btn--ink') + ' butikk__knapp';
-      knapp.textContent = eier ? (har ? 'Ta av' : 'Bruk') : 'Kjøp';
-      if (!eier && B.saldo() < v.pris) { knapp.disabled = true; knapp.title = `Du trenger ${v.pris - B.saldo()} pakker til`; }
+      knapp.textContent = eier ? (har ? 'Ta av' : 'Bruk') : v.rad ? 'Låst' : 'Kjøp';
+      if (!eier && v.rad) { knapp.disabled = true; knapp.title = `Kom til rad ${v.rad} for å låse opp`; }
+      else if (!eier && B.saldo() < v.pris) { knapp.disabled = true; knapp.title = `Du trenger ${v.pris - B.saldo()} pakker til`; }
       knapp.addEventListener('click', () => {
         let tekst = '';
         if (eier) { B.bruk(v.id); lyd.klikk(); }
