@@ -215,7 +215,11 @@ async function start() {
   let runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
   const fartAktiv = () => performance.now() < effekt.fartTil;
   const magnetAktiv = () => performance.now() < effekt.magnetTil;
-  const komboAktiv = () => false;
+  /* Kombo: 10 hopp framover på rad (uten å stoppe) gir dobbel pakke i
+     lommeboka. Bare lommeboka: pakkelista teller ekte pakker. */
+  const KOMBO = 10, KOMBO_PAUSE = 900;
+  let kombo = 0, bonus = 0;
+  const komboAktiv = () => kombo >= KOMBO && performance.now() - sisteTrekk < KOMBO_PAUSE;
   let gudIRunden = false;            /* gud-modus var på en gang i runden: sendes ikke inn */
   const opplast = new Set();         /* premier låst opp i denne økta */
   let rull = 0, rullAktiv = false, feiringTid = 0, jobbNaadd = false, rekordMeldt = false;
@@ -325,6 +329,7 @@ async function start() {
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
     Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
     runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+    kombo = 0; bonus = 0;
     skjold.visible = false;
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
@@ -401,6 +406,8 @@ async function start() {
     sprut(spiller.x, 0.05, -spiller.rad, 3, stoev, { fart: 0.9, opp: 1.2, liv: 0.35, str: 0.07 });
 
     const naa = performance.now();
+    if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
+    if (kombo === KOMBO) { melding('Kombo! Doble pakker i lommeboka.', 2); lyd.kraft(); runde.kombo = true; }
     logg.push(r + Math.max(0, Math.round((naa - sisteTrekk) / 10)).toString(36));
     sisteTrekk = naa;
 
@@ -477,6 +484,7 @@ async function start() {
   /* En pakke er plukket (rad r). Serveren får vite det i loggen. */
   function taPakke(p, r, langt = false) {
     pakker++;
+    if (komboAktiv()) { bonus++; }
     logg.push(`p${r.toString(36)}.${p.x + KOL}`);
     lyd.pakke();
     sprut(p.x, 0.5, -r, langt ? 8 : 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
@@ -640,7 +648,7 @@ async function start() {
     const nyRekord = poeng > forrigeRekord;
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
-    B.leggTil(pakker);
+    B.leggTil(pakker + bonus);
     visSaldo();
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
@@ -654,6 +662,7 @@ async function start() {
         ? `Du nådde Jobbsenteret og kom ${poeng - JOBB} ${poeng - JOBB === 1 ? 'rute' : 'ruter'} videre.`
         : poeng > 0 ? `Du kom ${poeng} ${poeng === 1 ? 'rute' : 'ruter'}, ${JOBB - poeng} igjen til Jobbsenteret.` : 'Hopp framover med piltastene, WASD eller ved å sveipe.';
       ui.sluttTekst.textContent = jobbNaadd || !dodTekst ? fram : `${dodTekst} ${fram}`;
+      if (bonus > 0) { ui.sluttTekst.textContent += ` Kombo-bonus: ${bonus} ekstra ${bonus === 1 ? 'pakke' : 'pakker'} i lommeboka.`; }
     }
     if (ui.nyRekord) { ui.nyRekord.hidden = !nyRekord || poeng === 0; }
     if (ui.navnSkjema) { ui.navnSkjema.hidden = true; }
