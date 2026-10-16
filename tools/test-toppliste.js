@@ -516,7 +516,7 @@ async function test(navn, fn) {
     /* Dagens rute er en egen konkurranse: ikke på den vanlige topplista */
     assert.strictEqual(r.data.plass, null);
     assert.ok(!r.data.liste.some((x) => x.navn === 'Dagfinn'));
-    assert.ok(lager.has('bk:dagtid:' + a.dato), 'ny nøkkel for dagens liste (nullstilt)');
+    assert.ok(lager.has('bk:dagsprint:' + a.dato), 'ny nøkkel for dagens liste (nullstilt)');
     /* Bare de første 30 sekundene teller: hopp etter det regnes ikke med */
     const d2 = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
     const sakte = Array.from({ length: 14 }, (_, k) => 'u' + (k ? 300 : 30).toString(36)).join(',');   /* 3 s per hopp */
@@ -535,6 +535,39 @@ async function test(navn, fn) {
     const g = await kall(fn, { method: 'GET', ip: nyIp() });
     assert.ok(g.data.dag.some((x) => x.navn === 'Dagfinn') && !g.data.dag.some((x) => x.navn === 'Vanlig Vera'));
     assert.strictEqual(g.data.dato, osloDato());
+    assert.ok(g.data.nyListeOmMs > 0 && g.data.nyListeOmMs <= 24 * 3600 * 1000, 'tid til ny liste');
+  });
+
+  await test('dagens rute er en ren sprint: bare by, ingen pakker, kraftpakker eller Jobbsenter, færre tog', async () => {
+    const { Bane, lesLogg, dagFrø, tilOsloMidnatt } = await import('../bare-kylling/js/spill/bane.mjs');
+    let togDag = 0, togVanlig = 0;
+    for (const dato of ['2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19']) {
+      const frø = dagFrø(dato), dag = new Bane(frø, { dagens: true }), vanlig = new Bane(frø);
+      for (let r = 0; r <= 600; r++) {
+        const s = dag.spek(r);
+        assert.strictEqual(s.verden, 'by', `rad ${r} er by`);
+        assert.ok(s.type !== 'jobb' && !s.jobb && !s.port, `rad ${r}: ingen Jobbsenter eller port`);
+        assert.strictEqual(dag.pakker(r).length, 0);
+        assert.strictEqual(dag.kraft(r), null);
+        if (r < 30) { assert.notStrictEqual(s.type, 'bane', 'ingen tog før rad 30'); }
+        if (r <= 60) { togDag += s.type === 'bane'; togVanlig += vanlig.spek(r).type === 'bane'; }
+      }
+    }
+    assert.ok(togDag * 2 <= togVanlig, `færre tog (${togDag} mot ${togVanlig})`);
+    /* Pakker telles ikke på dagens rute */
+    const frø = dagFrø('2026-10-16'), vanlig = new Bane(frø);
+    let pr = 4; while (!vanlig.pakker(pr).length) { pr++; }
+    const til = Array.from({ length: pr }, (_, k) => 'u' + (k ? 14 : 0).toString(36));
+    const x = vanlig.pakker(pr)[0].x;
+    const logg = [...til, ...Array.from({ length: Math.abs(x) }, () => (x > 0 ? 'r' : 'l') + 'e'), `p${pr.toString(36)}.${x + 4}`].join(',');
+    const ut = lesLogg(logg, frø, { dagens: true, tidsgrenseCs: 3050 });
+    assert.strictEqual(ut.pakker, 0);
+    assert.strictEqual(ut.forkastet, 1);
+    /* Klokka starter ved første hopp: første hopp har 0 cs */
+    assert.strictEqual(lesLogg(til.join(','), frø, { dagens: true, tidsgrenseCs: 3050 }).poeng, pr);
+    /* Midnatt i Norge */
+    assert.strictEqual(tilOsloMidnatt(Date.UTC(2026, 9, 15, 21, 0)), 3600 * 1000);   /* 23.00 sommertid */
+    assert.strictEqual(tilOsloMidnatt(Date.UTC(2026, 11, 31, 22, 30)), 1800 * 1000);  /* 23.30 vintertid */
   });
 
   await test('norsk midnatt: datoen skifter klokka 00 i Norge, ikke UTC', async () => {

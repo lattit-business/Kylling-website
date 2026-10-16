@@ -106,7 +106,7 @@ export class Verden {
      --------------------------------------------------------------------------- */
   bygg(spek) {
     const r = spek.rad, z = -r, rng = this.rng, d = vanske(r);
-    const vd = verdenFor(r), v = vd.id, kv = v === 'kylling', tema = TEMA[v];
+    const vd = verdenFor(r, this.bane.dagens), v = vd.id, kv = v === 'kylling', tema = TEMA[v];
     const tempo = 1 + 0.12 * vd.runde;        /* litt raskere for hver runde i ringen */
     const rad = { rad: r, type: spek.type, verden: v, blokk: new Set(), flytt: [], fart: 0, gruppe: new THREE.Group(), spek };
     /* Ruter med pakker skal aldri få hindringer */
@@ -613,7 +613,7 @@ export class Verden {
 
   /* Fargene på vannet i rad r (til plasket) */
   vannFarger(r) {
-    const t = TEMA[verdenFor(r).id];
+    const t = TEMA[verdenFor(r, this.bane.dagens).id];
     return [t.vann[0], t.skum, t.vann[1], t.skum];
   }
 
