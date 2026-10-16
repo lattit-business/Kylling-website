@@ -1407,15 +1407,6 @@ body.meny-apen .sticky-cta { display: none; }
 /* Diskret lenke til ventelista, bare etter runden */
 .spill__vente { margin: .6rem 0 0; font-size: .78rem; color: var(--ink-soft); }
 .spill__vente[hidden] { display: none; }
-/* Oppdrag på start- og sluttkortet */
-.oppdrag { margin: .9rem auto .2rem; max-width: 22rem; text-align: left; }
-.oppdrag__tittel { margin: 0 0 .3rem; font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
-.oppdrag__liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; font-size: .88rem; }
-.oppdrag__rad { display: flex; align-items: center; gap: .5rem; }
-.oppdrag__boks { width: 14px; height: 14px; flex: none; }
-.oppdrag__hake { visibility: hidden; }
-.oppdrag__rad.er-ferdig .oppdrag__hake { visibility: visible; }
-.oppdrag__rad.er-ferdig span { text-decoration: line-through; opacity: .7; }
 .spill__butikkknapp .pakkeikon { width: .8em; }
 .spill__butikk[hidden] { display: none; }
 .butikk__saldo { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; }

@@ -16,7 +16,6 @@ import { Bane, dagFrø, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
-import * as O from './oppdrag.js';
 import * as ME from './merker.js';
 import * as D from './del.js';
 
@@ -227,8 +226,8 @@ async function start() {
   /* Kraftpakker: tidene er i ekte millisekunder (som trekkloggen), så de
      slutter på samme tid som serveren regner med */
   const effekt = { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 };
-  /* Det som skjedde i runden (til oppdragene) */
-  let runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+  /* Det som skjedde i runden */
+  let runde = { kraft: 0, kombo: false, stjalet: false };
   const fartAktiv = () => performance.now() < effekt.fartTil;
   const magnetAktiv = () => performance.now() < effekt.magnetTil;
   /* Kombo: 10 hopp framover på rad (uten å stoppe) gir dobbel pakke i
@@ -279,7 +278,6 @@ async function start() {
     vannBrygge: ['Plask! Rett i Vågen.', 'Kyllinger er ikke laget for svømming.'],
     driftBrygge: ['Du drev ut Vågen. Neste stopp: Nordsjøen.'],
     krydret: ['Du ble krydret!'],
-    molle: ['Tredemølla vant den runden.', 'Ikke stå stille på mølla!'],
     skjold: ['Original-skjold! Du tåler én smell.'],
     fart: ['Sweet Paprika! Full fart i fem sekunder.'],
     magnet: ['Matboks-magnet! Pakkene kommer til deg.'],
@@ -291,8 +289,8 @@ async function start() {
   const velg = (liste) => liste[Math.floor(Math.random() * liste.length)];
   /* Meldingen når du går inn i en ny verden */
   function velkommen(v) {
-    if (v.runde > 0 && v.id === 'kylling') { return `Runde ${v.runde + 1}! Alt går litt fortere nå.`; }
     return {
+      by: 'Tilbake i byen! Nå er det bare å holde ut.',
       kylling: 'Velkommen til Kylling Verden! Her ligger det ekstra mange pakker.',
       brygge: 'Bryggen! Det regner, selvfølgelig. Måkene er sultne.',
       fabrikk: 'Fabrikken. Hold deg unna stempelet.',
@@ -314,10 +312,10 @@ async function start() {
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
     const forbi = jobbNaadd || poeng > JOBB + 2, v = verdenFor(poeng);
     if (ui.maal) {
-      ui.maal.textContent = !forbi ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}` : `${v.navn} · ${v.til - poeng + 1} igjen`;
+      ui.maal.textContent = !forbi ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}` : v.til === Infinity ? 'Uendelig modus' : `${v.navn} · ${v.til - poeng + 1} igjen`;
     }
     if (ui.maalFyll) {
-      const fyll = !forbi ? Math.min(1, poeng / JOBB) : (poeng - v.fra) / (v.til - v.fra);
+      const fyll = !forbi ? Math.min(1, poeng / JOBB) : v.til === Infinity ? 1 : (poeng - v.fra) / (v.til - v.fra);
       ui.maalFyll.style.transform = `scaleX(${Math.max(0, Math.min(1, fyll))})`;
     }
   }
@@ -346,10 +344,9 @@ async function start() {
     dagensRunde = !!(b && b.dagens);
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
     Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
-    runde = { kraft: 0, kombo: false, levering: 0, stjalet: false };
+    runde = { kraft: 0, kombo: false, stjalet: false };
     kombo = 0; bonus = 0;
     skjold.visible = false;
-    if (leveringsbil) { leveringsbil.visible = false; }
     if (b && listeModus === 'global') { T.forberedBillett(); }   /* neste runde har én klar */
     maake.visible = false;
     if (pakketKylling) { pakketKylling.visible = false; }
@@ -368,7 +365,6 @@ async function start() {
     ui.slutt && (ui.slutt.hidden = true);
     melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute! Samme bane for alle i dag.' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     if (dagensRunde) { T.registrerDag(osloDato()); }
-    O.fyllPaa(); tegnOppdrag();
     lyd.startMusikk();
     sisteTrekk = performance.now();
   }
@@ -382,7 +378,9 @@ async function start() {
   function trekk(r) {
     if (butikkApen || navnApen) { return; }
     if (tilstand === 'meny') { startSpill(); }
-    if (tilstand === 'over') { return; }
+    /* Runden er over: en piltast eller WASD starter neste runde (litt
+       ventetid, så et tastetrykk i det kyllingen dør ikke starter med en gang) */
+    if (tilstand === 'over') { if (performance.now() - sluttTid > 600) { omstart(); } return; }
     if (tilstand !== 'spill') { return; }
     if (spiller.hopp < 1) { spiller.kø = r; return; }
     utfor(r);
@@ -414,6 +412,12 @@ async function start() {
       return;
     }
 
+    /* På elva: hopp rett mot midten av ruta på stokken (der den er når
+       kyllingen lander), så man ikke lander på kanten */
+    if (tilElv) {
+      const rute = verden.ruteVed(nyX, nyRad, fartAktiv() ? HOPP_FART : HOPP);
+      if (rute !== null) { nyX = rute; }
+    }
     spiller.fraX = spiller.x; spiller.fraRad = spiller.rad;
     spiller.tilX = nyX; spiller.tilRad = nyRad;
     spiller.hopp = 0;
@@ -442,12 +446,8 @@ async function start() {
       poeng = nyRad;
       rullAktiv = true;
       if (poeng % 10 === 0 && poeng !== JOBB) { lyd.poeng(); }
-      if (poeng === 10) { melding('10 ruter! Godt i gang.'); }
-      else if (poeng === 25) { melding('25! Nå snakker vi.'); }
-      else if (poeng === JOBB - 10) { melding('Jobbsenteret er rett der fremme!'); }
-      else if (poeng === 100) { melding('100 ruter! Legendarisk.'); }
       const v = verdenFor(poeng);
-      if (poeng === v.fra && v.id !== 'by') { melding(velkommen(v), 3); lyd.poeng(); }
+      if (poeng === v.fra && poeng > JOBB) { melding(velkommen(v), 3); lyd.poeng(); }
       /* Premier: første gang du når rad 150 og 250 */
       const premie = B.PREMIER.find((v) => v.rad === poeng && forrigeRekord < v.rad && !opplast.has(v.id));
       if (premie) {
@@ -458,7 +458,7 @@ async function start() {
         lyd.seier();
         sprut(spiller.x, 1.2, -spiller.rad, 30, [F.honey, F.creamHi, F.paprika], { fart: 2.4, opp: 4, liv: 1.2, str: 0.09, tyngde: 5 });
       }
-      if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; melding('Ny rekord underveis!'); lyd.poeng(); }
+      if (!rekordMeldt && forrigeRekord > 0 && poeng > forrigeRekord) { rekordMeldt = true; lyd.poeng(); }
       sjekkOppdrag();
       oppdaterHud();
     }
@@ -497,31 +497,6 @@ async function start() {
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
   }
 
-  /* LEVERINGSRUNDEN: når kyllingen er seks rader unna, kjører varebilen
-     forbi og mister lasten over tre rader */
-  let leveringsbil = null;
-  function oppdaterLevering(dt) {
-    if (tilstand === 'spill') {
-      for (let r = spiller.rad + 1; r <= spiller.rad + 7; r++) {
-        if (verden.bane.levering(r) === r && verden.slippLevering(r)) {
-          melding('Varebilen mistet lasten!', 2.6);
-          lyd.horn(); lyd.forbi(0.08);
-          if (!leveringsbil) { leveringsbil = M.varebil(teksturer); scene.add(leveringsbil); }
-          leveringsbil.visible = true;
-          leveringsbil.position.set(-14, 0, -(r - 1));
-          leveringsbil.rotation.y = 0;
-          leveringsbil.userData.t = 0;
-        }
-      }
-    }
-    if (leveringsbil && leveringsbil.visible) {
-      leveringsbil.userData.t += dt;
-      leveringsbil.position.x = -14 + leveringsbil.userData.t * 16;
-      leveringsbil.position.y = Math.abs(Math.sin(leveringsbil.userData.t * 20)) * 0.06;
-      if (leveringsbil.position.x > 15) { leveringsbil.visible = false; }
-    }
-  }
-
   /* MERKER: låses opp for godt (første gang på jobb, hver verden, 100 pakker,
      ti dager med dagens rute) */
   const dagerSpilt = () => { try { return (JSON.parse(localStorage.getItem('bk-spill-dager') || '[]') || []).length; } catch (e) { return 0; } };
@@ -532,19 +507,8 @@ async function start() {
     }
   }
 
-  /* OPPDRAG: sjekkes når noe skjer i runden; klare oppdrag gir pakker i lommeboka */
-  const tegnOppdrag = () => document.querySelectorAll('[data-oppdrag]').forEach((ul) => O.tegn(ul));
-  function sjekkOppdrag() {
-    if (tilstand !== 'spill' && tilstand !== 'over') { return; }
-    sjekkMerker();
-    for (const o of O.sjekk({ poeng, pakker, ...runde, dagens: dagensRunde })) {
-      B.leggTil(O.BELONNING);
-      visSaldo();
-      melding(`Oppdrag klart: ${o.tekst}! +${O.BELONNING} pakker`, 2.6);
-      lyd.poeng();
-      tegnOppdrag();
-    }
-  }
+  /* Merkene sjekkes når noe skjer i runden */
+  const sjekkOppdrag = () => { if (tilstand === 'spill' || tilstand === 'over') { sjekkMerker(); } };
 
   /* Kraft og kombo vises i HUD-en; kyllingen blinker mens den er uskadelig */
   let sisteEffekt = '';
@@ -562,14 +526,11 @@ async function start() {
   /* En pakke er plukket (rad r). Serveren får vite det i loggen. */
   function taPakke(p, r, langt = false) {
     pakker++;
-    if (p.levering) { runde.levering++; }
     if (komboAktiv()) { bonus++; }
     queueMicrotask(sjekkOppdrag);
     logg.push(`p${r.toString(36)}.${p.x + KOL}`);
     lyd.pakke();
     sprut(p.x, 0.5, -r, langt ? 8 : 14, [F.honey, F.creamHi, F.paprika, F.forest], { fart: 1.6, opp: 3, liv: 0.6, str: 0.07, tyngde: 6 });
-    if (pakker === 1) { melding('Bare Kylling-pakke! Samle så mange du kan.', 2); }
-    else if (pakker % 5 === 0) { melding(`${pakker} pakker! Matpakka er sikret.`, 2); }
     oppdaterHud();
   }
 
@@ -725,10 +686,11 @@ async function start() {
      ------------------------------------------------------------------------- */
   /* Runden som er ferdig: tas vare på med en gang, så den kan sendes inn
      selv om spilleren starter en ny runde før topplista har svart */
-  let innsending = null;
+  let innsending = null, sluttTid = 0;
 
   async function visSlutt() {
     tilstand = 'over';
+    sluttTid = performance.now();
     innsending = { billett, poeng, pakker, logg: logg.join(','), gud: gud() || gudIRunden };
     billett = null;
     const egen = innsending;
@@ -763,7 +725,6 @@ async function start() {
     if (ui.slutt) { ui.slutt.hidden = false; }
     const vente = $('[data-vente]', scene_);
     if (vente) { vente.hidden = false; }
-    tegnOppdrag();
     oppdaterHud();
     if (nyRekord && poeng > 0) {
       lyd.rekord();
@@ -1332,7 +1293,6 @@ async function start() {
     const brygge = v.id === 'brygge';
     /* Trygg sone rundt Jobbsenteret: måka venter, og skjermen står stille */
     const trygg = Math.abs(Math.round(spillerRad) - JOBB) <= 3;
-    if (trygg && tilstand === 'spill' && !tryggMeldt) { tryggMeldt = true; melding('Trygg sone. Pust ut, måka venter her ute.', 2.4); }
     if (tilstand === 'spill' && rullAktiv && feiringTid <= 0 && !trygg) {
       rull += (0.3 + vanske(poeng) * 0.5) * (1 + 0.12 * v.runde) * (brygge ? 1.15 : 1) * dt;
     }
@@ -1364,7 +1324,6 @@ async function start() {
       else if (h.type === 'stempel' && naer < 6) { lyd.stempel(naer > 1 ? 0.5 : 1); }
       else if (h.type === 'grill' && naer < 3) { lyd.fres(0.5); }
       else if (h.type === 'kakle' && naer < 4 && Math.random() < 0.35) { lyd.kakle(); }
-      else if (h.type === 'pakkeland') { sprut(h.x, 0.1, -h.rad, 4, [F.honey, F.creamHi], { fart: 0.8, opp: 1.4, liv: 0.35, str: 0.06 }); if (naer < 5) { lyd.lande(); } }
     }
 
     if (feiringTid > 0) { feiringTid -= dt; }
@@ -1375,7 +1334,6 @@ async function start() {
     if (tilstand === 'dod') { oppdaterDod(dt); }
     oppdaterTyveri(dt);
     visEffekt();
-    oppdaterLevering(dt);
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1507,7 +1465,6 @@ async function start() {
           if (!verden.blokkert(Math.round(s.x), s.rad - 1)) {
             logg.push('b');                       /* serveren sjekker at dette var en tredemølle */
             Object.assign(s, { fraX: s.x, fraRad: s.rad, tilX: s.x, tilRad: s.rad - 1, hopp: 0, glid: true });
-            if (!molleMeldt) { molleMeldt = true; melding(velg(MELDINGER.molle), 2); }
             lyd.molle();
           }
         }
@@ -1556,7 +1513,6 @@ async function start() {
      I GANG
      ------------------------------------------------------------------------- */
   nyVerden();
-  O.fyllPaa(); tegnOppdrag();
   oppdaterStartKort();
   oppdaterGud();
   /* Første billett hentes med en gang (samtidig med lista), og verdenen bygges
@@ -1587,7 +1543,6 @@ async function start() {
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
       pakkeRader: (fra = 0, til = 80) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); if (d) { d.pakker.forEach((p) => u.push({ rad: r, x: p.x, tatt: p.tatt })); } } return u; },
-      levering: (r) => verden.bane.levering(r),
       kraft: (fra = 0, til = 400) => { const u = []; for (let r = fra; r <= til; r++) { const k = verden.bane.kraft(r); if (k) { u.push({ rad: r, ...k }); } } return u; },
       effekt: () => ({ skjold: effekt.skjold, fart: fartAktiv(), magnet: magnetAktiv() }), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),

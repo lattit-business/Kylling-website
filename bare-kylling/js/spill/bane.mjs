@@ -36,8 +36,8 @@ export function bland(frø, r, salt) {
 /* ---------------------------------------------------------------------------
    VERDENENE
    Byen går fram til Jobbsenteret. Etter det kommer fire verdener, og når
-   Treningssenteret er ferdig, starter ringen på nytt med Kylling Verden (litt
-   raskere for hver runde). Første rad i hver verden er porten.
+   Treningssenteret er ferdig, er det vanlig by igjen resten av veien.
+   Første rad i hver verden er porten.
    --------------------------------------------------------------------------- */
 export const VERDENER = [
   { id: 'by', navn: 'Byen', fra: -10, til: JOBB + 2 },
@@ -46,17 +46,15 @@ export const VERDENER = [
   { id: 'fabrikk', navn: 'Fabrikken', fra: 201, til: 270 },
   { id: 'trening', navn: 'Treningssenteret', fra: 271, til: 340 }
 ];
-const RING_FRA = VERDENER[1].fra;
-const RING = VERDENER[VERDENER.length - 1].til - RING_FRA + 1;
+const SISTE = VERDENER[VERDENER.length - 1].til;
 
-/* Verdenen rad r ligger i: { id, navn, fra, til, runde } (fra/til er de
-   faktiske radene i denne runden av ringen) */
+/* Verdenen rad r ligger i: { id, navn, fra, til, runde }. Etter
+   Treningssenteret er det byen igjen uten ende (til = Infinity). */
 export function verdenFor(r) {
-  if (r < RING_FRA) { return { ...VERDENER[0], runde: 0 }; }
-  const runde = Math.floor((r - RING_FRA) / RING);
-  const forskyv = runde * RING, i = r - forskyv;
-  const v = VERDENER.find((w) => w.id !== 'by' && i >= w.fra && i <= w.til);
-  return { id: v.id, navn: v.navn, fra: v.fra + forskyv, til: v.til + forskyv, runde };
+  if (r < VERDENER[1].fra) { return { ...VERDENER[0], runde: 0 }; }
+  if (r > SISTE) { return { id: 'by', navn: 'Byen', fra: SISTE + 1, til: Infinity, runde: 0 }; }
+  const v = VERDENER.find((w) => w.id !== 'by' && r >= w.fra && r <= w.til);
+  return { ...v, runde: 0 };
 }
 
 /* ---------------------------------------------------------------------------
@@ -108,10 +106,6 @@ const KRAFT_LUKE = 70;                 /* én mulig kraftpakke per 70 rader */
 const KRAFTLAND = ['gress', 'park', 'fortau'];
 const iTryggSone = (r) => Math.abs(r - JOBB) <= 3;
 
-/* LEVERINGSRUNDE: varebilen mister lasten, og pakkene regner ned over tre
-   rader på rad (tre pakker per rad). Én mulig per 110 rader. */
-const SALT_LEV = 0x4C4556;
-const LEV_LUKE = 110;
 
 export class Bane {
   constructor(frø) {
@@ -122,7 +116,6 @@ export class Bane {
     this.forrigeBlokk = '';
     this.pakkeCache = new Map();
     this.kraftCache = new Map();
-    this.levCache = new Map();
   }
 
   /* Spesifikasjonen for rad r: { rad, type, verden, ... } */
@@ -148,14 +141,14 @@ export class Bane {
       return;
     }
     const v = verdenFor(r);
-    if (r === v.fra && v.id !== 'by') {
+    if (r === v.fra && r > JOBB) {
       /* Porten inn til en ny verden: en rolig rad å puste på */
       this.forrigeBlokk = 'gress';
       this.leggTil({ type: 'gress', lett: true, port: v.id });
       return;
     }
     const d = vanske(r);
-    const igjen = (v.id === 'by' ? JOBB - 4 : v.til) - r + 1;   /* rader igjen i verdenen */
+    const igjen = (v.id === 'by' && r < JOBB ? JOBB - 4 : v.til) - r + 1;   /* rader igjen i verdenen */
     const rng = this.rng;
     const valg = VEKTER[v.id](r, d)
       .filter(([n, w]) => w > 0 && MIN_RADER[n] <= igjen && (n !== this.forrigeBlokk || n === 'gress'));
@@ -206,56 +199,16 @@ export class Bane {
      ligger pakker, holdes fri for hindringer når raden bygges. */
   pakker(r) {
     if (this.pakkeCache.has(r)) { return this.pakkeCache.get(r); }
-    const liste = this.grunnPakker(r);
-    const lev = this.levering(r);
-    if (lev) {
-      /* tre pakker i raden fra varebilen, på ledige plasser */
-      const rng = lagRng(bland(this.frø, r, SALT_LEV));
-      const opptatt = new Set(liste.map((p) => p.x));
-      for (let i = 0; i < 3; i++) {
-        let x = Math.floor(rng() * (KOL * 2 + 1)) - KOL;
-        while (opptatt.has(x)) { x = x >= KOL ? -KOL : x + 1; }
-        opptatt.add(x);
-        liste.push({ x, slag: rng() < 0.5 ? 'original' : 'paprika', levering: true });
-      }
-    }
-    this.pakkeCache.set(r, liste);
-    return liste;
-  }
-
-  /* Leveringsrunden i luke k (eller null): { fra } = første av tre rader */
-  leveringLuke(k) {
-    if (this.levCache.has(k)) { return this.levCache.get(k); }
-    const rng = lagRng(bland(this.frø, k, SALT_LEV ^ 0xABCDEF));
-    let svar = null;
-    if (rng() < 0.6) {
-      const start = 40 + k * LEV_LUKE + Math.floor(rng() * 50);
-      const ok = (r) => r !== JOBB - 3 && !iTryggSone(r) && PAKKELAND.includes(this.spek(r).type);
-      for (let r = start; r < start + 20; r++) {
-        if (ok(r) && ok(r + 1) && ok(r + 2)) { svar = { fra: r }; break; }
-      }
-    }
-    this.levCache.set(k, svar);
-    return svar;
-  }
-
-  /* Første rad i leveringsrunden som rad r er med i, eller null */
-  levering(r) {
-    if (r < 40) { return null; }
-    const l = this.leveringLuke(Math.floor((r - 40) / LEV_LUKE));
-    return l && r >= l.fra && r <= l.fra + 2 ? l.fra : null;
-  }
-
-  /* Vanlige pakker (uten leveringsrunden) */
-  grunnPakker(r) {
     const spek = this.spek(r), liste = [];
     if (r >= 4 && r !== JOBB - 3 && PAKKELAND.includes(spek.type)) {
       const rng = lagRng(bland(this.frø, r, SALT_PAKKE));
-      const sjanse = (spek.type === 'vei' ? 0.16 : 0.24) * (spek.verden === 'kylling' ? 1.7 : 1);
+      /* Omtrent halvparten så mange pakker som før (litt flere i Kylling Verden) */
+      const sjanse = (spek.type === 'vei' ? 0.08 : 0.12) * (spek.verden === 'kylling' ? 1.5 : 1);
       if (rng() < sjanse) {
         liste.push({ x: Math.floor(rng() * (KOL * 2 + 1)) - KOL, slag: rng() < 0.5 ? 'original' : 'paprika' });
       }
     }
+    this.pakkeCache.set(r, liste);
     return liste;
   }
 

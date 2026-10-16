@@ -529,11 +529,12 @@ async function test(navn, fn) {
     assert.strictEqual(osloDato(Date.UTC(2026, 11, 31, 23, 1)), '2027-01-01');   /* vintertid */
   });
 
-  await test('verdenene ligger i ring etter Treningssenteret', async () => {
-    const { verdenFor } = await import('../bare-kylling/js/spill/bane.mjs');
-    assert.deepStrictEqual([10, 63, 131, 201, 271, 341, 618, 619].map((r) => verdenFor(r).id),
-      ['by', 'kylling', 'brygge', 'fabrikk', 'trening', 'kylling', 'trening', 'kylling']);
-    assert.strictEqual(verdenFor(341).runde, 1);
+  await test('etter Treningssenteret er det vanlig by igjen', async () => {
+    const { verdenFor, Bane: B2 } = await import('../bare-kylling/js/spill/bane.mjs');
+    assert.deepStrictEqual([10, 63, 131, 201, 271, 340, 341, 900].map((r) => verdenFor(r).id),
+      ['by', 'kylling', 'brygge', 'fabrikk', 'trening', 'trening', 'by', 'by']);
+    assert.strictEqual(verdenFor(900).til, Infinity);
+    assert.strictEqual(new B2(7).spek(341).port, 'by', 'porten tilbake til byen');
   });
 
   await test('runder uten pakker havner ikke på pakkelista', async () => {

@@ -45,6 +45,7 @@ const TEMA = {
 
 /* Porten inn til hver verden */
 const PORT = {
+  by: { stolpe: F.forest, topp: F.honey, bg: F.forest, fg: F.creamHi },
   kylling: { stolpe: F.honeyDeep, topp: F.paprika, bg: F.honey, fg: F.ink },
   brygge: { stolpe: F.bark, topp: F.roed, bg: F.roed, fg: F.creamHi },
   fabrikk: { stolpe: 0x8E9196, topp: F.honey, bg: F.ink, fg: F.honey },
@@ -68,7 +69,6 @@ export class Verden {
     this.sti = 0;              /* kolonnen som alltid holdes åpen gjennom gresset */
     this.tavler = 0;
     this.harEgg = false;
-    this.sluppet = new Set();   /* leveringsrunder som er sluppet */
     this.tid = 0;
   }
 
@@ -346,7 +346,8 @@ export class Verden {
         let stokker = 0;
         while (true) {
           const raft = !stokker && rng() < 0.08;
-          const len = raft ? 2.6 : Math.round((mellom(3.4, 2.2, d) + rng() * 1.2) * 2) / 2;
+          /* Hele ruter (2–4 lange), så kyllingen alltid kan lande midt på en rute */
+          const len = raft ? 3 : Math.max(2, Math.min(4, Math.round(mellom(3.4, 2.2, d) + rng() * 1.2)));
           if (x + len > SYKLUS / 2 - 1.2) { break; }
           const mesh = this.flyterMesh(v, len, raft);
           const m = { mesh, x: x + len / 2, len, fase: rng() * 6 };
@@ -473,7 +474,7 @@ export class Verden {
         l.push({ x: sx * (KOL + 0.9), y: 2.5, z, w: 0.5, h: 0.14, d: 0.5, c: p.topp });
       }
       l.push({ x: 0, y: 2.38, z: z - 0.05, w: KOL * 2 + 2.2, h: 0.12, d: 0.2, c: p.topp });
-      const navn = vd.navn.toUpperCase() + (vd.runde ? `\nRunde ${vd.runde + 1}` : '');
+      const navn = vd.id === 'by' ? 'TILBAKE\nI BYEN' : vd.navn.toUpperCase();
       const skilt = M.skiltCachet(navn, p.bg, p.fg, 3.4, 1.28);
       skilt.position.set(0, 1.85, z + 0.07);
       rad.gruppe.add(skilt);
@@ -553,6 +554,13 @@ export class Verden {
   }
 
   flyterMesh(v, len, raft) {
+    const mesh = this.flyterModell(v, len, raft);
+    const topp = raft ? 0.125 : { kylling: 0.205, brygge: len >= 3 ? 0.215 : 0.195, fabrikk: 0.165 }[v] || 0.185;
+    mesh.add(M.ruter(len, topp));
+    return mesh;
+  }
+
+  flyterModell(v, len, raft) {
     if (raft) { return M.flaate(this.tex); }
     if (v === 'kylling') { return M.kyllingfilet(len); }
     if (v === 'brygge') { return len >= 3 ? M.ferge(len) : M.baat(len); }
@@ -568,14 +576,7 @@ export class Verden {
       mesh.scale.setScalar(1.45);
       mesh.position.set(p.x, 0.2, -rad.rad);
       rad.gruppe.add(mesh);
-      const q = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false, levering: !!p.levering };
-      if (p.levering && !this.sluppet.has(this.bane.levering(rad.rad))) {
-        /* Varebilens last: ligger oppe i lufta til den slippes */
-        q.landet = false;
-        mesh.visible = false;
-        mesh.position.y = 9;
-      }
-      rad.pakker.push(q);
+      rad.pakker.push({ x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false });
     }
     const k = this.bane.kraft(rad.rad);
     if (k) {
@@ -604,19 +605,6 @@ export class Verden {
     return rad.pakker.filter((q) => !q.tatt && Math.abs(q.x - Math.round(x)) <= n);
   }
 
-  /* Varebilen mister lasten: pakkene i radene fra–fra+2 begynner å falle */
-  slippLevering(fra) {
-    if (this.sluppet.has(fra)) { return false; }
-    this.sluppet.add(fra);
-    let i = 0;
-    for (let r = fra; r <= fra + 2; r++) {
-      const rad = this.rader.get(r);
-      if (!rad) { continue; }
-      for (const p of rad.pakker) { if (p.landet === false) { p.fallStart = this.tid + 0.3 + (i++) * 0.12; } }
-    }
-    return true;
-  }
-
   /* Kraftpakken på (x, r), én gang */
   plukkKraft(x, r) {
     const rad = this.rader.get(r);
@@ -639,16 +627,6 @@ export class Verden {
     for (const rad of this.rader.values()) {
       for (const p of rad.pakker) {
         if (p.tatt) { continue; }
-        if (p.landet === false) {
-          /* Pakker som regner ned fra varebilen */
-          if (p.fallStart === undefined || this.tid < p.fallStart) { continue; }
-          const t = this.tid - p.fallStart;
-          p.mesh.visible = true;
-          p.mesh.position.y = Math.max(0.2, 9 - 10 * t * t);
-          p.mesh.rotation.y = t * 9;
-          if (p.mesh.position.y <= 0.2) { p.landet = true; hendelser.push({ type: 'pakkeland', rad: rad.rad, x: p.x }); }
-          continue;
-        }
         p.mesh.rotation.y = this.tid * 1.8 + p.fase;
         p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
       }
@@ -790,7 +768,23 @@ export class Verden {
     const rad = this.rader.get(r);
     if (!rad || rad.type !== 'elv') { return null; }
     for (const m of rad.flytt) {
-      if (!m.skum && Math.abs(x - m.x) < m.len / 2 + 0.12) { return m; }
+      if (!m.skum && Math.abs(x - m.x) < m.len / 2 + 0.3) { return m; }
+    }
+    return null;
+  }
+
+  /* Midten av ruta kyllingen lander på i rad r om t sekunder (stokkene
+     flytter seg mens den er i lufta), eller null hvis det er vann der.
+     Litt slingring i endene, så et hopp som nesten treffer, teller. */
+  ruteVed(x, r, t = 0) {
+    const rad = this.rader.get(r);
+    if (!rad || rad.type !== 'elv') { return null; }
+    for (const m of rad.flytt) {
+      if (m.skum) { continue; }
+      const mx = m.x + rad.fart * t, lok = x - mx;
+      if (Math.abs(lok) > m.len / 2 + 0.3) { continue; }
+      const i = Math.max(0, Math.min(m.len - 1, Math.round(lok + m.len / 2 - 0.5)));
+      return mx - m.len / 2 + 0.5 + i;
     }
     return null;
   }
