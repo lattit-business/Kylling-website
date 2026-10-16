@@ -350,7 +350,7 @@ export class Verden {
           const len = raft ? 3 : Math.max(2, Math.min(4, Math.round(mellom(3.4, 2.2, d) + rng() * 1.2)));
           if (x + len > SYKLUS / 2 - 1.2) { break; }
           const mesh = this.flyterMesh(v, len, raft);
-          const m = { mesh, x: x + len / 2, len, fase: rng() * 6 };
+          const m = { mesh, x: x + len / 2, len, fase: rng() * 6, topp: mesh.userData.topp || 0, dukk: 0, dukkLok: 0 };
           mesh.position.set(m.x, 0, z);
           rad.gruppe.add(mesh);
           rad.flytt.push(m);
@@ -553,11 +553,21 @@ export class Verden {
     return M.bil(BILFARGER[Math.floor(rng() * BILFARGER.length)]);
   }
 
+  /* Det flytende i elva, med ruter. userData.topp = høyden kyllingen står på. */
   flyterMesh(v, len, raft) {
     const mesh = this.flyterModell(v, len, raft);
-    const topp = raft ? 0.125 : { kylling: 0.205, brygge: len >= 3 ? 0.215 : 0.195, fabrikk: 0.165 }[v] || 0.185;
-    mesh.add(M.ruter(len, topp));
+    if (!raft && v === 'by') { mesh.userData.topp = M.STOKK_TOPP; return mesh; }   /* rutene er skåret inn i stokken */
+    const [topp, farge] = raft ? [0.125, 0xE8D2A6]
+      : { kylling: [0.205, 0xF2C27A], brygge: len >= 3 ? [0.215, 0xDDD6C8] : [0.195, 0xE3CDA0], fabrikk: [0.165, 0xDDE1E5] }[v] || [0.185, 0xE3CDA0];
+    mesh.add(M.ruter(len, topp, farge));
+    mesh.userData.topp = topp;
     return mesh;
+  }
+
+  /* Fargene på vannet i rad r (til plasket) */
+  vannFarger(r) {
+    const t = TEMA[verdenFor(r).id];
+    return [t.vann[0], t.skum, t.vann[1], t.skum];
   }
 
   flyterModell(v, len, raft) {
@@ -654,7 +664,15 @@ export class Verden {
         if (m.x < -SYKLUS / 2) { m.x += SYKLUS; }
         m.mesh.position.x = m.x;
         if (rad.type === 'elv' && !m.skum) {
-          m.mesh.position.y = Math.sin(this.tid * 2.2 + m.fase) * 0.025;
+          /* Vugger, og dukker og vipper litt når kyllingen lander (m.dukk) */
+          let y = Math.sin(this.tid * 2.2 + m.fase) * 0.025;
+          if (m.dukk > 0) {
+            m.dukk = Math.max(0, m.dukk - dt * 1.8);
+            const ned = -0.09 * m.dukk * Math.cos((1 - m.dukk) * 13) * (this.rolig ? 0.5 : 1);
+            y += ned;
+            m.mesh.rotation.z = this.rolig ? 0 : (m.dukkLok / m.len) * ned * 2.2;
+          }
+          m.mesh.position.y = y;
         }
       }
     }
@@ -777,6 +795,12 @@ export class Verden {
      flytter seg mens den er i lufta), eller null hvis det er vann der.
      Litt slingring i endene, så et hopp som nesten treffer, teller. */
   ruteVed(x, r, t = 0) {
+    const m = this.flyterVed(x, r, t);
+    return m ? m.x : null;
+  }
+
+  /* Som ruteVed, men gir { x, topp }: midten av ruta og høyden på dekket */
+  flyterVed(x, r, t = 0) {
     const rad = this.rader.get(r);
     if (!rad || rad.type !== 'elv') { return null; }
     for (const m of rad.flytt) {
@@ -784,7 +808,7 @@ export class Verden {
       const mx = m.x + rad.fart * t, lok = x - mx;
       if (Math.abs(lok) > m.len / 2 + 0.3) { continue; }
       const i = Math.max(0, Math.min(m.len - 1, Math.round(lok + m.len / 2 - 0.5)));
-      return mx - m.len / 2 + 0.5 + i;
+      return { x: mx - m.len / 2 + 0.5 + i, topp: m.topp };
     }
     return null;
   }
