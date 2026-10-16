@@ -43,5 +43,11 @@
     "api/toppliste.js": {
       "includeFiles": "bare-kylling/js/spill/bane.mjs"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/spill",
+      "destination": "/spill.html"
+    }
+  ]
 }

@@ -18,6 +18,7 @@ import * as T from './toppliste.js';
 import * as B from './butikk.js';
 import * as O from './oppdrag.js';
 import * as ME from './merker.js';
+import * as D from './del.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -1144,6 +1145,20 @@ async function start() {
     startSpill();
   }
   document.querySelectorAll('[data-dagens]').forEach((k) => k.addEventListener('click', (e) => { e.stopPropagation(); startDagens(); }));
+
+  /* DEL RESULTATET: et bilde av runden som nettopp er over */
+  const delKnapp = $('[data-del]', scene_);
+  if (delKnapp) {
+    delKnapp.addEventListener('click', async () => {
+      lyd.vekk(); lyd.klikk();
+      if (!innsending) { return; }
+      delKnapp.disabled = true;
+      const svar = await D.del({ poeng: innsending.poeng, pakker: innsending.pakker, dagens: dagensRunde });
+      delKnapp.disabled = false;
+      const tekst = { delt: 'Delt! Nå får de se hvem som er raskest.', lastet: 'Bildet er lastet ned. Del det hvor du vil.', feil: 'Fikk ikke laget bildet. Prøv igjen.' }[svar];
+      if (tekst && ui.sluttInfo) { ui.sluttInfo.textContent = tekst; }
+    });
+  }
   ui.omstart && ui.omstart.addEventListener('click', (e) => { omstart(); e.currentTarget.blur(); });
   ui.igjen && ui.igjen.addEventListener('click', () => { omstart(); });
   ui.start && ui.start.addEventListener('click', (e) => { if (!e.target.closest('a, [data-apne-butikk], [data-bytt-navn], [data-dagens]')) { trekk('u'); } });
