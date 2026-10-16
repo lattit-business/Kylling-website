@@ -118,7 +118,7 @@ async function hentBillett() {
     ? { billett: data.billett, frø: data.frø >>> 0, hentet: Date.now() } : null;
 }
 
-/* Billett til dagens rute (samme bane for alle i dag). Hentes når du trykker. */
+/* Billett til dagens rute (ny bane hver runde, egen liste for dagen). Hentes når du trykker. */
 export async function dagensBillett() {
   const { status, data } = await kall('POST', { handling: 'start', dagens: true });
   return status === 200 && data && data.billett && Number.isInteger(data.frø)

@@ -500,14 +500,13 @@ async function test(navn, fn) {
     }
   });
 
-  await test('dagens rute: samme frø for alle i dag, og egen liste', async () => {
-    const { dagFrø, osloDato } = await import('../bare-kylling/js/spill/bane.mjs');
+  await test('dagens rute: ny bane hver runde, og egen liste', async () => {
+    const { osloDato } = await import('../bare-kylling/js/spill/bane.mjs');
     const a = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
     const b = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
-    assert.strictEqual(a.frø, b.frø);
+    assert.notStrictEqual(a.frø, b.frø, 'ny bane hver runde');
     assert.strictEqual(a.dato, osloDato());
-    assert.strictEqual(a.frø, dagFrø(a.dato));
-    assert.notStrictEqual(dagFrø('2026-10-15'), dagFrø('2026-10-16'), 'ny rute hver dag');
+    assert.strictEqual(b.dato, a.dato);
     const run = samleLogg(a.frø, 14);
     const r = await sendInn(a.billett, { navn: 'Dagfinn', poeng: 14, logg: run.logg });
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
@@ -539,10 +538,10 @@ async function test(navn, fn) {
   });
 
   await test('dagens rute er en ren sprint: bare by, ingen pakker, kraftpakker eller Jobbsenter, færre tog', async () => {
-    const { Bane, lesLogg, dagFrø, tilOsloMidnatt } = await import('../bare-kylling/js/spill/bane.mjs');
+    const { Bane, lesLogg, tilOsloMidnatt } = await import('../bare-kylling/js/spill/bane.mjs');
     let togDag = 0, togVanlig = 0;
-    for (const dato of ['2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19']) {
-      const frø = dagFrø(dato), dag = new Bane(frø, { dagens: true }), vanlig = new Bane(frø);
+    for (let k = 1; k <= 40; k++) {
+      const frø = Math.imul(k, 2654435761) >>> 0, dag = new Bane(frø, { dagens: true }), vanlig = new Bane(frø);
       for (let r = 0; r <= 600; r++) {
         const s = dag.spek(r);
         assert.strictEqual(s.verden, 'by', `rad ${r} er by`);
@@ -555,7 +554,7 @@ async function test(navn, fn) {
     }
     assert.ok(togDag * 2 <= togVanlig, `færre tog (${togDag} mot ${togVanlig})`);
     /* Pakker telles ikke på dagens rute */
-    const frø = dagFrø('2026-10-16'), vanlig = new Bane(frø);
+    const frø = 20261016 * 2654435761 >>> 0, vanlig = new Bane(frø);
     let pr = 4; while (!vanlig.pakker(pr).length) { pr++; }
     const til = Array.from({ length: pr }, (_, k) => 'u' + (k ? 14 : 0).toString(36));
     const x = vanlig.pakker(pr)[0].x;

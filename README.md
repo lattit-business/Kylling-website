@@ -183,8 +183,8 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
   og pakker på avstand bare i vinduet etter en ekte kraftpakke.
 - **Kombo:** 10 hopp framover på rad gir dobbel pakke i lommeboka (ikke på
   pakkelista).
-- **Dagens rute (30 sekunders sprint):** samme bane for alle i dag
-  (`dagFrø(osloDato())`), og den som kommer lengst på 30 sekunder vinner.
+- **Dagens rute (30 sekunders sprint):** en ny bane hver runde (frø fra
+  serveren, som vanlige runder), og den som kommer lengst på 30 sekunder vinner.
   Banen er `new Bane(frø, { dagens: true })`: bare by hele veien, uten
   Jobbsenteret, porter, pakker og kraftpakker, og med færre tog (ingen før
   rad 30). Ingen kombo og ingen meldinger underveis; HUD-en viser bare

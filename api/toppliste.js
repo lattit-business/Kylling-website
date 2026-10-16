@@ -365,14 +365,10 @@ module.exports = async function toppliste(req, res) {
       const id = crypto.randomBytes(12).toString('base64url');
       const t = Date.now();
       /* Frøet til banen lagres hos oss; spilleren får det, men kan ikke bytte det.
-         Dagens rute: frøet kommer fra datoen (norsk tid), og runden huskes som
-         en dagens-runde, så den også havner på dagens liste. */
-      let frø = crypto.randomBytes(4).readUInt32BE(0), dato = '';
-      if (kropp.dagens === true) {
-        const b = await hentBane();
-        dato = b.osloDato(t);
-        frø = b.dagFrø(dato);
-      }
+         Hver runde får en ny bane, også på dagens rute. Dagens rute huskes med
+         datoen (norsk tid), så runden havner på lista for den dagen. */
+      const frø = crypto.randomBytes(4).readUInt32BE(0);
+      const dato = kropp.dagens === true ? (await hentBane()).osloDato(t) : '';
       await en('SET', NOKKEL.runde(id), dato ? `${t}:${frø}:${dato}` : `${t}:${frø}`, 'EX', String(RUNDE_LEVETID));
       return send(res, 200, dato ? { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø, dato } : { billett: `${id}.${t}.${hmac(id + '.' + t)}`, frø });
     }

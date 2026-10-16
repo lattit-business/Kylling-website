@@ -60,16 +60,11 @@ export function verdenFor(r, dagens = false) {
 }
 
 /* ---------------------------------------------------------------------------
-   DAGENS RUTE: samme bane for alle i dag. Datoen er norsk tid, så ruta (og
-   dagens liste) skifter ved midnatt i Norge.
+   DAGENS RUTE: en ny bane hver runde (byen, 30 sekunder), og en ny liste
+   hver dag. Datoen er norsk tid, så dagens liste skifter ved midnatt i Norge.
    --------------------------------------------------------------------------- */
 export function osloDato(ms = Date.now()) {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Oslo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ms));
-}
-export function dagFrø(dato) {
-  let h = 0x811C9DC5;
-  for (const c of 'bk-dag:' + dato) { h = Math.imul(h ^ c.charCodeAt(0), 0x01000193); }
-  return bland(h >>> 0, 0, 0x444147);
 }
 /* Millisekunder til neste midnatt i Norge (da kommer ny rute og ny liste) */
 export function tilOsloMidnatt(ms = Date.now()) {
