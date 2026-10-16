@@ -761,6 +761,8 @@ async function start() {
     if (ui.navnStatus) { ui.navnStatus.textContent = ''; }
     if (ui.sluttInfo) { ui.sluttInfo.textContent = ''; }
     if (ui.slutt) { ui.slutt.hidden = false; }
+    const vente = $('[data-vente]', scene_);
+    if (vente) { vente.hidden = false; }
     tegnOppdrag();
     oppdaterHud();
     if (nyRekord && poeng > 0) {

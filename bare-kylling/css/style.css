@@ -1404,6 +1404,9 @@ body.meny-apen .sticky-cta { display: none; }
 .spill__dagknapp { min-height: 44px; margin-top: .5rem; }
 .spill__delknapp { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; margin-top: .5rem; }
 .delikon { width: .9em; height: .9em; flex: none; }
+/* Diskret lenke til ventelista, bare etter runden */
+.spill__vente { margin: .6rem 0 0; font-size: .78rem; color: var(--ink-soft); }
+.spill__vente[hidden] { display: none; }
 /* Oppdrag på start- og sluttkortet */
 .oppdrag { margin: .9rem auto .2rem; max-width: 22rem; text-align: left; }
 .oppdrag__tittel { margin: 0 0 .3rem; font-size: .72rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
