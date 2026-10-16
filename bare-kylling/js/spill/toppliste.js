@@ -93,7 +93,8 @@ export const settVisAntall = (n) => skriv('bk-spill-antall', n === 100 ? 100 : 1
 export async function hentListe() {
   const { status, data } = await kall('GET', null, visAntall() === 100 ? API + '?antall=100' : API);
   if (status === 200 && data && Array.isArray(data.liste)) {
-    return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [], dag: Array.isArray(data.dag) ? data.dag : [] };
+    return { ok: true, liste: data.liste, pakker: Array.isArray(data.pakker) ? data.pakker : [], dag: Array.isArray(data.dag) ? data.dag : [],
+      dato: data.dato || '', nyListeOmMs: Number.isFinite(data.nyListeOmMs) ? data.nyListeOmMs : null };
   }
   if ([404, 405, 501, 503].includes(status)) { return { ok: false, grunn: 'ikke-koblet' }; }
   return { ok: false, grunn: status === 429 ? 'opptatt' : 'nett' };

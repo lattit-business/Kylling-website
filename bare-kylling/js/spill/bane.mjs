@@ -49,8 +49,10 @@ export const VERDENER = [
 const SISTE = VERDENER[VERDENER.length - 1].til;
 
 /* Verdenen rad r ligger i: { id, navn, fra, til, runde }. Etter
-   Treningssenteret er det byen igjen uten ende (til = Infinity). */
-export function verdenFor(r) {
+   Treningssenteret er det byen igjen uten ende (til = Infinity).
+   Dagens rute (dagens = true) er byen hele veien. */
+export function verdenFor(r, dagens = false) {
+  if (dagens) { return { id: 'by', navn: 'Byen', fra: -10, til: Infinity, runde: 0 }; }
   if (r < VERDENER[1].fra) { return { ...VERDENER[0], runde: 0 }; }
   if (r > SISTE) { return { id: 'by', navn: 'Byen', fra: SISTE + 1, til: Infinity, runde: 0 }; }
   const v = VERDENER.find((w) => w.id !== 'by' && r >= w.fra && r <= w.til);
@@ -69,6 +71,12 @@ export function dagFrø(dato) {
   for (const c of 'bk-dag:' + dato) { h = Math.imul(h ^ c.charCodeAt(0), 0x01000193); }
   return bland(h >>> 0, 0, 0x444147);
 }
+/* Millisekunder til neste midnatt i Norge (da kommer ny rute og ny liste) */
+export function tilOsloMidnatt(ms = Date.now()) {
+  const [t, m, s] = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Oslo', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+    .format(new Date(ms)).split(':').map(Number);
+  return Math.max(0, (24 * 3600 - (t * 3600 + m * 60 + s)) * 1000 - (ms % 1000));
+}
 
 export const vanske = (r) => Math.max(0, Math.min(1, (r - 4) / 130));
 
@@ -84,6 +92,8 @@ const VEKTER = {
   fabrikk: (r, d) => [['gress', 2.8], ['park', 0.8], ['by', 1.6], ['vei', 2.0], ['elv', 2.2], ['bane', 0.8 + d * 0.5], ['grill', 1.6]],
   trening: (r, d) => [['gress', 3.0], ['park', 1.0], ['by', 1.2], ['vei', 2.0], ['bane', 0.8 + d * 0.4], ['mølle', 3.0]]
 };
+/* Dagens rute er en ren sprint i byen: samme blokker, men færre tog */
+const VEKTER_DAG = (r) => [['gress', 3], ['park', 1.1], ['by', 3.2], ['vei', 1.6], ['elv', r >= 8 ? 2.2 : 0], ['bane', r >= 30 ? 0.45 : 0]];
 /* Minste antall rader en blokk trenger (så den ikke renner over i neste verden) */
 const MIN_RADER = { gress: 1, park: 1, by: 3, vei: 1, elv: 2, bane: 1, grill: 1, mølle: 2 };
 
@@ -108,8 +118,10 @@ const iTryggSone = (r) => Math.abs(r - JOBB) <= 3;
 
 
 export class Bane {
-  constructor(frø) {
+  /* dagens: dagens rute (bare by, ingen Jobbsenter, pakker eller kraftpakker) */
+  constructor(frø, { dagens = false } = {}) {
     this.frø = frø >>> 0;
+    this.dagens = !!dagens;
     this.rng = lagRng(this.frø);
     this.spekker = new Map();     /* rad → spesifikasjon */
     this.neste = -10;             /* neste rad som skal planlegges */
@@ -126,7 +138,7 @@ export class Bane {
 
   leggTil(spek) {
     spek.rad = this.neste++;
-    spek.verden = verdenFor(spek.rad).id;
+    spek.verden = verdenFor(spek.rad, this.dagens).id;
     this.spekker.set(spek.rad, spek);
   }
 
@@ -135,22 +147,22 @@ export class Bane {
     const r = this.neste;
     if (r <= 2) { this.leggTil({ type: r <= -2 ? 'plass' : 'start' }); return; }
     if (r === 3) { this.leggTil({ type: 'gress', lett: true }); return; }
-    if (r >= JOBB - 3 && r <= JOBB + 2) {
+    if (!this.dagens && r >= JOBB - 3 && r <= JOBB + 2) {
       const typer = { [JOBB - 3]: 'gress', [JOBB - 2]: 'fortau', [JOBB - 1]: 'fortau', [JOBB]: 'jobb', [JOBB + 1]: 'jobb', [JOBB + 2]: 'fortau' };
       this.leggTil({ type: typer[r], jobb: true, lett: r === JOBB - 3 });
       return;
     }
-    const v = verdenFor(r);
-    if (r === v.fra && r > JOBB) {
+    const v = verdenFor(r, this.dagens);
+    if (!this.dagens && r === v.fra && r > JOBB) {
       /* Porten inn til en ny verden: en rolig rad å puste på */
       this.forrigeBlokk = 'gress';
       this.leggTil({ type: 'gress', lett: true, port: v.id });
       return;
     }
     const d = vanske(r);
-    const igjen = (v.id === 'by' && r < JOBB ? JOBB - 4 : v.til) - r + 1;   /* rader igjen i verdenen */
+    const igjen = (this.dagens ? Infinity : v.id === 'by' && r < JOBB ? JOBB - 4 : v.til) - r + 1;   /* rader igjen i verdenen */
     const rng = this.rng;
-    const valg = VEKTER[v.id](r, d)
+    const valg = (this.dagens ? VEKTER_DAG(r) : VEKTER[v.id](r, d))
       .filter(([n, w]) => w > 0 && MIN_RADER[n] <= igjen && (n !== this.forrigeBlokk || n === 'gress'));
     let sum = valg.reduce((s, x) => s + x[1], 0), pil = rng() * sum, blokk = 'gress';
     for (const [n, w] of valg) { if ((pil -= w) <= 0) { blokk = n; break; } }
@@ -200,7 +212,7 @@ export class Bane {
   pakker(r) {
     if (this.pakkeCache.has(r)) { return this.pakkeCache.get(r); }
     const spek = this.spek(r), liste = [];
-    if (r >= 4 && r !== JOBB - 3 && PAKKELAND.includes(spek.type)) {
+    if (!this.dagens && r >= 4 && r !== JOBB - 3 && PAKKELAND.includes(spek.type)) {
       const rng = lagRng(bland(this.frø, r, SALT_PAKKE));
       /* Omtrent halvparten så mange pakker som før (litt flere i Kylling Verden) */
       const sjanse = (spek.type === 'vei' ? 0.08 : 0.12) * (spek.verden === 'kylling' ? 1.5 : 1);
@@ -236,7 +248,7 @@ export class Bane {
 
   /* Kraftpakken i rad r: { x, slag } eller null */
   kraft(r) {
-    if (r < 15) { return null; }
+    if (r < 15 || this.dagens) { return null; }
     const k = this.kraftLuke(Math.floor((r - 15) / KRAFT_LUKE));
     return k && k.rad === r ? k : null;
   }
@@ -262,12 +274,13 @@ export const MAKS_TREKK = 30000;
 export const DAGENS_TID_CS = 3000;
 export const DAGENS_GRENSE_CS = DAGENS_TID_CS + 50;
 
-/* tidsgrenseCs: hopp etter denne tiden (summen av hopptidene) teller ikke */
-export function lesLogg(logg, frø, { tidsgrenseCs = Infinity } = {}) {
+/* tidsgrenseCs: hopp etter denne tiden (summen av hopptidene) teller ikke.
+   dagens: banen er dagens rute (ingen pakker eller kraftpakker). */
+export function lesLogg(logg, frø, { tidsgrenseCs = Infinity, dagens = false } = {}) {
   if (typeof logg !== 'string' || logg.length > MAKS_TREKK * 10) { return { feil: 'Ugyldig logg.' }; }
   const biter = logg ? logg.split(',') : [];
   if (biter.length > MAKS_TREKK) { return { feil: 'Ugyldig logg.' }; }
-  const bane = new Bane(frø);
+  const bane = new Bane(frø, { dagens });
   const tatt = new Set();
   let rad = 0, beste = 0, cs = 0, hopp = 0, pakker = 0, stjalet = false, forkastet = 0;
   let kol = 0;                     /* kolonnen kyllingen står i (null = ukjent etter elv) */

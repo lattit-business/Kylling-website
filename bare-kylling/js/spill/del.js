@@ -30,10 +30,11 @@ function midt(g, tekst, y, font, farge, maks = B - 160) {
 
 /* Teksten om hvor langt runden kom */
 export function hvorLangt(poeng, dagens) {
+  if (dagens) { return `Dagens rute · ${poeng} ${poeng === 1 ? 'rute' : 'ruter'} på 30 sekunder`; }
   const v = verdenFor(Math.max(0, poeng));
   const sted = poeng < JOBB ? `${JOBB - poeng} ${JOBB - poeng === 1 ? 'rute' : 'ruter'} fra Jobbsenteret`
     : v.id === 'by' ? 'Kom seg på jobb!' : `Kom helt til ${v.navn}`;
-  return dagens ? `Dagens rute · ${sted}` : sted;
+  return sted;
 }
 
 /* Gir et lerret på 1080 × 1350 med resultatet */

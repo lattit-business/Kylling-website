@@ -63,10 +63,11 @@ const NOKKEL = {
   pakker: 'bk:pakker',        /* sortert sett: navnenøkkel → flest pakker (+ tidsbrøk) */
   pnavn: 'bk:pnavn',          /* hash: navnenøkkel → { navn, pakker, dato } */            /* hash: navnenøkkel → hash av enheten som eier navnet */
   runde: (id) => 'bk:runde:' + id,
-  /* Dagens rute (30 sekunder): sortert sett (poeng) for datoen. Nøkkelen
-     ble byttet da tidsgrensen kom, så lista startet på nytt. */
-  dag: (d) => 'bk:dagtid:' + d,
-  dnavn: (d) => 'bk:dagtidnavn:' + d,    /* hash: navnenøkkel → { navn, poeng, dato } */
+  /* Dagens rute (30 sekunders sprint): sortert sett (poeng) for datoen, så
+     lista er ny hver dag. Nøkkelen ble byttet da ruta ble en ren sprint
+     (uten Jobbsenter og pakker), så lista startet på nytt. */
+  dag: (d) => 'bk:dagsprint:' + d,
+  dnavn: (d) => 'bk:dagsprintnavn:' + d,    /* hash: navnenøkkel → { navn, poeng, dato } */
   fart: (hva, ip, vindu) => `bk:fart:${hva}:${ip}:${vindu}`
 };
 
@@ -317,10 +318,10 @@ module.exports = async function toppliste(req, res) {
       /* ?antall=100 gir hele lista (topp 100); ellers topp 10 */
       const antall = /[?&]antall=100\b/.test(req.url || '') ? BEHOLD : 10;
       /* dag: lista for dagens rute (norsk dato, nullstilles ved midnatt) */
-      const { osloDato } = await hentBane();
+      const { osloDato, tilOsloMidnatt } = await hentBane();
       const dato = osloDato();
       const [liste, pakker, dag] = await Promise.all([hentListe(antall), hentPakkeliste(antall), hentListe(antall, NOKKEL.dag(dato), NOKKEL.dnavn(dato))]);
-      return send(res, 200, { liste, pakker, dag, dato }, LISTE_CACHE);
+      return send(res, 200, { liste, pakker, dag, dato, nyListeOmMs: tilOsloMidnatt() }, LISTE_CACHE);
     }
 
     /* Admin: DELETE /api/toppliste?navn=Kari[&liste=topp|pakker|alle]
@@ -413,7 +414,7 @@ module.exports = async function toppliste(req, res) {
        må ha ligget der kyllingen sto (minus den måka stjal) */
     /* Dagens rute er på tid: bare hoppene innenfor 30 sekunder teller */
     const dagens = /^\d{4}-\d{2}-\d{2}$/.test(lagretDato || '');
-    const logg = await spillAv(kropp.logg, Number(lagretFrø), dagens ? { tidsgrenseCs: DAGENS_GRENSE_CS } : {});
+    const logg = await spillAv(kropp.logg, Number(lagretFrø), dagens ? { tidsgrenseCs: DAGENS_GRENSE_CS, dagens: true } : {});
     if (logg.feil) { return send(res, 400, { melding: logg.feil }); }
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
     /* Pakkene regnes av serveren. En pakke som ikke stemmer, telles bare ikke

@@ -11,7 +11,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
-import { Verden, KOL, JOBB, vanske, verdenFor } from './verden.js';
+import { Verden, KOL, JOBB, vanske, verdenFor as verdenForBane } from './verden.js';
 import { Bane, dagFrø, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
@@ -248,6 +248,9 @@ async function start() {
      satt når siste henting feilet midlertidig; da beholdes den forrige lista. */
   let listeModus = 'ukjent', globalListe = [], globalPakker = [], globalDag = [], listeFeil = '';
   let dagensRunde = false;   /* runden spilles på dagens rute */
+  let rundeStart = 0, sisteSekund = -1, klokkaGaar = false;   /* klokka på dagens rute */
+  /* Dagens rute er byen hele veien (ingen Jobbsenter eller andre verdener) */
+  const verdenFor = (r) => verdenForBane(r, dagensRunde);
   let treg = 1, tidsSkala = 1;   /* bare for testing (?test): sakte film */
   let meldingTid = 0;
   let runder = 0;
@@ -300,6 +303,7 @@ async function start() {
 
   function melding(tekst, varighet = 2.2) {
     if (!ui.melding) { return; }
+    if (dagensRunde && tilstand === 'spill') { return; }   /* dagens rute: bare fart, ingen meldinger */
     ui.melding.textContent = tekst;
     ui.melding.classList.remove('er-synlig'); void ui.melding.offsetWidth;
     ui.melding.classList.add('er-synlig');
@@ -310,7 +314,7 @@ async function start() {
     if (ui.poeng) { ui.poeng.textContent = String(poeng); }
     if (ui.pakker) { ui.pakker.textContent = String(pakker); }
     if (ui.rekord) { ui.rekord.textContent = String(Math.max(rekord, poeng)); }
-    const forbi = jobbNaadd || poeng > JOBB + 2, v = verdenFor(poeng);
+    const forbi = dagensRunde || jobbNaadd || poeng > JOBB + 2, v = verdenFor(poeng);
     if (ui.maal) {
       ui.maal.textContent = !forbi ? `Jobbsenteret om ${Math.max(0, JOBB - poeng)}` : v.til === Infinity ? 'Uendelig modus' : `${v.navn} · ${v.til - poeng + 1} igjen`;
     }
@@ -329,7 +333,7 @@ async function start() {
      sendes inn. */
   function nyVerden(b = null) {
     if (verden) { verden.fjernAlt(); }
-    verden = new Verden(scene, teksturer, reklame, new Bane(b ? b.frø : (Math.random() * 2 ** 32) >>> 0));
+    verden = new Verden(scene, teksturer, reklame, new Bane(b ? b.frø : (Math.random() * 2 ** 32) >>> 0, { dagens: !!(b && b.dagens) }));
     verden.sikre(-10, 26);
     Object.assign(spiller, { x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null, paa: null, tomgang: 0, klemt: 0, molle: 0, glid: false });
     spiller.yaw = spiller.maalYaw = Math.PI / 2;
@@ -342,6 +346,9 @@ async function start() {
     forrigeRekord = rekord = T.personligRekord();
     logg = []; billett = b ? b.billett : null; dodTog = dodBane = null; dodTekst = '';
     dagensRunde = !!(b && b.dagens);
+    klokkaGaar = false;
+    scene_.classList.toggle('er-dagens', dagensRunde);
+    scene_.classList.remove('er-sluttspurt');
     maakeHarStjaalet = false; tyveri = null; molleMeldt = false; tryggMeldt = false;
     Object.assign(effekt, { skjold: false, fartTil: 0, magnetTil: 0, uskadeligTil: 0 });
     runde = { kraft: 0, kombo: false, stjalet: false };
@@ -367,7 +374,6 @@ async function start() {
     if (dagensRunde) { T.registrerDag(osloDato()); }
     lyd.startMusikk();
     sisteTrekk = performance.now();
-    rundeStart = sisteTrekk;
     sisteSekund = -1;
     if (ui.tid) { ui.tid.hidden = !dagensRunde; ui.tid.classList.remove('er-snart'); ui.tid.textContent = '0:30'; }
   }
@@ -376,11 +382,13 @@ async function start() {
      trekkloggen, så serveren teller de samme hoppene). Den som kommer lengst,
      vinner. */
   const DAGENS_MS = 30000;
-  let rundeStart = 0, sisteSekund = -1;
-  const tidIgjen = () => (dagensRunde ? Math.max(0, DAGENS_MS - (performance.now() - rundeStart)) : Infinity);
+  /* Klokka starter først ved første hopp (da settes rundeStart, og hoppet
+     logges med 0 hundredeler, så serveren teller fra samme sted) */
+  const tidIgjen = () => (!dagensRunde ? Infinity : !klokkaGaar ? DAGENS_MS : Math.max(0, DAGENS_MS - (performance.now() - rundeStart)));
   function oppdaterTid() {
-    if (!dagensRunde || tilstand !== 'spill' || !ui.tid) { return; }
+    if (!dagensRunde || !klokkaGaar || tilstand !== 'spill' || !ui.tid) { return; }
     const igjen = tidIgjen(), sek = Math.ceil(igjen / 1000);
+    scene_.classList.toggle('er-sluttspurt', igjen > 0 && igjen < 7000);   /* svak rød kant de siste 7 sekundene */
     if (sek !== sisteSekund) {
       sisteSekund = sek;
       ui.tid.textContent = `0:${String(sek).padStart(2, '0')}`;
@@ -390,6 +398,7 @@ async function start() {
     if (igjen <= 0) { tidUte(); }
   }
   function tidUte() {
+    scene_.classList.remove('er-sluttspurt');
     dodAarsak = 'tid'; dodTekst = '';
     spiller.kø = null;
     lyd.stoppMusikk();
@@ -469,7 +478,9 @@ async function start() {
     }
 
     const naa = performance.now();
-    if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
+    if (dagensRunde && !klokkaGaar) { klokkaGaar = true; rundeStart = sisteTrekk = naa; }   /* klokka starter nå */
+    if (dagensRunde) { kombo = 0; }   /* ingen kombo på dagens rute */
+    else if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
     if (kombo === KOMBO) { melding('Kombo! Doble pakker i lommeboka.', 2); lyd.kraft(); runde.kombo = true; sjekkOppdrag(); }
     logg.push(r + Math.max(0, Math.round((naa - sisteTrekk) / 10)).toString(36));
     sisteTrekk = naa;
@@ -524,7 +535,7 @@ async function start() {
     const tattPakke = verden.plukk(spiller.x, spiller.rad);
     if (tattPakke) { taPakke(tattPakke, spiller.rad); }
     trekkMagnet();
-    if (spiller.rad === JOBB && !jobbNaadd) { feirJobb(); }
+    if (spiller.rad === JOBB && !jobbNaadd && !dagensRunde) { feirJobb(); }
     if (spiller.kø) { const k = spiller.kø; spiller.kø = null; utfor(k); }
   }
 
@@ -767,6 +778,7 @@ async function start() {
   async function visSlutt() {
     tilstand = 'over';
     sluttTid = performance.now();
+    scene_.classList.remove('er-sluttspurt');
     innsending = { billett, poeng, pakker, logg: logg.join(','), gud: gud() || gudIRunden };
     billett = null;
     const egen = innsending;
@@ -795,7 +807,7 @@ async function start() {
       ui.sluttTekst.textContent = jobbNaadd || !dodTekst ? fram : `${dodTekst} ${fram}`;
       if (dagensRunde) {
         const ruter = `${poeng} ${poeng === 1 ? 'rute' : 'ruter'}`;
-        ui.sluttTekst.textContent = dodAarsak === 'tid' ? `Du kom ${ruter} på 30 sekunder.` : `${dodTekst} Du kom ${ruter} på dagens rute.`.trim();
+        ui.sluttTekst.textContent = dodAarsak === 'tid' ? `Du kom ${ruter} på 30 sekunder.` : `${dodTekst} Du kom ${ruter} på dagens rute (30 s).`.trim();
       }
       if (bonus > 0) { ui.sluttTekst.textContent += ` Kombo-bonus: ${bonus} ekstra ${bonus === 1 ? 'pakke' : 'pakker'} i lommeboka.`; }
     }
@@ -901,7 +913,7 @@ async function start() {
       henterListe = T.hentListe().then((svar) => {
         henterListe = null;
         sistHentet = performance.now();
-        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = ''; }
+        if (svar.ok) { listeModus = 'global'; globalListe = svar.liste; globalPakker = svar.pakker; globalDag = svar.dag; listeFeil = ''; settNyListe(svar.nyListeOmMs); }
         else if (svar.grunn === 'ikke-koblet') { listeModus = 'lokal'; listeFeil = ''; }
         else { listeFeil = svar.grunn; }
         tegnListe();
@@ -910,6 +922,20 @@ async function start() {
       });
     }
     return henterListe;
+  }
+
+  /* Dagens liste er ny ved midnatt i Norge: vis hvor lenge det er igjen, og
+     hent lista på nytt rett etter midnatt om siden står åpen */
+  let nyListeTid = 0, nyListeTimer = 0;
+  function settNyListe(omMs) {
+    if (!Number.isFinite(omMs)) { return; }
+    nyListeTid = Date.now() + omMs;
+    window.clearTimeout(nyListeTimer);
+    nyListeTimer = window.setTimeout(() => { if (listeModus !== 'lokal') { oppdaterToppliste(); } }, omMs + 2000);
+  }
+  function nyListeOm() {
+    const min = Math.max(1, Math.ceil((nyListeTid - Date.now()) / 60000));
+    return min >= 60 ? `${Math.floor(min / 60)} t ${min % 60} min` : `${min} min`;
   }
 
   /* Bryter: topp 10 eller topp 100 */
@@ -974,7 +1000,7 @@ async function start() {
       } else if (dag && !global) {
         s.textContent = 'Lista for dagens rute finnes bare når den felles topplista er koblet til.';
       } else if (dag && !liste.length) {
-        s.textContent = 'Ingen har spilt dagens rute ennå. Kom lengst mulig på 30 sekunder! Ruta og lista er nye hver dag ved midnatt.';
+        s.textContent = 'Ingen har spilt dagens rute ennå. Kom lengst mulig på 30 sekunder!';
       } else if (global && !liste.length) {
         s.textContent = 'Ingen på lista ennå. Bli den første!';
       } else if (!global && paaKopi) {
@@ -983,6 +1009,9 @@ async function start() {
         s.append('Den felles topplista finnes bare på ', lenke, '. Her er rundene på denne enheten.');
       } else if (!global) {
         s.textContent = 'Den felles topplista er ikke koblet til ennå, så her står bare rundene på denne enheten.';
+      }
+      if (dag && global && !listeFeil && nyListeTid) {
+        s.textContent = `${s.textContent} Ny liste om ${nyListeOm()}.`.trim();
       }
     }
     tegnRader(ui.liste, liste, 'poeng');
@@ -1374,7 +1403,7 @@ async function start() {
     /* Ringen går litt raskere for hver runde, og måkene på Bryggen er ekstra sultne */
     const brygge = v.id === 'brygge';
     /* Trygg sone rundt Jobbsenteret: måka venter, og skjermen står stille */
-    const trygg = Math.abs(Math.round(spillerRad) - JOBB) <= 3;
+    const trygg = !dagensRunde && Math.abs(Math.round(spillerRad) - JOBB) <= 3;
     if (tilstand === 'spill' && rullAktiv && feiringTid <= 0 && !trygg) {
       rull += (0.3 + vanske(poeng) * 0.5) * (1 + 0.12 * v.runde) * (brygge ? 1.15 : 1) * dt;
     }

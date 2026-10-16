@@ -1403,6 +1403,18 @@ body.meny-apen .sticky-cta { display: none; }
 @keyframes tid-puls { to { transform: translateX(-50%) scale(1.12); } }
 @media (prefers-reduced-motion: reduce) { .hud__tid.er-snart { animation: none; } }
 @media (max-width: 560px) { .hud__tid { top: auto; bottom: clamp(3.4rem, 13vw, 4.2rem); } }
+/* Dagens rute er en ren sprint: ingen pakker, kraft eller mållinje i HUD-en */
+.spill__scene.er-dagens .hud__pakker, .spill__scene.er-dagens .hud__maal, .spill__scene.er-dagens .hud__effekt { display: none; }
+/* Svak rød kant som blinker de siste 7 sekundene (under HUD-en, slipper klikk gjennom) */
+.spill__scene .hud { z-index: 1; }
+.spill__scene::after {
+  content: ''; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 3px rgba(200, 62, 38, .55), inset 0 0 34px rgba(200, 62, 38, .4);
+  opacity: 0; transition: opacity .3s ease;
+}
+.spill__scene.er-sluttspurt::after { opacity: .7; animation: sluttspurt 1s ease-in-out infinite alternate; }
+@keyframes sluttspurt { from { opacity: .35; } to { opacity: .8; } }
+@media (prefers-reduced-motion: reduce) { .spill__scene.er-sluttspurt::after { animation: none; opacity: .55; } }
 .hud__pakker { display: inline-flex; align-items: center; gap: .3rem; margin-top: .35rem; font-size: 1.15rem; }
 .hud__pakker b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-variant-numeric: tabular-nums; }
 .pakkeikon { width: .85em; height: auto; flex: none; }
