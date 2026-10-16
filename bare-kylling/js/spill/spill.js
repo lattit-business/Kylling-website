@@ -12,7 +12,7 @@ import * as THREE from '../vendor/three.module.min.js';
 import { F, MATERIALE, logoKylling } from './voxel.js';
 import * as M from './modeller.js';
 import { Verden, KOL, JOBB, vanske, verdenFor as verdenForBane } from './verden.js';
-import { Bane, dagFrø, osloDato } from './bane.mjs';
+import { Bane, osloDato } from './bane.mjs';
 import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
@@ -1202,7 +1202,7 @@ async function start() {
     if (dagensRunde) { startDagens(); return; }
     lyd.vekk(); lyd.klikk(); lyd.stoppMusikk(); nyVerden(T.taKlarBillett()); tilstand = 'meny'; startSpill();
   };
-  /* DAGENS RUTE: samme bane for alle i dag. Uten kontakt med topplista
+  /* DAGENS RUTE: ny bane hver runde (byen, 30 sekunder). Uten kontakt med topplista
      spilles den likevel (frøet regnes ut fra datoen), men kan ikke sendes inn. */
   let henterDag = false;
   async function startDagens() {
@@ -1211,7 +1211,7 @@ async function start() {
     lyd.vekk(); lyd.klikk(); lyd.stoppMusikk();
     const knapper = document.querySelectorAll('[data-dagens]');
     knapper.forEach((k) => { k.disabled = true; k.textContent = 'Henter …'; });
-    const b = (listeModus !== 'lokal' && await T.dagensBillett()) || { billett: null, frø: dagFrø(osloDato()), dagens: true };
+    const b = (listeModus !== 'lokal' && await T.dagensBillett()) || { billett: null, frø: (Math.random() * 2 ** 32) >>> 0, dagens: true };
     knapper.forEach((k) => { k.disabled = false; k.textContent = 'Dagens rute · 30 s'; });
     henterDag = false;
     nyVerden(b);
