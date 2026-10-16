@@ -21,7 +21,7 @@ import { KOL, JOBB, vanske, lagRng, verdenFor, VERDENER } from './bane.mjs';
 export { KOL, JOBB, vanske, lagRng, verdenFor, VERDENER };
 
 const VID = 14;                  /* hvor bred bakken tegnes (halv bredde) */
-const OPPE = 1.7;                /* stempelhodet i hvilestilling */
+const OPPE = 1.35;               /* stempelhodet i hvilestilling */
 const SYKLUS = 26;               /* kjøretøy og stokker går i ring over denne lengden */
 const KV_BILER = [F.honey, F.paprika, F.forest, F.creamHi, F.honeyDeep];
 const BRYGGE_BILER = [F.creamHi, F.inkSoft, F.blaa, F.sage];
@@ -86,6 +86,7 @@ export class Verden {
 
   fjernRad(rad) {
     this.scene.remove(rad.gruppe);
+    if (rad.bane && rad.bane.stempel) { rad.bane.mesh.material.dispose(); }
     if (rad.statisk) { rad.statisk.geometry.dispose(); }
   }
 
@@ -386,10 +387,11 @@ export class Verden {
         }
         if (variant === 'stempel') {
           for (const s2 of [-1, 1]) {
-            l.push({ x: s2 * (KOL + 0.9), y: 0, z, w: 0.4, h: 2.6, d: 0.5, c: 0x8E9196 });
+            l.push({ x: s2 * (KOL + 0.9), y: 0, z, w: 0.4, h: 2.0, d: 0.5, c: 0x8E9196 });
             l.push({ x: s2 * (KOL + 0.9), y: 0.1, z: z + 0.26, w: 0.42, h: 0.12, d: 0.02, c: F.honey });
+            /* kort arm inn mot hodet (ingen bjelke over hele raden, den skjulte kyllingen) */
+            l.push({ x: s2 * (KOL + 0.55), y: 1.85, z, w: 0.7, h: 0.2, d: 0.4, c: 0x6E7176 });
           }
-          l.push({ x: 0, y: 2.6, z, w: KOL * 2 + 2.4, h: 0.3, d: 0.6, c: 0x6E7176 });
         }
         /* Signal: lyser rødt og ringer før bybanen kommer */
         l.push({ x: -KOL - 0.8, y: 0, z: z + 0.42, w: 0.1, h: 1.3, d: 0.1, c: F.ink });
@@ -629,8 +631,10 @@ export class Verden {
      SIMULERING
      Gir tilbake hendelser (bybane-varsel osv.) som spillet kan lage lyd av.
      --------------------------------------------------------------------------- */
-  oppdater(dt) {
+  /* spillerRad: hvor kyllingen er (stempelet tones ned når den er under/foran) */
+  oppdater(dt, spillerRad = -99) {
     this.tid += dt;
+    this.spillerRad = spillerRad;
     const hendelser = [];
     for (const rad of this.rader.values()) {
       for (const p of rad.pakker) {
@@ -691,6 +695,13 @@ export class Verden {
 
   oppdaterStempel(rad, dt, hendelser) {
     const b = rad.bane, hode = b.mesh;
+    /* Står stempelet stille med kyllingen under eller rett foran, tones det
+       ned så kyllingen synes. Varsler eller slår det, er det helt synlig. */
+    const naer = this.spillerRad >= rad.rad - 2.5 && this.spillerRad <= rad.rad + 0.5;
+    const maal = !b.aktiv && !b.varsel && naer ? 0.3 : 1;
+    const mat = hode.material;
+    mat.opacity += (maal - mat.opacity) * Math.min(1, dt * 8);
+    mat.depthWrite = mat.opacity > 0.95;
     if (!b.aktiv) {
       b.nedtelling -= dt;
       if (!b.varsel && b.nedtelling < 1.6) { b.varsel = true; hendelser.push({ type: 'stempelvarsel', rad: rad.rad }); }

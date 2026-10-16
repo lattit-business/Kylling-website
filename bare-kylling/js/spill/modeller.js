@@ -997,11 +997,12 @@ export function stempelHode(bredde) {
   const geo = cachet('stempel' + bredde, () => bokser([
     { x: 0, y: 0, z: 0, w: bredde, h: 0.36, d: 0.9, c: 0x8E9196 },
     { x: 0, y: 0.36, z: 0, w: bredde - 0.3, h: 0.12, d: 0.7, c: 0x6E7176 },
-    { x: 0, y: 0.08, z: 0.455, w: bredde, h: 0.1, d: 0.01, c: F.honey },
-    { x: -bredde / 4, y: 0.48, z: 0, w: 0.16, h: 1.6, d: 0.16, c: 0xA9ADB2 },
-    { x: bredde / 4, y: 0.48, z: 0, w: 0.16, h: 1.6, d: 0.16, c: 0xA9ADB2 }
+    { x: 0, y: 0.08, z: 0.455, w: bredde, h: 0.1, d: 0.01, c: F.honey }
   ]));
-  const m = new THREE.Mesh(geo, MATERIALE);
+  /* Eget materiale, så stempelet kan tones ned når kyllingen står under/foran det */
+  const mat = MATERIALE.clone();
+  mat.transparent = true;
+  const m = new THREE.Mesh(geo, mat);
   m.castShadow = true;
   return m;
 }
