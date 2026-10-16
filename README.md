@@ -203,6 +203,15 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
   fanen «Merker» i butikken.
 - Alt i butikken er bare utseende.
 
+### Del resultatet og ventelista
+
+- «Del resultatet» på sluttkortet lager et bilde (`js/spill/del.js`, 1080 ×
+  1350) med logokyllingen, poeng, pakker og verden, og «Slå meg på
+  barekylling.no/spill». Mobil: Web Share. PC: nedlasting. `/spill` peker til
+  `spill.html` (rewrite i `vercel.json`).
+- Etter runden står en diskret lenke til ventelista: «Pakkene her er bare
+  piksler. Få beskjed når de ekte kommer.» Den vises aldri mens man spiller.
+
 ### Kallenavn huskes
 
 Første gang du kommer på lista, skriver du et kallenavn. Det huskes i
