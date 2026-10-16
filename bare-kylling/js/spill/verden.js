@@ -346,7 +346,8 @@ export class Verden {
         let stokker = 0;
         while (true) {
           const raft = !stokker && rng() < 0.08;
-          const len = raft ? 2.6 : Math.round((mellom(3.4, 2.2, d) + rng() * 1.2) * 2) / 2;
+          /* Hele ruter (2–4 lange), så kyllingen alltid kan lande midt på en rute */
+          const len = raft ? 3 : Math.max(2, Math.min(4, Math.round(mellom(3.4, 2.2, d) + rng() * 1.2)));
           if (x + len > SYKLUS / 2 - 1.2) { break; }
           const mesh = this.flyterMesh(v, len, raft);
           const m = { mesh, x: x + len / 2, len, fase: rng() * 6 };
@@ -553,6 +554,13 @@ export class Verden {
   }
 
   flyterMesh(v, len, raft) {
+    const mesh = this.flyterModell(v, len, raft);
+    const topp = raft ? 0.125 : { kylling: 0.205, brygge: len >= 3 ? 0.215 : 0.195, fabrikk: 0.165 }[v] || 0.185;
+    mesh.add(M.ruter(len, topp));
+    return mesh;
+  }
+
+  flyterModell(v, len, raft) {
     if (raft) { return M.flaate(this.tex); }
     if (v === 'kylling') { return M.kyllingfilet(len); }
     if (v === 'brygge') { return len >= 3 ? M.ferge(len) : M.baat(len); }
@@ -760,7 +768,23 @@ export class Verden {
     const rad = this.rader.get(r);
     if (!rad || rad.type !== 'elv') { return null; }
     for (const m of rad.flytt) {
-      if (!m.skum && Math.abs(x - m.x) < m.len / 2 + 0.12) { return m; }
+      if (!m.skum && Math.abs(x - m.x) < m.len / 2 + 0.3) { return m; }
+    }
+    return null;
+  }
+
+  /* Midten av ruta kyllingen lander på i rad r om t sekunder (stokkene
+     flytter seg mens den er i lufta), eller null hvis det er vann der.
+     Litt slingring i endene, så et hopp som nesten treffer, teller. */
+  ruteVed(x, r, t = 0) {
+    const rad = this.rader.get(r);
+    if (!rad || rad.type !== 'elv') { return null; }
+    for (const m of rad.flytt) {
+      if (m.skum) { continue; }
+      const mx = m.x + rad.fart * t, lok = x - mx;
+      if (Math.abs(lok) > m.len / 2 + 0.3) { continue; }
+      const i = Math.max(0, Math.min(m.len - 1, Math.round(lok + m.len / 2 - 0.5)));
+      return mx - m.len / 2 + 0.5 + i;
     }
     return null;
   }

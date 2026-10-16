@@ -484,19 +484,35 @@ export function stokk(lengde) {
 /* Påskeegg: en flåte av paller med en Bare Kylling-kasse på */
 export function flaate(teksturer) {
   const geo = cachet('flaate', () => bokser([
-    { x: 0, y: -0.12, z: 0, w: 2.6, h: 0.16, d: 0.8, c: 0xC9A574 },
-    { x: 0, y: 0.04, z: 0, w: 2.6, h: 0.08, d: 0.8, c: 0xD8B887 },
-    { x: -0.8, y: 0.12, z: 0, w: 0.6, h: 0.42, d: 0.5, c: F.honey }
+    { x: 0, y: -0.12, z: 0, w: 3, h: 0.16, d: 0.8, c: 0xC9A574 },
+    { x: 0, y: 0.04, z: 0, w: 3, h: 0.08, d: 0.8, c: 0xD8B887 },
+    { x: -1, y: 0.12, z: 0, w: 0.6, h: 0.42, d: 0.5, c: F.honey }
   ]));
   const g = new THREE.Group();
   const m = new THREE.Mesh(geo, MATERIALE);
   m.castShadow = true;
   g.add(m);
   const p = skiltPlate(teksturer.vare, 0.56, 0.21);
-  p.position.set(-0.8, 0.33, 0.255);
+  p.position.set(-1, 0.33, 0.255);
   g.add(p);
-  g.userData.lengde = 2.6;
+  g.userData.lengde = 3;
   return g;
+}
+
+/* Rutene på en stokk eller båt: skillelinjer mellom hver rute på 1 × 1 og
+   en lys flis i midten, så man ser hvor kyllingen lander. topp = høyden på
+   dekket. Én modell per lengde/høyde (geometrien deles). */
+export function ruter(lengde, topp) {
+  const geo = cachet(`ruter${lengde}:${topp}`, () => {
+    const l = [];
+    for (let i = 0; i < lengde; i++) {
+      const cx = -lengde / 2 + 0.5 + i;
+      l.push({ x: cx, y: topp, z: 0, w: 0.34, h: 0.02, d: 0.34, c: F.creamHi });
+      if (i > 0) { l.push({ x: cx - 0.5, y: topp, z: 0, w: 0.05, h: 0.025, d: 0.7, c: F.ink, t: 0.8 }); }
+    }
+    return bokser(l);
+  });
+  return new THREE.Mesh(geo, MATERIALE);
 }
 
 function lagMesh(geo, lengde) {

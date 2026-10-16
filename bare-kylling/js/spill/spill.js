@@ -378,7 +378,9 @@ async function start() {
   function trekk(r) {
     if (butikkApen || navnApen) { return; }
     if (tilstand === 'meny') { startSpill(); }
-    if (tilstand === 'over') { return; }
+    /* Runden er over: en piltast eller WASD starter neste runde (litt
+       ventetid, så et tastetrykk i det kyllingen dør ikke starter med en gang) */
+    if (tilstand === 'over') { if (performance.now() - sluttTid > 600) { omstart(); } return; }
     if (tilstand !== 'spill') { return; }
     if (spiller.hopp < 1) { spiller.kø = r; return; }
     utfor(r);
@@ -410,6 +412,12 @@ async function start() {
       return;
     }
 
+    /* På elva: hopp rett mot midten av ruta på stokken (der den er når
+       kyllingen lander), så man ikke lander på kanten */
+    if (tilElv) {
+      const rute = verden.ruteVed(nyX, nyRad, fartAktiv() ? HOPP_FART : HOPP);
+      if (rute !== null) { nyX = rute; }
+    }
     spiller.fraX = spiller.x; spiller.fraRad = spiller.rad;
     spiller.tilX = nyX; spiller.tilRad = nyRad;
     spiller.hopp = 0;
@@ -678,10 +686,11 @@ async function start() {
      ------------------------------------------------------------------------- */
   /* Runden som er ferdig: tas vare på med en gang, så den kan sendes inn
      selv om spilleren starter en ny runde før topplista har svart */
-  let innsending = null;
+  let innsending = null, sluttTid = 0;
 
   async function visSlutt() {
     tilstand = 'over';
+    sluttTid = performance.now();
     innsending = { billett, poeng, pakker, logg: logg.join(','), gud: gud() || gudIRunden };
     billett = null;
     const egen = innsending;
