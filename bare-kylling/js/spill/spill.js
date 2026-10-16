@@ -1591,6 +1591,7 @@ async function start() {
       logg: () => logg.join(','), frø: () => verden.bane.frø, harBillett: () => !!billett,
       verden: () => verdenFor(spiller.rad).id, rader: (fra, til) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); u.push(d ? d.type : null); } return u; },
       pakkeRader: (fra = 0, til = 80) => { const u = []; for (let r = fra; r <= til; r++) { const d = verden.rad(r); if (d) { d.pakker.forEach((p) => u.push({ rad: r, x: p.x, tatt: p.tatt })); } } return u; },
+      signal: (r) => { const d = verden.rad(r); return !!(d && d.signal && d.signal.paa); },
       kraft: (fra = 0, til = 400) => { const u = []; for (let r = fra; r <= til; r++) { const k = verden.bane.kraft(r); if (k) { u.push({ rad: r, ...k }); } } return u; },
       effekt: () => ({ skjold: effekt.skjold, fart: fartAktiv(), magnet: magnetAktiv() }), spiller: () => ({ x: spiller.x, rad: spiller.rad }),
       rull: () => ({ rull, rullAktiv, feiringTid, z: spiller.gruppe.position.z }),

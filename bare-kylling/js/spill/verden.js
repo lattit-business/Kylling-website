@@ -21,7 +21,12 @@ import { KOL, JOBB, vanske, lagRng, verdenFor, VERDENER } from './bane.mjs';
 export { KOL, JOBB, vanske, lagRng, verdenFor, VERDENER };
 
 const VID = 14;                  /* hvor bred bakken tegnes (halv bredde) */
-const OPPE = 1.35;               /* stempelhodet i hvilestilling */
+const OPPE = 1.35;
+/* Delt geometri til togsignalene (lampe, glorie og skjæret over sporet) */
+const SIGNAL_LAMPE = new THREE.BoxGeometry(0.2, 0.2, 0.05);
+const SIGNAL_GLORIE = new THREE.PlaneGeometry(0.85, 0.85);
+const SIGNAL_SPOR = new THREE.PlaneGeometry(VID * 2, 0.92);
+const LYS_PAA = 0xFF2A1A, LYS_AV = 0x3A1410;               /* stempelhodet i hvilestilling */
 const SYKLUS = 26;               /* kjøretøy og stokker går i ring over denne lengden */
 const KV_BILER = [F.honey, F.paprika, F.forest, F.creamHi, F.honeyDeep];
 const BRYGGE_BILER = [F.creamHi, F.inkSoft, F.blaa, F.sage];
@@ -87,6 +92,7 @@ export class Verden {
   fjernRad(rad) {
     this.scene.remove(rad.gruppe);
     if (rad.bane && rad.bane.stempel) { rad.bane.mesh.material.dispose(); }
+    if (rad.signal) { for (const k of ['a', 'b', 'glorieA', 'glorieB', 'spor']) { rad.signal[k].dispose(); } }
     if (rad.statisk) { rad.statisk.geometry.dispose(); }
   }
 
@@ -394,12 +400,9 @@ export class Verden {
             l.push({ x: s2 * (KOL + 0.55), y: 1.85, z, w: 0.7, h: 0.2, d: 0.4, c: 0x6E7176 });
           }
         }
-        /* Signal: lyser rødt og ringer før bybanen kommer */
-        l.push({ x: -KOL - 0.8, y: 0, z: z + 0.42, w: 0.1, h: 1.3, d: 0.1, c: F.ink });
-        l.push({ x: -KOL - 0.8, y: 1.12, z: z + 0.46, w: 0.36, h: 0.3, d: 0.08, c: F.ink });
-        const lampe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.04), new THREE.MeshBasicMaterial({ color: 0x3A1410 }));
-        lampe.position.set(-KOL - 0.8, 1.27, z + 0.51);
-        rad.gruppe.add(lampe);
+        /* Signal (som i Crossy Road): stolper på begge sider med to røde
+           lamper som blinker vekselvis, og et rødt skjær over hele sporet */
+        const lampe = this.lagSignal(rad, z, l, variant === 'stempel' ? KOL + 1.6 : KOL + 0.62);
         if (variant === 'stempel') {
           const mesh = M.stempelHode(KOL * 2 + 1.6);
           mesh.position.set(0, OPPE, z);
@@ -489,6 +492,50 @@ export class Verden {
     this.scene.add(rad.gruppe);
     this.rader.set(r, rad);
     return rad;
+  }
+
+  /* Lager signalet til en bane-rad. Gir { a, b, glorieA, glorieB, spor } (materialer). */
+  lagSignal(rad, z, l, ut) {
+    const mat = () => new THREE.MeshBasicMaterial({ color: LYS_AV });
+    const glorie = () => new THREE.MeshBasicMaterial({ color: LYS_PAA, transparent: true, opacity: 0, depthWrite: false });
+    const sig = { a: mat(), b: mat(), glorieA: glorie(), glorieB: glorie(),
+      spor: new THREE.MeshBasicMaterial({ color: LYS_PAA, transparent: true, opacity: 0, depthWrite: false }) };
+    for (const sx of [-ut, ut]) {
+      /* stolpe, sort skilt med hvit kant, og to lamper */
+      l.push({ x: sx, y: 0, z: z + 0.4, w: 0.1, h: 1.55, d: 0.1, c: F.ink });
+      l.push({ x: sx, y: 1.2, z: z + 0.44, w: 0.62, h: 0.34, d: 0.06, c: F.creamHi });
+      l.push({ x: sx, y: 1.22, z: z + 0.47, w: 0.56, h: 0.3, d: 0.02, c: F.ink });
+      l.push({ x: sx, y: 1.55, z: z + 0.44, w: 0.5, h: 0.08, d: 0.06, c: F.creamHi });
+      l.push({ x: sx, y: 0, z: z + 0.4, w: 0.3, h: 0.06, d: 0.3, c: F.inkSoft });
+      for (const [dx, m, g] of [[-0.14, sig.a, sig.glorieA], [0.14, sig.b, sig.glorieB]]) {
+        const lampe = new THREE.Mesh(SIGNAL_LAMPE, m);
+        lampe.position.set(sx + dx, 1.37, z + 0.5);
+        const ring = new THREE.Mesh(SIGNAL_GLORIE, g);
+        ring.position.set(sx + dx, 1.37, z + 0.53);
+        rad.gruppe.add(lampe, ring);
+      }
+    }
+    const spor = new THREE.Mesh(SIGNAL_SPOR, sig.spor);
+    spor.rotation.x = -Math.PI / 2;
+    spor.position.set(0, 0.07, z);
+    rad.gruppe.add(spor);
+    rad.signal = sig;
+    return sig;
+  }
+
+  /* Blinker vekselvis (a/b) mens toget varsles eller kjører; ellers mørkt */
+  oppdaterSignal(sig, paa) {
+    if (!paa) {
+      if (sig.paa) { sig.paa = false; sig.a.color.setHex(LYS_AV); sig.b.color.setHex(LYS_AV); sig.glorieA.opacity = sig.glorieB.opacity = sig.spor.opacity = 0; }
+      return;
+    }
+    sig.paa = true;
+    const fase = Math.floor(this.tid * 5) % 2 === 0;
+    sig.a.color.setHex(fase ? LYS_PAA : LYS_AV);
+    sig.b.color.setHex(fase ? LYS_AV : LYS_PAA);
+    sig.glorieA.opacity = fase ? 0.6 : 0;
+    sig.glorieB.opacity = fase ? 0 : 0.6;
+    sig.spor.opacity = 0.2 + 0.2 * (0.5 + 0.5 * Math.sin(this.tid * 10));
   }
 
   /* Litt mønster i bakken: planker på brygga, fliser i fabrikken, prikker på matta */
@@ -702,7 +749,6 @@ export class Verden {
       b.nedtelling -= dt;
       if (!b.varsel && b.nedtelling < 1.6) { b.varsel = true; hendelser.push({ type: 'stempelvarsel', rad: rad.rad }); }
       hode.position.y = OPPE + (b.varsel ? Math.sin(this.tid * 50) * 0.03 : 0);
-      if (b.varsel) { b.lampe.material.color.setHex(Math.floor(this.tid * 6) % 2 ? 0xFF3B26 : 0x3A1410); }
       if (b.nedtelling <= 0) { b.aktiv = true; b.t = 0; b.smalt = false; }
       return;
     }
@@ -715,17 +761,16 @@ export class Verden {
     if (t >= 1.0) {
       b.aktiv = false; b.varsel = false; b.nede = false;
       b.nedtelling = (mellom(5.5, 3.2, vanske(rad.rad)) + this.rng() * 3) / b.tempo;
-      b.lampe.material.color.setHex(0x3A1410);
     }
   }
 
   oppdaterBane(rad, dt, hendelser) {
+    this.oppdaterSignal(rad.signal, rad.bane.varsel || rad.bane.aktiv);
     if (rad.bane.stempel) { this.oppdaterStempel(rad, dt, hendelser); return; }
     const b = rad.bane, tog = rad.flytt[0];
     if (!b.aktiv) {
       b.nedtelling -= dt;
       if (!b.varsel && b.nedtelling < 1.6) { b.varsel = true; hendelser.push({ type: 'bybane', rad: rad.rad }); }
-      if (b.varsel) { b.lampe.material.color.setHex(Math.floor(this.tid * 6) % 2 ? 0xFF3B26 : 0x3A1410); }
       if (b.nedtelling <= 0) {
         b.aktiv = true;
         tog.x = b.retning > 0 ? -VID - 6 : VID + 6;
@@ -741,15 +786,13 @@ export class Verden {
         tog.mesh.position.y = ut * 0.4;
         tog.mesh.rotation.z = ut > 0 ? 0.38 * b.retning : 0;
       }
-      b.lampe.material.color.setHex(Math.floor(this.tid * 6) % 2 ? 0xFF3B26 : 0x3A1410);
       if (Math.abs(tog.x) > VID + 7) {
         b.aktiv = false; b.varsel = false;
         tog.mesh.visible = false;
         tog.x = -40;
         b.nedtelling = (mellom(7, 3.5, vanske(rad.rad)) + this.rng() * 4) / b.tempo;
         b.retning = this.rng() < 0.5 ? 1 : -1;
-        b.lampe.material.color.setHex(0x3A1410);
-      }
+        }
     }
   }
 
