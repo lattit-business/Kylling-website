@@ -98,7 +98,7 @@ async function start() {
     lydKnapp: $('[data-lyd]'), musikkKnapp: $('[data-musikk]'), omstart: $('[data-omstart]'),
     liste: $('[data-toppliste]'), listeStatus: $('[data-toppliste-status]'), listeMerke: $('[data-toppliste-merke]'), listeInfo: $('[data-toppliste-info]'), listeTittel: $('#toppliste-tittel'), pakkeTittelTall: $('[data-pakke-tittel-tall]'),
     pakkeliste: $('[data-pakkeliste]'), pakkeStatus: $('[data-pakkeliste-status]'),
-    startRekord: $('[data-start-rekord]'), effekt: $('[data-effekt]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
+    startRekord: $('[data-start-rekord]'), tid: $('[data-tid]'), effekt: $('[data-effekt]'), sluttInfo: $('[data-slutt-info]'), byttNavn: $('[data-spill-slutt] [data-bytt-navn]'), feiring: $('[data-feiring]')
   };
 
   /* -------------------------------------------------------------------------
@@ -363,10 +363,39 @@ async function start() {
     gudIRunden = gud();
     ui.start && (ui.start.hidden = true);
     ui.slutt && (ui.slutt.hidden = true);
-    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute! Samme bane for alle i dag.' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
+    melding(gud() ? 'Gud-modus: ingenting kan stoppe deg!' : dagensRunde ? 'Dagens rute: kom lengst mulig på 30 sekunder!' : velg(runder > 1 ? MELDINGER.igjen : MELDINGER.start), 2.4);
     if (dagensRunde) { T.registrerDag(osloDato()); }
     lyd.startMusikk();
     sisteTrekk = performance.now();
+    rundeStart = sisteTrekk;
+    sisteSekund = -1;
+    if (ui.tid) { ui.tid.hidden = !dagensRunde; ui.tid.classList.remove('er-snart'); ui.tid.textContent = '0:30'; }
+  }
+
+  /* DAGENS RUTE PÅ TID: 30 sekunder i ekte tid (samme klokke som
+     trekkloggen, så serveren teller de samme hoppene). Den som kommer lengst,
+     vinner. */
+  const DAGENS_MS = 30000;
+  let rundeStart = 0, sisteSekund = -1;
+  const tidIgjen = () => (dagensRunde ? Math.max(0, DAGENS_MS - (performance.now() - rundeStart)) : Infinity);
+  function oppdaterTid() {
+    if (!dagensRunde || tilstand !== 'spill' || !ui.tid) { return; }
+    const igjen = tidIgjen(), sek = Math.ceil(igjen / 1000);
+    if (sek !== sisteSekund) {
+      sisteSekund = sek;
+      ui.tid.textContent = `0:${String(sek).padStart(2, '0')}`;
+      ui.tid.classList.toggle('er-snart', sek <= 5);
+      if (sek <= 5 && sek > 0) { lyd.tikk(); }
+    }
+    if (igjen <= 0) { tidUte(); }
+  }
+  function tidUte() {
+    dodAarsak = 'tid'; dodTekst = '';
+    spiller.kø = null;
+    lyd.stoppMusikk();
+    lyd.seier();
+    melding(`Tiden er ute! ${poeng} ${poeng === 1 ? 'rute' : 'ruter'} på 30 sekunder.`, 3);
+    visSlutt();
   }
 
   /* -------------------------------------------------------------------------
@@ -382,6 +411,7 @@ async function start() {
        ventetid, så et tastetrykk i det kyllingen dør ikke starter med en gang) */
     if (tilstand === 'over') { if (performance.now() - sluttTid > 600) { omstart(); } return; }
     if (tilstand !== 'spill') { return; }
+    if (tidIgjen() <= 0) { return; }   /* dagens rute: tiden er ute */
     if (spiller.hopp < 1) { spiller.kø = r; return; }
     utfor(r);
   }
@@ -753,7 +783,8 @@ async function start() {
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
     if (ui.sluttRekord) { ui.sluttRekord.textContent = String(rekord); }
-    const TITLER = { bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!', stempel: 'Pakket inn!', grill: 'Grillet!' };
+    if (ui.tid) { ui.tid.hidden = true; }
+    const TITLER = { tid: 'Tiden er ute!', bil: 'Påkjørt!', bane: 'Tatt av bybanen!', vann: 'Plask!', drift: 'Drev til havs!', maake: 'Tatt av måka!', stempel: 'Pakket inn!', grill: 'Grillet!' };
     const tittel = (dodAarsak === 'vann' || dodAarsak === 'drift') && dodVerden === 'fabrikk' ? 'Krydret!'
       : dodAarsak === 'bane' && dodVerden !== 'by' ? 'Overkjørt!' : TITLER[dodAarsak];
     if (ui.sluttTittel) { ui.sluttTittel.textContent = jobbNaadd ? 'Du kom deg på jobb!' : tittel || 'Runden er over'; }
@@ -762,6 +793,10 @@ async function start() {
         ? `Du nådde Jobbsenteret og kom ${poeng - JOBB} ${poeng - JOBB === 1 ? 'rute' : 'ruter'} videre.`
         : poeng > 0 ? `Du kom ${poeng} ${poeng === 1 ? 'rute' : 'ruter'}, ${JOBB - poeng} igjen til Jobbsenteret.` : 'Hopp framover med piltastene, WASD eller ved å sveipe.';
       ui.sluttTekst.textContent = jobbNaadd || !dodTekst ? fram : `${dodTekst} ${fram}`;
+      if (dagensRunde) {
+        const ruter = `${poeng} ${poeng === 1 ? 'rute' : 'ruter'}`;
+        ui.sluttTekst.textContent = dodAarsak === 'tid' ? `Du kom ${ruter} på 30 sekunder.` : `${dodTekst} Du kom ${ruter} på dagens rute.`.trim();
+      }
       if (bonus > 0) { ui.sluttTekst.textContent += ` Kombo-bonus: ${bonus} ekstra ${bonus === 1 ? 'pakke' : 'pakker'} i lommeboka.`; }
     }
     if (ui.nyRekord) { ui.nyRekord.hidden = !nyRekord || poeng === 0; }
@@ -790,7 +825,8 @@ async function start() {
       if (listeModus === 'global') {
         /* Alle runder kan sendes inn; serveren beholder de 100 beste og sletter
            den svakeste når lista er full. Med husket navn skjer det av seg selv. */
-        const topp10 = globalListe.length < 10 || poeng > globalListe[globalListe.length > 10 ? 9 : globalListe.length - 1].poeng;
+        const mot = dagensRunde ? globalDag : globalListe;   /* dagens rute har sin egen liste */
+        const topp10 = mot.length < 10 || poeng > mot[mot.length > 10 ? 9 : mot.length - 1].poeng;
         if (egen.gud) { if (ui.sluttInfo) { ui.sluttInfo.textContent = 'Gud-modus var på i denne runden, så den kommer ikke på topplista.'; } }
         else if (sender) { await sender; }
         else if (egen.billett && T.sisteNavn()) { await sendRunde(T.sisteNavn(), egen); }
@@ -881,7 +917,7 @@ async function start() {
     const n = T.visAntall(), dag = T.listeValg() === 'dag';
     document.querySelectorAll('[data-antall]').forEach((k) => k.setAttribute('aria-pressed', String(!dag && Number(k.dataset.antall) === n)));
     document.querySelectorAll('[data-dagliste]').forEach((k) => k.setAttribute('aria-pressed', String(dag)));
-    if (ui.listeTittel) { ui.listeTittel.textContent = dag ? 'Dagens rute' : `Topp ${n}`; }
+    if (ui.listeTittel) { ui.listeTittel.textContent = dag ? 'Dagens rute (30 s)' : `Topp ${n}`; }
     /* Dagens liste har bare poeng, så pakkedelen skjules */
     [document.querySelector('[data-pakkedel]'), ui.pakkeStatus, ui.pakkeliste].forEach((el) => { if (el) { el.hidden = dag; } });
     if (ui.pakkeTittelTall) { ui.pakkeTittelTall.textContent = n === 100 ? ' (topp 100)' : ''; }
@@ -938,7 +974,7 @@ async function start() {
       } else if (dag && !global) {
         s.textContent = 'Lista for dagens rute finnes bare når den felles topplista er koblet til.';
       } else if (dag && !liste.length) {
-        s.textContent = 'Ingen har spilt dagens rute ennå. Bli den første! Ruta er ny hver dag ved midnatt.';
+        s.textContent = 'Ingen har spilt dagens rute ennå. Kom lengst mulig på 30 sekunder! Ruta og lista er nye hver dag ved midnatt.';
       } else if (global && !liste.length) {
         s.textContent = 'Ingen på lista ennå. Bli den første!';
       } else if (!global && paaKopi) {
@@ -1147,7 +1183,7 @@ async function start() {
     const knapper = document.querySelectorAll('[data-dagens]');
     knapper.forEach((k) => { k.disabled = true; k.textContent = 'Henter …'; });
     const b = (listeModus !== 'lokal' && await T.dagensBillett()) || { billett: null, frø: dagFrø(osloDato()), dagens: true };
-    knapper.forEach((k) => { k.disabled = false; k.textContent = 'Dagens rute'; });
+    knapper.forEach((k) => { k.disabled = false; k.textContent = 'Dagens rute · 30 s'; });
     henterDag = false;
     nyVerden(b);
     tilstand = 'meny';
@@ -1381,6 +1417,7 @@ async function start() {
     oppdaterTyveri(dt);
     visEffekt();
     oppdaterRinger(dt);
+    oppdaterTid();
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);

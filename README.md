@@ -183,12 +183,12 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
   og pakker på avstand bare i vinduet etter en ekte kraftpakke.
 - **Kombo:** 10 hopp framover på rad gir dobbel pakke i lommeboka (ikke på
   pakkelista).
-- **Dagens rute:** samme bane for alle i dag (`dagFrø(osloDato())`). Egen
-  liste (`bk:dag:<dato>`) som skifter ved midnatt norsk tid. «I dag» i
-  bryteren over topplista.
-
-### Butikken: varer, spor og merker
-
+- **Dagens rute (30 sekunder):** samme bane for alle i dag
+  (`dagFrø(osloDato())`), og den som kommer lengst på 30 sekunder vinner.
+  Klokka vises i HUD-en. Serveren teller bare hopp innenfor 30 s
+  (`DAGENS_GRENSE_CS`). Runden havner bare på dagens liste
+  (`bk:dagtid:<dato>`, ny nøkkel da tidsgrensen kom), ikke på topplista.
+  Lista skifter ved midnatt norsk tid. «I dag» i bryteren over topplista.
 - Plasser på kyllingen (`PLASSER` i `butikk.js`): hode, ansikt, kropp, rygg,
   bein, farge og spor – én vare per plass. Nye varer: sydvest, regnjakke,
   svettebånd, treningsbukse, matboks på ryggen og kokkeforkle (modeller i

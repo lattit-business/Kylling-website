@@ -513,6 +513,21 @@ async function test(navn, fn) {
     assert.strictEqual(r.status, 200, JSON.stringify(r.data));
     assert.strictEqual(r.data.dagPlass, 1);
     assert.ok(r.data.dag.some((x) => x.navn === 'Dagfinn' && x.poeng === 14));
+    /* Dagens rute er en egen konkurranse: ikke på den vanlige topplista */
+    assert.strictEqual(r.data.plass, null);
+    assert.ok(!r.data.liste.some((x) => x.navn === 'Dagfinn'));
+    assert.ok(lager.has('bk:dagtid:' + a.dato), 'ny nøkkel for dagens liste (nullstilt)');
+    /* Bare de første 30 sekundene teller: hopp etter det regnes ikke med */
+    const d2 = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
+    const sakte = Array.from({ length: 14 }, (_, k) => 'u' + (k ? 300 : 30).toString(36)).join(',');   /* 3 s per hopp */
+    const { lesLogg } = await import('../bare-kylling/js/spill/bane.mjs');
+    const innen = lesLogg(sakte, d2.frø, { tidsgrenseCs: 3050 });
+    assert.strictEqual(innen.poeng, 11, 'bare hoppene innen 30 s (0,3 s + 10 × 3 s)');
+    const r3 = await sendInn(d2.billett, { navn: 'Sene Sigurd', poeng: 14, logg: sakte });
+    assert.strictEqual(r3.status, 400, 'poeng etter 30 s godtas ikke');
+    const d3 = (await kall(fn, { body: { handling: 'start', dagens: true }, ip: nyIp() })).data;
+    const r4 = await sendInn(d3.billett, { navn: 'Sene Sigurd', poeng: 11, logg: sakte });
+    assert.strictEqual(r4.status, 200, JSON.stringify(r4.data));
     /* En vanlig runde havner ikke på dagens liste */
     const c = (await kall(fn, { body: { handling: 'start' }, ip: nyIp() })).data;
     const r2 = await sendInn(c.billett, { navn: 'Vanlig Vera', poeng: 9, logg: samleLogg(c.frø, 9).logg });

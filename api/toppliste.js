@@ -63,13 +63,16 @@ const NOKKEL = {
   pakker: 'bk:pakker',        /* sortert sett: navnenøkkel → flest pakker (+ tidsbrøk) */
   pnavn: 'bk:pnavn',          /* hash: navnenøkkel → { navn, pakker, dato } */            /* hash: navnenøkkel → hash av enheten som eier navnet */
   runde: (id) => 'bk:runde:' + id,
-  dag: (d) => 'bk:dag:' + d,          /* dagens rute: sortert sett (poeng) for datoen */
-  dnavn: (d) => 'bk:dagnavn:' + d,    /* hash: navnenøkkel → { navn, poeng, dato } */
+  /* Dagens rute (30 sekunder): sortert sett (poeng) for datoen. Nøkkelen
+     ble byttet da tidsgrensen kom, så lista startet på nytt. */
+  dag: (d) => 'bk:dagtid:' + d,
+  dnavn: (d) => 'bk:dagtidnavn:' + d,    /* hash: navnenøkkel → { navn, poeng, dato } */
   fart: (hva, ip, vindu) => `bk:fart:${hva}:${ip}:${vindu}`
 };
 
 const RUNDE_LEVETID = 2 * 60 * 60;   /* sekunder en billett gjelder */
 const DAG_LEVETID = 3 * 24 * 60 * 60; /* dagens liste slettes etter tre dager */
+const DAGENS_GRENSE_CS = 3050;        /* dagens rute: 30 s (+ slingring), samme som DAGENS_GRENSE_CS i bane.mjs */
 const MAKS_POENG = 5000;
 const SLINGRINGSMONN_MS = 5000;      /* nettverk mellom spillstart og billett */
 const BEHOLD = 100;                  /* så mange plasser lagres */
@@ -219,9 +222,9 @@ const hentBane = async () => baneModul || (baneModul = await import('../bare-kyl
 
 /* Spiller av loggen. Kan ikke banefilen lastes (feil i oppsettet), sjekkes
    bare hoppene, så ingen runder går tapt; pakkene telles da ikke. */
-async function spillAv(logg, frø) {
+async function spillAv(logg, frø, valg = {}) {
   try {
-    return (await hentBane()).lesLogg(logg, frø);
+    return (await hentBane()).lesLogg(logg, frø, valg);
   } catch (e) {
     console.error('toppliste: fikk ikke lastet bane.mjs:', e && e.message);
     if (typeof logg !== 'string' || logg.length > 300000) { return { feil: 'Ugyldig logg.' }; }
@@ -230,6 +233,7 @@ async function spillAv(logg, frø) {
       const m = /^([udlr])([0-9a-z]{1,6})$/.exec(bit);
       if (!m) { if (bit === 'b') { rad -= 1; } continue; }
       const d = parseInt(m[2], 36);
+      if (cs + d > (valg.tidsgrenseCs || Infinity)) { break; }
       if (n++ > 0 && d < 6) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
       cs += d;
       rad += m[1] === 'u' ? 1 : m[1] === 'd' ? -1 : 0;
@@ -407,7 +411,9 @@ module.exports = async function toppliste(req, res) {
     }
     /* Loggen spilles av mot banen fra frøet: poeng fra hoppene, og hver pakke
        må ha ligget der kyllingen sto (minus den måka stjal) */
-    const logg = await spillAv(kropp.logg, Number(lagretFrø));
+    /* Dagens rute er på tid: bare hoppene innenfor 30 sekunder teller */
+    const dagens = /^\d{4}-\d{2}-\d{2}$/.test(lagretDato || '');
+    const logg = await spillAv(kropp.logg, Number(lagretFrø), dagens ? { tidsgrenseCs: DAGENS_GRENSE_CS } : {});
     if (logg.feil) { return send(res, 400, { melding: logg.feil }); }
     if (logg.poeng !== poeng) { return send(res, 400, { melding: 'Poengsummen stemmer ikke med hoppene.' }); }
     /* Pakkene regnes av serveren. En pakke som ikke stemmer, telles bare ikke
@@ -422,13 +428,14 @@ module.exports = async function toppliste(req, res) {
     /* 4. Lagre beste resultat per kallenavn: lengst og flest pakker hver for seg */
     const naa = new Date(Date.now());
     const dato = naa.toISOString().slice(0, 10);
-    const plass = await lagreBeste(NOKKEL.topp, NOKKEL.navn, navn.nokkel, poeng, { navn: navn.navn, poeng, dato }, naa);
-    const pakkePlass = pakker > 0
+    /* Dagens rute er en egen konkurranse: bare på lista for datoen runden
+       startet. Vanlige runder går på topplista og pakkelista. */
+    const plass = dagens ? null : await lagreBeste(NOKKEL.topp, NOKKEL.navn, navn.nokkel, poeng, { navn: navn.navn, poeng, dato }, naa);
+    const pakkePlass = !dagens && pakker > 0
       ? await lagreBeste(NOKKEL.pakker, NOKKEL.pnavn, navn.nokkel, pakker, { navn: navn.navn, pakker, dato }, naa)
       : null;
-    /* Dagens rute: også på lista for datoen runden startet */
     let dagPlass = null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(lagretDato || '')) {
+    if (dagens) {
       dagPlass = await lagreBeste(NOKKEL.dag(lagretDato), NOKKEL.dnavn(lagretDato), navn.nokkel, poeng, { navn: navn.navn, poeng, dato: lagretDato }, naa);
       await db([['EXPIRE', NOKKEL.dag(lagretDato), String(DAG_LEVETID)], ['EXPIRE', NOKKEL.dnavn(lagretDato), String(DAG_LEVETID)]]);
     }

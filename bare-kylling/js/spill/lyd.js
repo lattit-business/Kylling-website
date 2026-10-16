@@ -180,6 +180,8 @@ export class Lyd {
     this.tone({ type: 'sine', f0: 260, f1: 640, varighet: 0.1, styrke: 0.13 });
     this.stoy({ varighet: 0.14, styrke: 0.07, filter: 'bandpass', f0: 1100, f1: 380, q: 1.2 });
   }
+  /* Tikk de siste sekundene på dagens rute */
+  tikk() { this.tone({ type: 'square', f0: 1320, varighet: 0.05, styrke: 0.06 }); }
   kraft() {
     [72, 79, 84, 91].forEach((n, i) => this.tone({ type: 'puls', f0: hz(n), t: i * 0.05, varighet: 0.14, styrke: 0.07 }));
     this.tone({ type: 'triangle', f0: hz(60), f1: hz(72), varighet: 0.25, styrke: 0.12 });
