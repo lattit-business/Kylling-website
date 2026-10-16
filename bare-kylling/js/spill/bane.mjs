@@ -258,7 +258,12 @@ export class Bane {
 export const MIN_HOPP_CS = 8;    /* et hopp tar 0,135 s – litt slingring for klokka */
 export const MAKS_TREKK = 30000;
 
-export function lesLogg(logg, frø) {
+/* Dagens rute er på tid: 30 sekunder (i hundredeler), med litt slingring */
+export const DAGENS_TID_CS = 3000;
+export const DAGENS_GRENSE_CS = DAGENS_TID_CS + 50;
+
+/* tidsgrenseCs: hopp etter denne tiden (summen av hopptidene) teller ikke */
+export function lesLogg(logg, frø, { tidsgrenseCs = Infinity } = {}) {
   if (typeof logg !== 'string' || logg.length > MAKS_TREKK * 10) { return { feil: 'Ugyldig logg.' }; }
   const biter = logg ? logg.split(',') : [];
   if (biter.length > MAKS_TREKK) { return { feil: 'Ugyldig logg.' }; }
@@ -272,6 +277,7 @@ export function lesLogg(logg, frø) {
     let m;
     if ((m = /^([udlr])([0-9a-z]{1,6})$/.exec(bit))) {
       const d = parseInt(m[2], 36);
+      if (cs + d > tidsgrenseCs) { break; }   /* tiden er ute: resten teller ikke */
       const min = cs + d <= fartTil ? FART_MIN_HOPP_CS : MIN_HOPP_CS;
       if (hopp > 0 && d < min) { return { feil: 'Kyllingen hoppet raskere enn mulig.' }; }
       hopp++;

@@ -1396,6 +1396,13 @@ body.meny-apen .sticky-cta { display: none; }
 .hud__gud[hidden] { display: none; }
 .hud__effekt { align-self: flex-start; margin-top: .35rem; padding: .2rem .5rem; border-radius: 999px; background: var(--forest); color: var(--cream); text-shadow: none; font-size: .72rem; font-weight: 800; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
 .hud__effekt[hidden] { display: none; }
+/* Nedtelling på dagens rute (30 sekunder) */
+.hud__tid { position: absolute; top: clamp(.6rem, 2vw, 1rem); left: 50%; transform: translateX(-50%); margin: 0; padding: .1rem .9rem; border-radius: 999px; background: var(--cream-hi); color: var(--ink); box-shadow: 0 0 0 3px var(--ink); font-family: var(--display); font-weight: 900; font-stretch: 75%; font-size: clamp(1.8rem, 6vw, 2.6rem); line-height: 1.1; font-variant-numeric: tabular-nums; text-shadow: none; }
+.hud__tid[hidden] { display: none; }
+.hud__tid.er-snart { background: var(--paprika); color: var(--cream-hi); animation: tid-puls .5s ease-in-out infinite alternate; }
+@keyframes tid-puls { to { transform: translateX(-50%) scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .hud__tid.er-snart { animation: none; } }
+@media (max-width: 560px) { .hud__tid { top: auto; bottom: clamp(3.4rem, 13vw, 4.2rem); } }
 .hud__pakker { display: inline-flex; align-items: center; gap: .3rem; margin-top: .35rem; font-size: 1.15rem; }
 .hud__pakker b { font-family: var(--display); font-weight: 900; font-stretch: 75%; font-variant-numeric: tabular-nums; }
 .pakkeikon { width: .85em; height: auto; flex: none; }
