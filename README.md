@@ -191,6 +191,18 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 - **Oppdrag** (`js/spill/oppdrag.js`): tre om gangen i localStorage, vist på
   start- og sluttkortet. Hvert klart oppdrag gir tre pakker i lommeboka.
 
+### Butikken: varer, spor og merker
+
+- Plasser på kyllingen (`PLASSER` i `butikk.js`): hode, ansikt, kropp, rygg,
+  bein, farge og spor – én vare per plass. Nye varer: sydvest, regnjakke,
+  svettebånd, treningsbukse, matboks på ryggen og kokkeforkle (modeller i
+  `PYNT` i `modeller.js`), og spor (krydderdrys, paprikastøv, honningglitter)
+  som drysser partikler når kyllingen hopper (ikke med «redusert bevegelse»).
+- **Merker** (`js/spill/merker.js`, `bk-spill-merker`): første dag på jobb,
+  hver verden, 100 pakker totalt og ti dager med dagens rute. Vises under
+  fanen «Merker» i butikken.
+- Alt i butikken er bare utseende.
+
 ### Kallenavn huskes
 
 Første gang du kommer på lista, skriver du et kallenavn. Det huskes i

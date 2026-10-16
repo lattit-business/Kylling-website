@@ -17,6 +17,7 @@ import { Lyd } from './lyd.js';
 import * as T from './toppliste.js';
 import * as B from './butikk.js';
 import * as O from './oppdrag.js';
+import * as ME from './merker.js';
 
 const $ = (s, c) => (c || document).querySelector(s);
 const scene_ = $('#spill');
@@ -104,12 +105,23 @@ async function start() {
      KYLLINGEN – logoen som voxelfigur
      ------------------------------------------------------------------------- */
   const kyllingGeo = logoKylling(B.kroppsfarge());
+  /* Kyllingen har eget materiale og tegnes sist, etter en «røntgen»-silhuett:
+     silhuetten vises bare der noe i verdenen står foran kyllingen (stempel,
+     skilt, hus), så kyllingen aldri forsvinner. */
+  const kyllingMateriale = MATERIALE.clone();
+  kyllingMateriale.transparent = true;
+  kyllingMateriale.opacity = 1;
+  const silhuettMateriale = new THREE.MeshBasicMaterial({ color: F.ink, transparent: true, opacity: 0.45, depthWrite: false, depthFunc: THREE.GreaterDepth });
   const spiller = {
-    gruppe: new THREE.Group(), snu: new THREE.Group(), kropp: new THREE.Mesh(kyllingGeo, MATERIALE),
+    gruppe: new THREE.Group(), snu: new THREE.Group(), kropp: new THREE.Mesh(kyllingGeo, kyllingMateriale),
     x: 0, rad: 0, fraX: 0, fraRad: 0, tilX: 0, tilRad: 0, hopp: 1, kø: null,
     yaw: Math.PI / 2, maalYaw: Math.PI / 2, paa: null, tomgang: 0, klemt: 0, molle: 0, glid: false
   };
   spiller.kropp.castShadow = true;
+  spiller.kropp.renderOrder = 2;
+  const silhuett = new THREE.Mesh(kyllingGeo, silhuettMateriale);
+  silhuett.renderOrder = 1;
+  spiller.kropp.add(silhuett);
   spiller.snu.add(spiller.kropp);
   spiller.gruppe.add(spiller.snu);
   scene.add(spiller.gruppe);
@@ -133,11 +145,13 @@ async function start() {
     const farge = B.kroppsfarge();
     if (!kroppGeo.has(farge)) { kroppGeo.set(farge, logoKylling(farge)); }
     spiller.kropp.geometry = kroppGeo.get(farge);
-    for (const barn of [...spiller.kropp.children]) { spiller.kropp.remove(barn); }
+    silhuett.geometry = spiller.kropp.geometry;
+    for (const barn of [...spiller.kropp.children]) { if (barn !== silhuett) { spiller.kropp.remove(barn); } }
     const paa = B.paaDeg();
-    for (const id of [paa.hode, paa.ansikt]) {
+    for (const id of [paa.hode, paa.ansikt, paa.kropp, paa.rygg, paa.bein]) {
       const m = id && M.pynt(id);
-      if (m) { spiller.kropp.add(m); }
+      /* Pynten tegnes sammen med kyllingen, så silhuetten ikke legger seg over klærne */
+      if (m) { m.material = kyllingMateriale; m.renderOrder = 2; spiller.kropp.add(m); }
     }
   }
   kleKylling();
@@ -410,6 +424,12 @@ async function start() {
     const radStoev = radNa ? radNa.type : 'gress';
     const stoev = radStoev === 'vei' ? [F.veiMork, F.stein] : radStoev === 'fortau' || radStoev === 'start' ? [F.fortauMork, F.creamHi] : radStoev === 'elv' ? [F.skum, F.vann] : [F.gressMork, F.lov];
     sprut(spiller.x, 0.05, -spiller.rad, 3, stoev, { fart: 0.9, opp: 1.2, liv: 0.35, str: 0.07 });
+    /* Spor fra butikken (bare pynt; ikke med «redusert bevegelse») */
+    const spor = ristSkala > 0 && B.vare(B.paaDeg().spor);
+    if (spor) {
+      sprut(spiller.x, 0.25, -spiller.rad, spor.glitter ? 7 : 5, spor.farger,
+        spor.glitter ? { fart: 0.5, opp: 1.6, liv: 0.9, str: 0.05, tyngde: 0.6 } : { fart: 0.7, opp: 1.1, liv: 0.55, str: 0.05 });
+    }
 
     const naa = performance.now();
     if (r === 'u' && naa - sisteTrekk < KOMBO_PAUSE) { kombo++; } else { kombo = r === 'u' ? 1 : 0; }
@@ -501,10 +521,21 @@ async function start() {
     }
   }
 
+  /* MERKER: låses opp for godt (første gang på jobb, hver verden, 100 pakker,
+     ti dager med dagens rute) */
+  const dagerSpilt = () => { try { return (JSON.parse(localStorage.getItem('bk-spill-dager') || '[]') || []).length; } catch (e) { return 0; } };
+  function sjekkMerker(ekstraPakker = pakker) {
+    for (const m of ME.sjekk({ poeng, pakkerTotalt: ME.pakkerTotalt() + ekstraPakker, dager: dagerSpilt() })) {
+      melding(`Nytt merke: ${m.navn}!`, 3);
+      lyd.seier();
+    }
+  }
+
   /* OPPDRAG: sjekkes når noe skjer i runden; klare oppdrag gir pakker i lommeboka */
   const tegnOppdrag = () => document.querySelectorAll('[data-oppdrag]').forEach((ul) => O.tegn(ul));
   function sjekkOppdrag() {
     if (tilstand !== 'spill' && tilstand !== 'over') { return; }
+    sjekkMerker();
     for (const o of O.sjekk({ poeng, pakker, ...runde, dagens: dagensRunde })) {
       B.leggTil(O.BELONNING);
       visSaldo();
@@ -707,6 +738,8 @@ async function start() {
     if (nyRekord) { rekord = poeng; T.settRekord(poeng); }
     T.leggTilLokal(poeng, T.sisteNavn() || 'Deg', pakker);
     B.leggTil(pakker + bonus);
+    ME.leggTilPakker(pakker);
+    sjekkMerker(0);
     visSaldo();
     if (ui.sluttPakker) { ui.sluttPakker.textContent = String(pakker); }
     if (ui.sluttPoeng) { ui.sluttPoeng.textContent = String(poeng); }
@@ -1128,7 +1161,19 @@ async function start() {
     const liste = $('[data-varer]', butikk);
     const paa = B.paaDeg();
     liste.textContent = '';
-    for (const v of B.VARER) {
+    /* Varene gruppert etter plass, premiene til slutt */
+    const GRUPPER = [['hode', 'Hode'], ['ansikt', 'Ansikt'], ['kropp', 'Kropp'], ['rygg', 'Rygg'], ['bein', 'Bein'], ['farge', 'Farge'], ['spor', 'Spor'], ['premie', 'Premier']];
+    const gruppe = (v) => (v.rad ? 'premie' : v.type);
+    const sortert = GRUPPER.flatMap(([g]) => B.VARER.filter((v) => gruppe(v) === g));
+    let forrigeGruppe = '';
+    for (const v of sortert) {
+      if (gruppe(v) !== forrigeGruppe) {
+        forrigeGruppe = gruppe(v);
+        const h = document.createElement('li');
+        h.className = 'butikk__gruppe';
+        h.textContent = GRUPPER.find(([g]) => g === forrigeGruppe)[1];
+        liste.appendChild(h);
+      }
       const li = document.createElement('li');
       li.className = 'butikk__vare';
       const eier = B.eier(v.id), har = paa[v.type] === v.id;
@@ -1162,8 +1207,25 @@ async function start() {
     const m = $('[data-butikk-melding]', butikk);
     if (m) { m.textContent = melding; }
   }
+  /* Faner: Varer og Merker */
+  function visFane(navn, fokus = false) {
+    butikk.querySelectorAll('[data-fane]').forEach((k) => k.setAttribute('aria-pressed', String(k.dataset.fane === navn)));
+    butikk.querySelectorAll('[data-fanepanel]').forEach((p) => { p.hidden = p.dataset.fanepanel !== navn; });
+    if (navn === 'merker') { ME.tegn($('[data-merker]', butikk)); }
+    if (fokus) { const k = $(`[data-fane="${navn}"]`, butikk); if (k) { k.focus(); } }
+  }
+  if (butikk) {
+    butikk.querySelectorAll('[data-fane]').forEach((k) => {
+      k.addEventListener('click', () => { lyd.klikk(); visFane(k.dataset.fane); });
+      k.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); visFane(k.dataset.fane === 'varer' ? 'merker' : 'varer', true); }
+      });
+    });
+  }
+
   function apneButikk() {
     lyd.vekk(); lyd.klikk();
+    visFane('varer');
     kortForButikk = [ui.start, ui.slutt].find((k) => k && !k.hidden) || null;
     if (kortForButikk) { kortForButikk.hidden = true; }
     butikkApen = true;
@@ -1277,7 +1339,7 @@ async function start() {
     reklameTid += dt;
     if (reklameTid > 1 / 24) { reklame.oppdater(reklameTid); reklameTid = 0; }
 
-    const hendelser = verden.oppdater(dt);
+    const hendelser = verden.oppdater(dt, -spiller.gruppe.position.z);
     for (const h of hendelser) {
       const naer = Math.abs(h.rad - spiller.rad);
       if (h.type === 'bybane' && naer < 7) { lyd.bjelle(); }

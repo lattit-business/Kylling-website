@@ -6,7 +6,9 @@
    ============================================================================= */
 import { F } from './voxel.js';
 
-/* type: 'hode' (lue/krone, én om gangen), 'ansikt' (briller) eller 'farge' (kroppen) */
+/* type = plassen på kyllingen (én vare per plass): 'hode', 'ansikt', 'kropp',
+   'rygg', 'bein', 'farge' (kroppen) eller 'spor' (partikler når den hopper) */
+export const PLASSER = ['hode', 'ansikt', 'kropp', 'rygg', 'bein', 'farge', 'spor'];
 export const VARER = [
   { id: 'kokkelue', navn: 'Kokkelue', pris: 10, type: 'hode' },
   { id: 'briller', navn: 'Solbriller', pris: 15, type: 'ansikt' },
@@ -15,6 +17,15 @@ export const VARER = [
   { id: 'original', navn: 'Original-kylling', pris: 30, type: 'farge', farge: 0x8DB86A },
   { id: 'krone', navn: 'Krone', pris: 50, type: 'hode' },
   { id: 'gull', navn: 'Gullkylling', pris: 100, type: 'farge', farge: 0xF2C14E },
+  { id: 'sydvest', navn: 'Sydvest', pris: 25, type: 'hode' },
+  { id: 'regnjakke', navn: 'Regnjakke', pris: 35, type: 'kropp' },
+  { id: 'svettebaand', navn: 'Svettebånd', pris: 15, type: 'hode' },
+  { id: 'treningsbukse', navn: 'Treningsbukse', pris: 25, type: 'bein' },
+  { id: 'matboks', navn: 'Matboks på ryggen', pris: 40, type: 'rygg' },
+  { id: 'kokkeforkle', navn: 'Kokkeforkle', pris: 30, type: 'kropp' },
+  { id: 'krydderdrys', navn: 'Spor: krydderdrys', pris: 20, type: 'spor', farger: [0xB5502C, 0xD99A26, 0x334D29] },
+  { id: 'paprikastov', navn: 'Spor: paprikastøv', pris: 30, type: 'spor', farger: [0xB5502C, 0xE07A4F, 0x8E3D20] },
+  { id: 'honningglitter', navn: 'Spor: honningglitter', pris: 60, type: 'spor', farger: [0xF1B240, 0xF7D47A, 0xFAF8F3], glitter: true },
   /* Premier: låses opp ved å komme langt, kan ikke kjøpes */
   { id: 'strahatt', navn: 'Stråhatt', rad: 150, type: 'hode' },
   { id: 'gullkokkelue', navn: 'Gull-kokkelue', rad: 250, type: 'hode' }
@@ -34,8 +45,8 @@ export const eier = (id) => {
   if (v && v.rad) { return rekord() >= v.rad; }
   return les('bk-spill-eier', []).includes(id);
 };
-/* { hode, ansikt, farge }: id-ene du har på deg */
-export const paaDeg = () => Object.assign({ hode: null, ansikt: null, farge: null }, les('bk-spill-paa', {}));
+/* { hode, ansikt, kropp, rygg, bein, farge, spor }: id-ene du har på deg */
+export const paaDeg = () => Object.assign(Object.fromEntries(PLASSER.map((p) => [p, null])), les('bk-spill-paa', {}));
 export const vare = (id) => VARER.find((v) => v.id === id);
 
 /* { ok, melding } */
