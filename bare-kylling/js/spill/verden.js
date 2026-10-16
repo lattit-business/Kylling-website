@@ -45,6 +45,7 @@ const TEMA = {
 
 /* Porten inn til hver verden */
 const PORT = {
+  by: { stolpe: F.forest, topp: F.honey, bg: F.forest, fg: F.creamHi },
   kylling: { stolpe: F.honeyDeep, topp: F.paprika, bg: F.honey, fg: F.ink },
   brygge: { stolpe: F.bark, topp: F.roed, bg: F.roed, fg: F.creamHi },
   fabrikk: { stolpe: 0x8E9196, topp: F.honey, bg: F.ink, fg: F.honey },
@@ -68,7 +69,6 @@ export class Verden {
     this.sti = 0;              /* kolonnen som alltid holdes åpen gjennom gresset */
     this.tavler = 0;
     this.harEgg = false;
-    this.sluppet = new Set();   /* leveringsrunder som er sluppet */
     this.tid = 0;
   }
 
@@ -473,7 +473,7 @@ export class Verden {
         l.push({ x: sx * (KOL + 0.9), y: 2.5, z, w: 0.5, h: 0.14, d: 0.5, c: p.topp });
       }
       l.push({ x: 0, y: 2.38, z: z - 0.05, w: KOL * 2 + 2.2, h: 0.12, d: 0.2, c: p.topp });
-      const navn = vd.navn.toUpperCase() + (vd.runde ? `\nRunde ${vd.runde + 1}` : '');
+      const navn = vd.id === 'by' ? 'TILBAKE\nI BYEN' : vd.navn.toUpperCase();
       const skilt = M.skiltCachet(navn, p.bg, p.fg, 3.4, 1.28);
       skilt.position.set(0, 1.85, z + 0.07);
       rad.gruppe.add(skilt);
@@ -568,14 +568,7 @@ export class Verden {
       mesh.scale.setScalar(1.45);
       mesh.position.set(p.x, 0.2, -rad.rad);
       rad.gruppe.add(mesh);
-      const q = { x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false, levering: !!p.levering };
-      if (p.levering && !this.sluppet.has(this.bane.levering(rad.rad))) {
-        /* Varebilens last: ligger oppe i lufta til den slippes */
-        q.landet = false;
-        mesh.visible = false;
-        mesh.position.y = 9;
-      }
-      rad.pakker.push(q);
+      rad.pakker.push({ x: p.x, slag: p.slag, mesh, fase: (rad.rad * 1.7 + p.x) % 6, tatt: false });
     }
     const k = this.bane.kraft(rad.rad);
     if (k) {
@@ -604,19 +597,6 @@ export class Verden {
     return rad.pakker.filter((q) => !q.tatt && Math.abs(q.x - Math.round(x)) <= n);
   }
 
-  /* Varebilen mister lasten: pakkene i radene fra–fra+2 begynner å falle */
-  slippLevering(fra) {
-    if (this.sluppet.has(fra)) { return false; }
-    this.sluppet.add(fra);
-    let i = 0;
-    for (let r = fra; r <= fra + 2; r++) {
-      const rad = this.rader.get(r);
-      if (!rad) { continue; }
-      for (const p of rad.pakker) { if (p.landet === false) { p.fallStart = this.tid + 0.3 + (i++) * 0.12; } }
-    }
-    return true;
-  }
-
   /* Kraftpakken på (x, r), én gang */
   plukkKraft(x, r) {
     const rad = this.rader.get(r);
@@ -639,16 +619,6 @@ export class Verden {
     for (const rad of this.rader.values()) {
       for (const p of rad.pakker) {
         if (p.tatt) { continue; }
-        if (p.landet === false) {
-          /* Pakker som regner ned fra varebilen */
-          if (p.fallStart === undefined || this.tid < p.fallStart) { continue; }
-          const t = this.tid - p.fallStart;
-          p.mesh.visible = true;
-          p.mesh.position.y = Math.max(0.2, 9 - 10 * t * t);
-          p.mesh.rotation.y = t * 9;
-          if (p.mesh.position.y <= 0.2) { p.landet = true; hendelser.push({ type: 'pakkeland', rad: rad.rad, x: p.x }); }
-          continue;
-        }
         p.mesh.rotation.y = this.tid * 1.8 + p.fase;
         p.mesh.position.y = 0.2 + Math.sin(this.tid * 3 + p.fase) * 0.07;
       }

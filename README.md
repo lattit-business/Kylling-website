@@ -175,7 +175,7 @@ som ikke lå der kyllingen sto, telles ikke, men runden og poengene godtas. I ti
 grenser per IP (bare en hash lagres) og sjekk av kallenavn. Et
 nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 
-### Kraftpakker, kombo, leveringsrunde, dagens rute og oppdrag
+### Kraftpakker, kombo og dagens rute
 
 - **Kraftpakker** (`kraft()` i `bane.mjs`, sjeldne, maks én synlig): Original
   gir skjold (tåler én smell), Sweet Paprika gir fart i 5 s, matboksen gir
@@ -183,13 +183,9 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
   og pakker på avstand bare i vinduet etter en ekte kraftpakke.
 - **Kombo:** 10 hopp framover på rad gir dobbel pakke i lommeboka (ikke på
   pakkelista).
-- **Leveringsrunde** (`levering()` i `bane.mjs`): varebilen mister lasten,
-  og tre pakker regner ned i hver av tre rader.
 - **Dagens rute:** samme bane for alle i dag (`dagFrø(osloDato())`). Egen
   liste (`bk:dag:<dato>`) som skifter ved midnatt norsk tid. «I dag» i
   bryteren over topplista.
-- **Oppdrag** (`js/spill/oppdrag.js`): tre om gangen i localStorage, vist på
-  start- og sluttkortet. Hvert klart oppdrag gir tre pakker i lommeboka.
 
 ### Butikken: varer, spor og merker
 
@@ -240,8 +236,8 @@ vises (`GET /api/toppliste?antall=100`), og valget huskes på enheten.
   kyllingen. Alt lagres i nettleseren og gir ingen fordel på topplista.
 - **Verdenene** (`VERDENER` og `verdenFor()` i `js/spill/bane.mjs`): etter
   Jobbsenteret kommer Kylling Verden (63–130), Bryggen (131–200), Fabrikken
-  (201–270) og Treningssenteret (271–340). Deretter går ringen rundt igjen fra
-  Kylling Verden, litt raskere for hver runde. Hver verden har egen bakke,
+  (201–270) og Treningssenteret (271–340). Deretter er det vanlig by igjen
+  resten av veien («Tilbake i byen»). Hver verden har egen bakke,
   egne hindringer, egen himmel, en port med skilt og sin egen variant av
   musikken. Vei, elv og bybane ser forskjellige ut i hver verden:
   | Verden | Vei | Elv | Bane | Eget |
