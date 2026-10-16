@@ -414,10 +414,12 @@ async function start() {
 
     /* På elva: hopp rett mot midten av ruta på stokken (der den er når
        kyllingen lander), så man ikke lander på kanten */
+    let tilY = 0;
     if (tilElv) {
-      const rute = verden.ruteVed(nyX, nyRad, fartAktiv() ? HOPP_FART : HOPP);
-      if (rute !== null) { nyX = rute; }
+      const rute = verden.flyterVed(nyX, nyRad, fartAktiv() ? HOPP_FART : HOPP);
+      if (rute) { nyX = rute.x; tilY = rute.topp; }
     }
+    spiller.fraY = spiller.gruppe.position.y; spiller.tilY = tilY;
     spiller.fraX = spiller.x; spiller.fraRad = spiller.rad;
     spiller.tilX = nyX; spiller.tilRad = nyRad;
     spiller.hopp = 0;
@@ -473,8 +475,7 @@ async function start() {
       const m = verden.flyter(spiller.x, spiller.rad);
       if (m) {
         spiller.paa = m;
-        lyd.lande();
-        sprut(spiller.x, 0.02, -spiller.rad, 4, [F.skum, F.vann], { fart: 0.8, opp: 1.4, liv: 0.4, str: 0.06 });
+        plask(m, spiller.x, spiller.rad);
       } else { do_('vann'); return; }
     }
     const kraft = verden.plukkKraft(spiller.x, spiller.rad);
@@ -542,6 +543,51 @@ async function start() {
         p.tatt = true; p.mesh.visible = false;
         taPakke(p, r, true);
       }
+    }
+  }
+
+  /* PLASK: stokken dukker, vannet spruter ut til sidene og en ring brer seg
+     (ringen og vippingen ikke med «redusert bevegelse») */
+  const ringer = [];
+  for (let i = 0; i < 3; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: F.skum, transparent: true, opacity: 0, depthWrite: false });
+    const g = new THREE.Group();
+    for (const [w, d, x, z] of [[1, 0.08, 0, 0.5], [1, 0.08, 0, -0.5], [0.08, 1, 0.5, 0], [0.08, 1, -0.5, 0]]) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.01, d), mat);
+      b.position.set(x, 0, z);
+      g.add(b);
+    }
+    g.visible = false;
+    scene.add(g);
+    ringer.push({ g, mat, t: 1 });
+  }
+  let nesteRing = 0;
+  function plask(m, x, r) {
+    m.dukk = 1;
+    m.dukkLok = x - m.x;
+    verden.rolig = ristSkala === 0;
+    lyd.lande(); lyd.plupp();
+    const farger = verden.vannFarger(r), z = -r;
+    const mange = ristSkala === 0 ? 3 : 10;
+    for (const s of [-1, 1]) {
+      sprut(x, -0.1, z + s * 0.45, mange, [farger[1], farger[0], F.hvit, farger[1]], { fart: 1.8, opp: 3.2, liv: 0.6, str: 0.1, spredning: 0.7 });
+    }
+    if (ristSkala === 0) { return; }
+    const ring = ringer[nesteRing];
+    nesteRing = (nesteRing + 1) % ringer.length;
+    ring.t = 0;
+    ring.mat.color.setHex(farger[1]);
+    ring.g.position.set(x, -0.165, z);
+    ring.g.visible = true;
+  }
+  function oppdaterRinger(dt) {
+    for (const ring of ringer) {
+      if (!ring.g.visible) { continue; }
+      ring.t += dt / 0.6;
+      if (ring.t >= 1) { ring.g.visible = false; continue; }
+      const s = 1.1 + ring.t * 1.6;
+      ring.g.scale.set(s, 1, s);
+      ring.mat.opacity = 0.9 * (1 - ring.t);
     }
   }
 
@@ -1334,6 +1380,7 @@ async function start() {
     if (tilstand === 'dod') { oppdaterDod(dt); }
     oppdaterTyveri(dt);
     visEffekt();
+    oppdaterRinger(dt);
     oppdaterRull(dt);
     plasserKamera(Math.min(1, dt * 5));
     toneJobb(dt);
@@ -1441,7 +1488,8 @@ async function start() {
       const t = s.hopp;
       const x = s.fraX + (s.tilX - s.fraX) * t;
       const zRad = s.fraRad + (s.tilRad - s.fraRad) * t;
-      g.position.set(x, s.glid ? 0 : Math.sin(t * Math.PI) * 0.42, -zRad);
+      const yBunn = (s.fraY || 0) + ((s.tilY || 0) - (s.fraY || 0)) * t;   /* opp på / ned fra stokken */
+      g.position.set(x, s.glid ? 0 : yBunn + Math.sin(t * Math.PI) * 0.42, -zRad);
       if (!s.glid) { s.kropp.scale.set(0.94, 1.12, 0.94); }
       if (s.hopp >= 1) { g.position.y = 0; landet(); }
     } else {
@@ -1453,7 +1501,7 @@ async function start() {
           if (gud()) { s.x = Math.sign(s.x) * (KOL + 0.75); } else { do_('drift'); return; }
         }
       }
-      g.position.set(s.x, s.paa ? s.paa.mesh.position.y : 0, -s.rad);
+      g.position.set(s.x, s.paa ? s.paa.mesh.position.y + s.paa.topp : 0, -s.rad);
       s.tomgang += dt;
       if (magnetAktiv()) { trekkMagnet(); }
       /* Tredemølla: står du stille i ett sekund, blir du dyttet én rad bakover */

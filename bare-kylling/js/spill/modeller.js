@@ -471,13 +471,48 @@ export function bybane() {
   return lagMesh(geo, 8.9);
 }
 
+/* Tømmerstokken: rund i tverrsnitt (tre lag), bark med striper og knaster,
+   avsagde ender med årringer, litt mose – og rutene skåret inn i toppen som
+   avsagde planker med et årringmerke i midten (der kyllingen lander).
+   Toppen ligger på y = STOKK_TOPP. */
+export const STOKK_TOPP = 0.21;
 export function stokk(lengde) {
-  const geo = cachet('stokk' + lengde, () => bokser([
-    { x: 0, y: -0.12, z: 0, w: lengde, h: 0.3, d: 0.72, c: F.bark },
-    { x: 0, y: 0.18, z: 0.1, w: lengde - 0.1, h: 0.04, d: 0.08, c: F.barkMork },
-    { x: lengde / 2 - 0.01, y: -0.1, z: 0, w: 0.04, h: 0.26, d: 0.62, c: 0xC69A6B },
-    { x: -lengde / 2 + 0.01, y: -0.1, z: 0, w: 0.04, h: 0.26, d: 0.62, c: 0xC69A6B }
-  ]));
+  const geo = cachet('stokk' + lengde, () => {
+    const L = lengde, l = [];
+    const BARK = 0x7A5233, BARK_LYS = 0x8C603C, BARK_MORK = 0x5E3E25, VED = 0xC69A6B, VED_LYS = 0xD8B887, RING = 0xA87A4E;
+    /* tverrsnitt: smal bunn, full midte, smal topp */
+    l.push({ x: 0, y: -0.16, z: 0, w: L - 0.06, h: 0.1, d: 0.46, c: BARK_MORK });
+    l.push({ x: 0, y: -0.06, z: 0, w: L, h: 0.18, d: 0.66, c: BARK });
+    l.push({ x: 0, y: 0.12, z: 0, w: L - 0.04, h: 0.06, d: 0.5, c: BARK_LYS });
+    /* barkstriper langs sidene */
+    for (const s of [-1, 1]) {
+      l.push({ x: 0, y: -0.02, z: s * 0.331, w: L - 0.1, h: 0.035, d: 0.01, c: BARK_MORK });
+      l.push({ x: 0, y: 0.07, z: s * 0.331, w: L - 0.3, h: 0.025, d: 0.01, c: BARK_LYS });
+    }
+    /* avsagde ender med årringer */
+    for (const s of [-1, 1]) {
+      const ex = s * (L / 2 + 0.005);
+      l.push({ x: ex, y: -0.14, z: 0, w: 0.02, h: 0.32, d: 0.58, c: VED });
+      l.push({ x: ex + s * 0.006, y: -0.06, z: 0, w: 0.012, h: 0.18, d: 0.36, c: RING });
+      l.push({ x: ex + s * 0.01, y: -0.02, z: 0, w: 0.012, h: 0.1, d: 0.18, c: VED_LYS });
+    }
+    /* rutene: avsagde planker med fuge mellom, og et årringmerke i midten */
+    for (let i = 0; i < L; i++) {
+      const cx = -L / 2 + 0.5 + i;
+      l.push({ x: cx, y: 0.18, z: 0, w: 0.86, h: 0.03, d: 0.46, c: i % 2 ? 0xB98B5C : 0xB28456 });
+      for (const [w, d, dz, dx] of [[0.24, 0.03, 0.105, 0], [0.24, 0.03, -0.105, 0], [0.03, 0.18, 0, 0.105], [0.03, 0.18, 0, -0.105]]) {
+        l.push({ x: cx + dx, y: 0.21, z: dz, w, h: 0.006, d, c: RING });
+      }
+      l.push({ x: cx, y: 0.21, z: 0, w: 0.08, h: 0.006, d: 0.08, c: VED_LYS });
+      /* knast og mose på noen av rutene (fast mønster per lengde) */
+      if ((i * 7 + L) % 3 === 0) { l.push({ x: cx + 0.22, y: -0.01, z: 0.335, w: 0.1, h: 0.1, d: 0.02, c: BARK_MORK }); }
+      if ((i + L) % 2 === 0) { l.push({ x: cx - 0.25, y: 0.15, z: -0.25, w: 0.24, h: 0.05, d: 0.08, c: F.lov }); }
+    }
+    /* en kort kvist med to blader */
+    l.push({ x: -L / 2 + 0.7, y: 0.02, z: 0.38, w: 0.1, h: 0.08, d: 0.14, c: BARK });
+    l.push({ x: -L / 2 + 0.7, y: 0.08, z: 0.46, w: 0.12, h: 0.04, d: 0.08, c: F.lovLys });
+    return bokser(l);
+  });
   return lagMesh(geo, lengde);
 }
 
@@ -502,13 +537,17 @@ export function flaate(teksturer) {
 /* Rutene på en stokk eller båt: skillelinjer mellom hver rute på 1 × 1 og
    en lys flis i midten, så man ser hvor kyllingen lander. topp = høyden på
    dekket. Én modell per lengde/høyde (geometrien deles). */
-export function ruter(lengde, topp) {
-  const geo = cachet(`ruter${lengde}:${topp}`, () => {
+export function ruter(lengde, topp, farge = 0xE3CDA0) {
+  const geo = cachet(`ruter${lengde}:${topp}:${farge}`, () => {
     const l = [];
     for (let i = 0; i < lengde; i++) {
       const cx = -lengde / 2 + 0.5 + i;
-      l.push({ x: cx, y: topp, z: 0, w: 0.34, h: 0.02, d: 0.34, c: F.creamHi });
-      if (i > 0) { l.push({ x: cx - 0.5, y: topp, z: 0, w: 0.05, h: 0.025, d: 0.7, c: F.ink, t: 0.8 }); }
+      /* en diskret ramme og et lite merke i midten, i en lysere tone av dekket */
+      for (const [w, d, dz, dx] of [[0.5, 0.035, 0.235, 0], [0.5, 0.035, -0.235, 0], [0.035, 0.5, 0, 0.235], [0.035, 0.5, 0, -0.235]]) {
+        l.push({ x: cx + dx, y: topp, z: dz, w, h: 0.008, d, c: farge });
+      }
+      l.push({ x: cx, y: topp, z: 0, w: 0.09, h: 0.008, d: 0.09, c: farge });
+      if (i > 0) { l.push({ x: cx - 0.5, y: topp, z: 0, w: 0.03, h: 0.008, d: 0.62, c: farge, t: 0.75 }); }
     }
     return bokser(l);
   });
