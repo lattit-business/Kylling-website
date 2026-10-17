@@ -45,8 +45,8 @@ window.BK = {
        til en side som forteller hvor produktet selges.                        */
     butikkAktiv: false,
     cta: {
-      medButikk: { tekst: 'Se hvor du får kjøpt den', href: 'faq.html#kjop' },
-      utenButikk: { tekst: 'Få beskjed ved lansering', href: 'venteliste.html' }
+      medButikk: { tekst: 'Se hvor du får kjøpt den', href: 'faq#kjop' },
+      utenButikk: { tekst: 'Få beskjed ved lansering', href: 'venteliste' }
     }
   },
 

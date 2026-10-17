@@ -1005,7 +1005,7 @@ async function start() {
         s.textContent = 'Ingen på lista ennå. Bli den første!';
       } else if (!global && paaKopi) {
         const lenke = document.createElement('a');
-        lenke.className = 'link'; lenke.href = 'https://barekylling.no/spill.html'; lenke.textContent = 'barekylling.no';
+        lenke.className = 'link'; lenke.href = 'https://barekylling.no/spill'; lenke.textContent = 'barekylling.no';
         s.append('Den felles topplista finnes bare på ', lenke, '. Her er rundene på denne enheten.');
       } else if (!global) {
         s.textContent = 'Den felles topplista er ikke koblet til ennå, så her står bare rundene på denne enheten.';

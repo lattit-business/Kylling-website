@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "bare-kylling",
+  "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
     {
@@ -44,10 +45,46 @@
       "includeFiles": "bare-kylling/js/spill/bane.mjs"
     }
   },
-  "rewrites": [
+  "redirects": [
     {
-      "source": "/spill",
-      "destination": "/spill.html"
+      "source": "/index.html",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/index",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/faq.html",
+      "destination": "/faq",
+      "statusCode": 301
+    },
+    {
+      "source": "/hvorfor.html",
+      "destination": "/hvorfor",
+      "statusCode": 301
+    },
+    {
+      "source": "/om-oss.html",
+      "destination": "/om-oss",
+      "statusCode": 301
+    },
+    {
+      "source": "/smakene.html",
+      "destination": "/smakene",
+      "statusCode": 301
+    },
+    {
+      "source": "/spill.html",
+      "destination": "/spill",
+      "statusCode": 301
+    },
+    {
+      "source": "/venteliste.html",
+      "destination": "/venteliste",
+      "statusCode": 301
     }
   ]
 }
