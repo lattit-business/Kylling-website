@@ -20,6 +20,17 @@ Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju side
 | `404.html` | Feilside |
 | `spill.html` | Spillet «Veien til Jobbsenteret» |
 
+### Rene adresser (uten .html)
+
+Sidene ligger som `faq.html` osv., men adressene er `barekylling.no/faq`.
+`"cleanUrls": true` i `vercel.json` gjør at Vercel serverer `faq.html` på
+`/faq`, og `redirects` sender gamle lenker (`/faq.html`, `/index.html`) videre
+med 301. Interne lenker skrives derfor uten `.html` – `href="faq"`,
+`href="smakene#original"`, og `href="./"` for forsiden. Lenkene er relative
+fordi kopien på GitHub Pages ligger under `/Kylling-website/` (Pages serverer
+også `faq.html` på `/faq`). `tools/sjekk.py` feiler hvis en lenke har `.html`.
+Ny side? Legg den til i `redirects` og `sitemap.xml`.
+
 Les [`bare-kylling/README.md`](bare-kylling/README.md) for hvordan innholdet
 styres, hvordan de felles blokkene holdes i sync, og hva som må på plass før
 lansering.
@@ -132,7 +143,7 @@ som må gjøres for hånd, er å lage databasen:
 6. Gå til fanen **Deployments**, trykk **⋯** på den øverste og velg
    **Redeploy**. Det trengs fordi nye miljøvariabler bare blir med i nye
    publiseringer.
-7. Sjekk at det virker: åpne `barekylling.no/spill.html`. Under «Topp 10» skal
+7. Sjekk at det virker: åpne `barekylling.no/spill`. Under «Topp 10» skal
    det stå «Ingen på lista ennå. Bli den første!» i stedet for «Den globale
    topplista er ikke koblet til ennå». Eller åpne `barekylling.no/api/toppliste`
    – der skal det stå `{"liste":[]}`.
@@ -209,8 +220,8 @@ nettleserspill kan aldri bli helt juksesikkert, men dette gjør det tungvint.
 
 - «Del resultatet» på sluttkortet lager et bilde (`js/spill/del.js`, 1080 ×
   1350) med logokyllingen, poeng, pakker og verden, og «Slå meg på
-  barekylling.no/spill». Mobil: Web Share. PC: nedlasting. `/spill` peker til
-  `spill.html` (rewrite i `vercel.json`).
+  barekylling.no/spill». Mobil: Web Share. PC: nedlasting. `/spill` serverer
+  `spill.html` (`cleanUrls` i `vercel.json`).
 - Etter runden står en diskret lenke til ventelista: «Pakkene her er bare
   piksler. Få beskjed når de ekte kommer.» Den vises aldri mens man spiller.
 
@@ -309,4 +320,6 @@ Vil du tømme lista: slett nøklene `bk:topp` og `bk:navn` i Upstash-konsollen.
 cd bare-kylling && python3 -m http.server 8000
 ```
 
-Åpne deretter http://localhost:8000/.
+Åpne deretter http://localhost:8000/. `http.server` kjenner ikke rene adresser,
+så menylenker som `/faq` gir 404 der. Bruk `npx serve bare-kylling` (forstår
+rene adresser) eller `vercel dev` hvis du vil klikke deg rundt lokalt.

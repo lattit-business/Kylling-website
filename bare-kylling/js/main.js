@@ -105,7 +105,7 @@
 
   /* Aktiv side i menyene. Sidene setter aria-current="page" selv i HTML-en;
      dette er bare et sikkerhetsnett hvis noen glemmer det.                  */
-  var side = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+  var side = (location.pathname.split('/').pop() || './').toLowerCase().replace(/\.html$/, '');
   if (!$('.nav__links [aria-current]')) {
     $$('.nav__links a, .menu__inner > a:not(.menu__cta)').forEach(function (a) {
       var mal = (a.getAttribute('href') || '').split('#')[0].toLowerCase();
@@ -358,7 +358,7 @@
         }
         notice.appendChild(el('p', null, 'Fram til da kan du se hvor langt vi er kommet med resept, produksjon og lansering.'));
         var lenke = el('a', 'btn btn--ink', 'Se status på Om oss');
-        lenke.href = 'om-oss.html#status';
+        lenke.href = 'om-oss#status';
         notice.appendChild(lenke);
       }
       $('.form__row', form).hidden = true;

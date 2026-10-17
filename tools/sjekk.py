@@ -4,7 +4,8 @@ Kvalitetssjekk for bare-kylling/ (kjøres fra repo-rota: python3 tools/sjekk.py)
 
 Sjekker
   1. Felles blokker (BK:FELLES hode/topp/cta/bunn) er identiske med index.html
-  2. Alle relative lenker/ressurser peker på filer som finnes, og #ankere finnes
+  2. Alle relative lenker/ressurser peker på filer som finnes, og #ankere finnes.
+     Sidelenker skrives uten .html («faq», «./» for forsiden) – cleanUrls i vercel.json
   3. Alle <use href="images/figurer.svg#id"> finnes i spriten (ubrukte = advarsel)
   4. Ingen udokumenterte påstander i HTML; devModus/bekreftet er ikke slått på
      og ingen utgåtte smaker (produktutvalget er Original og Sweet Paprika)
@@ -32,6 +33,20 @@ FORBUDT = [
 UTGATT = [r"brown sugar", r"smoky", r"chili", r"\blime\b", r"sitron", r"honning",
           r"salt &(?:amp;)? ?pepper"]
 LIVE = "https://barekylling.no/"
+
+
+def adresse(fil: str) -> str:
+    """Ren adresse for en side: index.html → «./», faq.html → «faq»."""
+    return "./" if fil == KANONISK else fil.removesuffix(".html")
+
+
+def sidefil(sti: str) -> str:
+    """Motsatt vei: «./» → index.html, «faq» → faq.html. Andre stier urørt."""
+    if sti in ("./", "."):
+        return KANONISK
+    if "." not in sti.rsplit("/", 1)[-1] and (ROT / f"{sti}.html").exists():
+        return f"{sti}.html"
+    return sti
 
 feil, advarsler = [], []
 
@@ -66,7 +81,7 @@ def fiks() -> None:
                 continue
             ny = ref
             if navn == "topp":
-                ny = ny.replace(f'<a href="{p.name}">', f'<a href="{p.name}" aria-current="page">')
+                ny = ny.replace(f'<a href="{adresse(p.name)}">', f'<a href="{adresse(p.name)}" aria-current="page">')
             # Bytt bare ut området mellom markørene (en tom blokk må ikke treffe
             # alle linjeskift i filen).
             html = re.sub(
@@ -129,6 +144,11 @@ def main() -> int:
                 elif sprite_ids and frag not in sprite_ids:
                     feil.append(f"{fil}: <use> peker på ukjent symbol «#{frag}»")
                 continue
+            if tag.lower() == "a" and sti.endswith(".html"):
+                feil.append(f"{fil}: «{ref}» har .html – skriv «{adresse(sti)}» (rene adresser)")
+                continue
+            if tag.lower() == "a":
+                sti = sidefil(sti)
             if sti:
                 mål = ROT / sti
                 if not mål.exists():
@@ -182,10 +202,11 @@ def main() -> int:
         s = re.sub(r"<!--.*?-->", "", s, flags=re.S)
         # aria-current: sider som ligger i hovedmenyen skal ha den på egen lenke
         # i både menylinjen og mobilmenyen – og ingen andre steder.
-        i_menyen = f'<a href="{fil}">' in meny or f'<a href="{fil}" aria-current="page">' in meny
+        egen = adresse(fil)
+        i_menyen = f'<a href="{egen}">' in meny or f'<a href="{egen}" aria-current="page">' in meny
         current = re.findall(r'<a href="([^"]+)" aria-current="page">', s)
-        if i_menyen and current != [fil, fil]:
-            feil.append(f"{fil}: forventet aria-current=\"page\" på begge {fil}-lenkene, fant {current or 'ingen'}")
+        if i_menyen and current != [egen, egen]:
+            feil.append(f"{fil}: forventet aria-current=\"page\" på begge {egen}-lenkene, fant {current or 'ingen'}")
         elif not i_menyen and current:
             feil.append(f"{fil}: aria-current=\"page\" på {current} (siden er ikke i menyen)")
         # tag-balanse for de vanligste elementene
@@ -218,9 +239,12 @@ def main() -> int:
         elif not og:
             feil.append(f"{fil}: mangler og:url")
         else:
-            forventet = LIVE if fil == KANONISK else LIVE + fil
+            forventet = LIVE if fil == KANONISK else LIVE + adresse(fil)
             if og.group(1) != forventet:
                 feil.append(f"{fil}: og:url er «{og.group(1)}», forventet «{forventet}»")
+            kan = re.search(r'<link rel="canonical" href="([^"]*)"', s)
+            if kan and kan.group(1) != forventet:
+                feil.append(f"{fil}: canonical er «{kan.group(1)}», forventet «{forventet}»")
     for t, filer in titler.items():
         if len(filer) > 1:
             feil.append(f"Samme <title> på {', '.join(filer)}: «{t}»")
