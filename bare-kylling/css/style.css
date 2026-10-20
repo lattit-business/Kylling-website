@@ -1251,7 +1251,7 @@ body.meny-apen .sticky-cta { display: none; }
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
 }
 .proto__smaker .moment__label { position: static; display: inline-flex; align-items: center; gap: .45rem; }
-.proto__note { margin-top: 1rem; font-size: .88rem; line-height: 1.5; color: rgba(243, 240, 233, .82); max-width: 60ch; }
+.proto__note { margin-top: 1rem; font-size: .88rem; line-height: 1.5; color: rgba(243, 240, 233, .82); max-width: 60ch; text-wrap: pretty; }
 
 /* Slik fungerer lista (venteliste.html) */
 .how { background: var(--cream); padding-block: var(--sec); }
