@@ -412,6 +412,12 @@ body.meny-apen .sticky-cta { display: none; }
 .hero__img { width: 100%; height: auto; }
 
 .hero__cta { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.6rem; margin-top: clamp(1.4rem, 3vw, 2rem); }
+/* Liten lenke til statuslista på Om oss, på egen linje under knappene.
+   Honning-understreken til .link forsvinner på honning, så den følger teksten. */
+.hero__status { flex-basis: 100%; font-size: .95rem; font-weight: 600; }
+/* Klikkflaten er 44 px høy; den negative margen holder linjen der den står */
+.hero__status .link { display: inline-block; padding-block: .75rem; margin-block: -.75rem; text-decoration-color: currentColor; }
+.hero__status .link:hover { text-decoration-thickness: 3px; }
 
 /* Stempelet i heroen: «2 smaker» med navnene rundt. Tekstringen peker på
    #sirkel, som er definert i den felles toppblokken. */
