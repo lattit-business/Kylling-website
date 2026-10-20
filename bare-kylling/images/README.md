@@ -48,6 +48,9 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | `spis-ute` | Kvinne biter i en kyllingfilet ute på gresset. Beskåret: stempel og rå kjøttpakke nederst er fjernet | Flis «Mellom måltider» (forside) |
 | `proteinbar-salt-karamell` | En påbitt proteinbar med salt karamell i blå innpakning (4:3) | «Problemet» (forside + hvorfor.html) |
 | `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |
+| `prototype-to-smaker` | **Ekte foto.** Prøvepakkene på kjøkkenbenken: Sweet Paprika til venstre, Original til høyre (4:5) | Stort bilde i «Prototypen» (om-oss.html). Etikettene ligger under hver sin pose |
+| `prototype-i-hand` | **Ekte foto.** En hånd holder opp begge prøvepakkene foran en lys vegg (4:5) | «Prototypen» (om-oss.html) |
+| `prototype-kjokkenbenk` | **Ekte foto.** Prøvepakkene foran skjærebrettet, sett ovenfra (ca. 6:7) | «Prototypen» (om-oss.html) |
 | `og-bare-kylling.jpg` | Beskåret `to-smaker-kjokken`, 1200 × 630 | `og:image` ved deling i sosiale medier |
 | `figurer.svg` | Tegnede figurer: maskot, doodles og ikoner (SVG-sprite) | Alle sider – se `../README.md` |
 
@@ -63,10 +66,49 @@ kanten som kuttes – ikke emballasjen.
 | `ubrukt-wrap.png` | Samme grunn – kylling i wrap |
 | `ubrukt-spis-rett-fra-pakken-caps.png` | Tidligere bilde i «Hva du får» (gutt med oransje caps). Byttet ut med `rett-fra-pakken` |
 | `kyllingikon.png` | Logoen ligger som inline-SVG i toppen av hver side og trenger ingen fil |
+| `ubrukt-prototype-i-hand-2.heic` | Nesten likt `prototype-i-hand`, men hånden er kuttet i kanten |
+| `ubrukt-prototype-skra.heic` | Samme motiv som `prototype-to-smaker`, tatt på skrå og mindre ryddig |
+| `ubrukt-prototype-to-smaker-uskarp.heic` | Tatt et sekund etter `prototype-to-smaker`, men uskarpt |
+
+## Prototype-bildene (ekte foto)
+
+Originalene er iPhone-bilder i HEIC (`bilder-originaler/prototype-*.heic`).
+GPS-posisjonen er fjernet fra dem med `exiftool -gps:all= -overwrite_original`.
+Det endrer bare metadataene, ikke selve bildet. Gjør det samme med nye
+mobilbilder før de legges i repoet, for posisjonen viser hvor bildet er tatt.
+
+Variantene er beskåret og har fått en mild justering av kontrast og farge.
+Bildene på nettsiden har ingen metadata, fordi Pillow ikke tar med EXIF når
+`exif=` ikke er oppgitt. Slik lager du dem på nytt (krever
+`pip install pillow pillow-heif`):
+
+```python
+from PIL import Image, ImageOps, ImageEnhance
+import pillow_heif
+pillow_heif.register_heif_opener()
+UTSNITT = {  # (venstre, topp, høyre, bunn) i originalen, 3024 × 4032
+    'prototype-to-smaker':   (0, 121, 3024, 3901),
+    'prototype-i-hand':      (0, 252, 3024, 4032),
+    'prototype-kjokkenbenk': (0, 470, 3024, 4032),
+}
+for navn, boks in UTSNITT.items():
+    im = Image.open(f'bilder-originaler/{navn}.heic').convert('RGB').crop(boks)
+    im = ImageOps.autocontrast(im, cutoff=0.3, preserve_tone=True)
+    im = ImageEnhance.Color(ImageEnhance.Contrast(im).enhance(1.05)).enhance(1.05)
+    if navn == 'prototype-i-hand':  # tatt i svakt kveldslys
+        im = ImageEnhance.Brightness(im).enhance(1.08)
+    for b in (540, 800, 1200):
+        im.resize((b, round(im.height * b / im.width)), Image.LANCZOS) \
+          .save(f'bare-kylling/images/{navn}-{b}.webp', 'WEBP', quality=74, method=6)
+    im.resize((800, round(im.height * 800 / im.width)), Image.LANCZOS) \
+      .save(f'bare-kylling/images/{navn}.jpg', 'JPEG', quality=78, optimize=True, progressive=True)
+```
 
 ## Må ses på før lansering
 
-Alle produktbildene er generert. Emballasjen på dem viser:
+Alle produktbildene er generert, bortsett fra prototype-bildene. De viser
+prøvepakker i vanlige vakuumposer, ikke den ferdige emballasjen. Bildeteksten
+på om-oss.html sier det. Emballasjen på de genererte bildene viser:
 
 - **Paprika-pakken heter bare «Paprika»**, mens produktnavnet er «Sweet Paprika».
   Oppdater etiketten før ekte pakker trykkes og fotograferes.
