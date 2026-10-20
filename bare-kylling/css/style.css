@@ -1238,6 +1238,21 @@ body.meny-apen .sticky-cta { display: none; }
 .status__tag--now  { background: var(--honey); color: var(--ink); }
 .about__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: clamp(2rem, 4vw, 3rem); }
 
+/* Prototypen – ekte bilder av prøvepakkene. Grønn seksjon mellom to lyse;
+   kortene er de samme som i «På farten» (.moment), med ett stort bilde. */
+.proto__head { display: grid; column-gap: clamp(2rem, 5vw, 5rem); margin-bottom: clamp(1.8rem, 4vw, 3rem); }
+.proto .about__body { color: rgba(243, 240, 233, .9); }
+.proto__galleri { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(.6rem, 1.4vw, 1rem); }
+.proto__hoved { grid-column: 1 / -1; }
+.proto__galleri .moment img { object-position: 50% 45%; }
+/* Smakene som legende under hver sin pose: Sweet Paprika til venstre, Original til høyre */
+.proto__smaker {
+  position: absolute; left: .75rem; right: .75rem; bottom: .75rem; z-index: 2;
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem;
+}
+.proto__smaker .moment__label { position: static; display: inline-flex; align-items: center; gap: .45rem; }
+.proto__note { margin-top: 1rem; font-size: .88rem; line-height: 1.5; color: rgba(243, 240, 233, .82); max-width: 60ch; }
+
 /* Slik fungerer lista (venteliste.html) */
 .how { background: var(--cream); padding-block: var(--sec); }
 .how__h2 { margin-bottom: clamp(2.2rem, 5vw, 3.5rem); }
@@ -2137,6 +2152,12 @@ html:not(.anim) .pikselkylling, .anim--myk .pikselkylling { left: clamp(1rem, 4v
   .oops__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); }
 
   .subhero__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+  .proto__head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+  .proto__head .about__h2 { margin-bottom: 0; }
+  .proto__galleri { grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 1fr)); grid-template-rows: clamp(340px, 34vw, 500px); }
+  .proto__hoved { grid-column: auto; }
+  .proto__galleri .moment { aspect-ratio: auto; }
 
   .ben__inner { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(2rem, 4vw, 4.5rem); }
   .ben__inner--flip > .media { order: -1; }

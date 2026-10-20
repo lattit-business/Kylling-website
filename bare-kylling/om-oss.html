@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261015f" />
+<link rel="stylesheet" href="css/style.css?v=20261020a" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -203,6 +203,66 @@
         <p>Sunt som ikke smaker godt, blir liggende i kjøleskapet. Hver smak er justert til vi selv ville spist den kald, uten noe ved siden av.</p>
       </li>
     </ul>
+  </div>
+</section>
+
+<!-- ============================================================
+     PROTOTYPEN – ekte bilder av prøvepakkene (resten av nettstedet
+     viser den ferdige pakken)
+     ============================================================ -->
+<section class="about sec--forest proto" id="prototypen" aria-labelledby="proto-tittel">
+  <div class="shell">
+    <div class="proto__head">
+      <div>
+        <p class="marker marker--light">Prototypen</p>
+        <h2 class="display about__h2" id="proto-tittel">Slik ser den<br />ut i dag</h2>
+      </div>
+      <div class="about__body">
+        <p>Før fabrikken og før den ferdige pakken: kyllingfilet og krydder, vakuumpakket for hånd på kjøkkenbenken. Det er her de to smakene blir til.</p>
+        <p>Hver runde blir smakt og justert. Resepten er ikke låst ennå – hvor langt vi er kommet, ser du <a class="link" href="#status">rett under</a>.</p>
+      </div>
+    </div>
+
+    <div class="proto__galleri">
+      <figure class="moment proto__hoved">
+        <picture>
+          <source type="image/webp"
+                  srcset="images/prototype-to-smaker-540.webp 540w, images/prototype-to-smaker-800.webp 800w, images/prototype-to-smaker-1200.webp 1200w"
+                  sizes="(min-width: 900px) 34vw, 100vw" />
+          <img src="images/prototype-to-smaker.jpg"
+               alt="To vakuumpakkede kyllingfileter på en lys kjøkkenbenk. Til venstre Sweet Paprika i rødoransje marinade, til høyre Original med hel sort pepper. Bak ligger et skjærebrett med to kniver."
+               width="1200" height="1500" loading="lazy" decoding="async" />
+        </picture>
+        <figcaption class="proto__smaker">
+          <span class="moment__label"><span class="dot dot--paprika" aria-hidden="true"></span>Sweet Paprika</span>
+          <span class="moment__label"><span class="dot dot--original" aria-hidden="true"></span>Original</span>
+        </figcaption>
+      </figure>
+      <figure class="moment">
+        <picture>
+          <source type="image/webp"
+                  srcset="images/prototype-i-hand-540.webp 540w, images/prototype-i-hand-800.webp 800w, images/prototype-i-hand-1200.webp 1200w"
+                  sizes="(min-width: 900px) 26vw, 50vw" />
+          <img src="images/prototype-i-hand.jpg"
+               alt="En hånd holder opp de to prøvepakkene med kyllingfilet foran en lys vegg."
+               width="1200" height="1500" loading="lazy" decoding="async" />
+        </picture>
+        <figcaption class="moment__label">Prøvepakkene</figcaption>
+      </figure>
+      <figure class="moment">
+        <picture>
+          <source type="image/webp"
+                  srcset="images/prototype-kjokkenbenk-540.webp 540w, images/prototype-kjokkenbenk-800.webp 800w, images/prototype-kjokkenbenk-1200.webp 1200w"
+                  sizes="(min-width: 900px) 26vw, 50vw" />
+          <img src="images/prototype-kjokkenbenk.jpg"
+               alt="De to prøvepakkene på kjøkkenbenken foran et skjærebrett med to kniver."
+               width="1200" height="1413" loading="lazy" decoding="async" />
+        </picture>
+        <figcaption class="moment__label">Fra kjøkkenbenken</figcaption>
+      </figure>
+    </div>
+
+    <p class="proto__note">Ekte bilder av prøvepakkene, oktober 2026. Posene er bare til prøving – den ferdige pakken er designet, men ikke produsert ennå.</p>
   </div>
 </section>
 
