@@ -18,16 +18,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261015f" />
+<link rel="stylesheet" href="css/style.css?v=20261020c" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
 <!-- BK:FELLES hode END -->
 
 <title>Om oss – Bare Kylling</title>
-<meta name="description" content="Bare Kylling er en ungdomsbedrift fra Bergen som lager ferdigstekt, ferdig krydret kyllingfilet – naturens proteinbar. Hvorfor vi startet, hvordan vi jobber og hvor langt vi er kommet." />
+<meta name="description" content="Bare Kylling er et enkeltpersonforetak fra Bergen, drevet av Lars Martens Dolven, som lager ferdigstekt, ferdig krydret kyllingfilet – naturens proteinbar. Hvorfor det startet, hvordan vi jobber og hvor langt vi er kommet." />
 <meta property="og:title" content="Om oss – Bare Kylling" />
-<meta property="og:description" content="Ungdomsbedriften fra Bergen som lager ferdigstekt kyllingfilet i to smaker. Hvorfor vi startet, og hvor langt vi er kommet." />
+<meta property="og:description" content="Enkeltpersonforetaket fra Bergen som lager ferdigstekt kyllingfilet i to smaker. Hvorfor det startet, og hvor langt vi er kommet." />
 <meta property="og:url" content="https://barekylling.no/om-oss" />
 <link rel="canonical" href="https://barekylling.no/om-oss" />
 </head>
@@ -112,7 +112,7 @@
     <div class="subhero__copy">
       <p class="kicker">Om oss</p>
       <h1 class="display subhero__h1" id="side-tittel">Vi ville bare<br />ha kylling</h1>
-      <p class="subhero__lead">Bare Kylling er en ungdomsbedrift fra Bergen. Vi lager ferdigstekt, ferdig krydret kyllingfilet i porsjonspakke – et proteinrikt mellommåltid du tar med deg, fordi vi ikke fant det i butikken selv.</p>
+      <p class="subhero__lead">Bare Kylling er et enkeltpersonforetak fra Bergen. Vi lager ferdigstekt, ferdig krydret kyllingfilet i porsjonspakke – et proteinrikt mellommåltid du tar med deg, fordi vi ikke fant det i butikken selv.</p>
     </div>
   </div>
 </section>
@@ -151,16 +151,16 @@
 <section class="about about--beige" id="hvem" aria-labelledby="hvem-tittel">
   <div class="shell">
     <p class="marker">Hvem</p>
-    <h2 class="display about__h2" id="hvem-tittel">En ungdomsbedrift<br />fra Bergen</h2>
+    <h2 class="display about__h2" id="hvem-tittel">Én gründer<br />fra Bergen</h2>
     <div class="about__body">
-      <p>Bare Kylling UB er startet av elever i Bergen, som ungdomsbedrift. Det betyr at vi driver et ekte selskap dette skoleåret: eget produkt, egen emballasje, egen økonomi – og etter hvert egne kunder.</p>
-      <p>Det betyr også at vi lærer mens vi gjør det. Resept, produksjon og dokumentasjon låses trinn for trinn, og vi legger ikke ut tall eller påstander før de er på plass. Lenger ned på siden ser du hvor langt vi er kommet.</p>
+      <p>Bare Kylling drives av Lars Martens Dolven, som et enkeltpersonforetak i Bergen. Foretaket er under registrering nå. Det er et ekte selskap: eget produkt, egen emballasje, egen økonomi – og etter hvert egne kunder.</p>
+      <p>Alt bygges trinn for trinn. Resept, produksjon og dokumentasjon låses ett steg av gangen, og vi legger ikke ut tall eller påstander før de er på plass. Lenger ned på siden ser du hvor langt vi er kommet.</p>
     </div>
 
     <!-- TEAMET – fyll inn og fjern kommentartegnene når dere vil vise dere fram.
          Ett kort per person. Bilder: kvadratiske, minst 600 × 600 px, lagt i images/.
-         En «Om oss»-side med ekte navn og ansikter er det som skiller en
-         ungdomsbedrift fra et hvilket som helst annet merke – bruk det.
+         En «Om oss»-side med ekte navn og ansikter er det som skiller et
+         lite foretak fra et hvilket som helst annet merke – bruk det.
 
     <ul class="team">
       <li class="team__card">
@@ -207,6 +207,59 @@
 </section>
 
 <!-- ============================================================
+     PROTOTYPEN – ekte bilder av prøvepakkene (resten av nettstedet
+     viser den ferdige pakken)
+     ============================================================ -->
+<section class="about sec--forest proto" id="prototypen" aria-labelledby="proto-tittel">
+  <div class="shell">
+    <div class="proto__head">
+      <div>
+        <p class="marker marker--light">Prototypen</p>
+        <h2 class="display about__h2" id="proto-tittel">Slik ser den<br />ut i dag</h2>
+      </div>
+      <div class="about__body">
+        <p>Før fabrikken og før den ferdige pakken: kyllingfilet og krydder, vakuumpakket for hånd på kjøkkenbenken. Det er her de to smakene blir til.</p>
+        <p>Hver runde blir smakt og justert. Resepten er ikke låst ennå – hvor langt vi er kommet, ser du <a class="link" href="#status">rett under</a>.</p>
+      </div>
+    </div>
+
+    <div class="proto__galleri">
+      <figure class="moment proto__hoved">
+        <picture>
+          <source type="image/webp"
+                  srcset="images/prototype-to-smaker-540.webp 540w, images/prototype-to-smaker-800.webp 800w, images/prototype-to-smaker-1200.webp 1200w"
+                  sizes="(min-width: 900px) 34vw, 100vw" />
+          <img src="images/prototype-to-smaker.jpg"
+               alt="To vakuumpakkede kyllingfileter på en lys kjøkkenbenk. Til venstre Sweet Paprika i rødoransje marinade, til høyre Original med hel sort pepper. Bak ligger et skjærebrett med to kniver."
+               width="1200" height="1500" loading="lazy" decoding="async" />
+        </picture>
+        <figcaption class="proto__smaker">
+          <span class="moment__label"><span class="dot dot--paprika" aria-hidden="true"></span>Sweet Paprika</span>
+          <span class="moment__label"><span class="dot dot--original" aria-hidden="true"></span>Original</span>
+        </figcaption>
+      </figure>
+      <figure class="moment">
+        <picture>
+          <source type="image/webp"
+                  srcset="images/prototype-kjokkenbenk-540.webp 540w, images/prototype-kjokkenbenk-800.webp 800w, images/prototype-kjokkenbenk-1200.webp 1200w"
+                  sizes="(min-width: 900px) 26vw, 50vw" />
+          <img src="images/prototype-kjokkenbenk.jpg"
+               alt="De to prøvepakkene på kjøkkenbenken foran et skjærebrett med to kniver."
+               width="1200" height="1413" loading="lazy" decoding="async" />
+        </picture>
+        <figcaption class="moment__label">Fra kjøkkenbenken</figcaption>
+      </figure>
+      <div class="moment moment--text">
+        <svg class="figure" aria-hidden="true" focusable="false"><use href="images/figurer.svg#kylling-titter"></use></svg>
+        <p class="moment__h">Ekte bilder, tatt i oktober 2026.</p>
+      </div>
+    </div>
+
+    <p class="proto__note">Posene er bare til prøving – den ferdige pakken er designet, men ikke produsert ennå.</p>
+  </div>
+</section>
+
+<!-- ============================================================
      STATUS – hvor langt er vi kommet
      ============================================================ -->
 <section class="about about--beige" id="status" aria-labelledby="status-tittel">
@@ -227,6 +280,10 @@
     </figure>
 
     <dl class="status">
+      <div class="status__row">
+        <dt><span>Foretaket</span><span class="status__tag status__tag--now">Pågår</span></dt>
+        <dd>Bare Kylling registreres som enkeltpersonforetak, med Lars Martens Dolven som innehaver.</dd>
+      </div>
       <div class="status__row">
         <dt><span>Smakene</span><span class="status__tag status__tag--done">Ferdig</span></dt>
         <dd>To smaker er valgt: Original med salt, pepper og urter, og Sweet Paprika.</dd>
@@ -333,7 +390,7 @@
       </nav>
       <div class="foot__nav">
         <p class="foot__h">Om Bare Kylling</p>
-        <p>Ferdigstekt kyllingfilet i porsjonspakke, i to smaker: Original med salt, pepper og urter, og Sweet Paprika. Laget av en ungdomsbedrift i Bergen.</p>
+        <p>Ferdigstekt kyllingfilet i porsjonspakke, i to smaker: Original med salt, pepper og urter, og Sweet Paprika. Et enkeltpersonforetak i Bergen, drevet av Lars Martens Dolven.</p>
         <p>Ekte mat. Ekte protein.</p>
       </div>
       <div class="foot__nav" data-kontakt>
@@ -343,7 +400,7 @@
     </div>
 
     <div class="foot__base">
-      <p>Bare Kylling UB &middot; Bergen</p>
+      <p>Bare Kylling &middot; Lars Martens Dolven &middot; Bergen. Foretaket er under registrering.</p>
       <p>Produktet er ikke i salg ennå.</p>
     </div>
   </div>
