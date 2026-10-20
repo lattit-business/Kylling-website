@@ -49,7 +49,6 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | `proteinbar-salt-karamell` | En påbitt proteinbar med salt karamell i blå innpakning (4:3) | «Problemet» (forside + hvorfor.html) |
 | `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |
 | `prototype-to-smaker` | **Ekte foto.** Prøvepakkene på kjøkkenbenken: Sweet Paprika til venstre, Original til høyre (4:5) | Stort bilde i «Prototypen» (om-oss.html). Etikettene ligger under hver sin pose |
-| `prototype-i-hand` | **Ekte foto.** En hånd holder opp begge prøvepakkene foran en lys vegg (4:5) | «Prototypen» (om-oss.html) |
 | `prototype-kjokkenbenk` | **Ekte foto.** Prøvepakkene foran skjærebrettet, sett ovenfra (ca. 6:7) | «Prototypen» (om-oss.html) |
 | `og-bare-kylling.jpg` | Beskåret `to-smaker-kjokken`, 1200 × 630 | `og:image` ved deling i sosiale medier |
 | `figurer.svg` | Tegnede figurer: maskot, doodles og ikoner (SVG-sprite) | Alle sider – se `../README.md` |
@@ -66,7 +65,8 @@ kanten som kuttes – ikke emballasjen.
 | `ubrukt-wrap.png` | Samme grunn – kylling i wrap |
 | `ubrukt-spis-rett-fra-pakken-caps.png` | Tidligere bilde i «Hva du får» (gutt med oransje caps). Byttet ut med `rett-fra-pakken` |
 | `kyllingikon.png` | Logoen ligger som inline-SVG i toppen av hver side og trenger ingen fil |
-| `ubrukt-prototype-i-hand-2.heic` | Nesten likt `prototype-i-hand`, men hånden er kuttet i kanten |
+| `ubrukt-prototype-i-hand.heic` | En hånd holder opp prøvepakkene foran en lys vegg. Var med i «Prototypen» som «Prøvepakkene», men er tatt ut. Plassen har en tekstflis i stedet |
+| `ubrukt-prototype-i-hand-2.heic` | Nesten likt `ubrukt-prototype-i-hand`, men hånden er kuttet i kanten |
 | `ubrukt-prototype-skra.heic` | Samme motiv som `prototype-to-smaker`, tatt på skrå og mindre ryddig |
 | `ubrukt-prototype-to-smaker-uskarp.heic` | Tatt et sekund etter `prototype-to-smaker`, men uskarpt |
 
@@ -88,15 +88,12 @@ import pillow_heif
 pillow_heif.register_heif_opener()
 UTSNITT = {  # (venstre, topp, høyre, bunn) i originalen, 3024 × 4032
     'prototype-to-smaker':   (0, 121, 3024, 3901),
-    'prototype-i-hand':      (0, 252, 3024, 4032),
     'prototype-kjokkenbenk': (0, 470, 3024, 4032),
 }
 for navn, boks in UTSNITT.items():
     im = Image.open(f'bilder-originaler/{navn}.heic').convert('RGB').crop(boks)
     im = ImageOps.autocontrast(im, cutoff=0.3, preserve_tone=True)
     im = ImageEnhance.Color(ImageEnhance.Contrast(im).enhance(1.05)).enhance(1.05)
-    if navn == 'prototype-i-hand':  # tatt i svakt kveldslys
-        im = ImageEnhance.Brightness(im).enhance(1.08)
     for b in (540, 800, 1200):
         im.resize((b, round(im.height * b / im.width)), Image.LANCZOS) \
           .save(f'bare-kylling/images/{navn}-{b}.webp', 'WEBP', quality=74, method=6)
