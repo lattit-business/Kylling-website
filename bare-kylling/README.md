@@ -18,8 +18,8 @@ bare-kylling/
 │                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
 ├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
-├── om-oss.html         Historien, hvem, slik jobber vi, prototypen (#prototypen,
-│                       ekte bilder av prøvepakkene), status (#status)
+├── om-oss.html         Status øverst (#status), så historien, hvem, slik jobber vi
+│                       og prototypen (#prototypen, ekte bilder av prøvepakkene)
 ├── faq.html            Spørsmål og svar
 ├── venteliste.html     Påmeldingsskjemaet
 ├── 404.html            Feilside (GitHub Pages bruker den automatisk)

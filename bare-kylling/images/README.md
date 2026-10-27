@@ -50,6 +50,8 @@ im.resize((1100, round(im.height * 1100 / im.width)), Image.LANCZOS) \
 | `krydder-oppskrift` | Krydder veies opp og noteres, krydret kyllingfilet på brett (3:2) | «Status» (om-oss.html) |
 | `prototype-to-smaker` | **Ekte foto.** Prøvepakkene på kjøkkenbenken: Sweet Paprika til venstre, Original til høyre (4:5) | Stort bilde i «Prototypen» (om-oss.html). Etikettene ligger under hver sin pose |
 | `prototype-kjokkenbenk` | **Ekte foto.** Prøvepakkene foran skjærebrettet, sett ovenfra (ca. 6:7) | «Prototypen» (om-oss.html) |
+| `prototype-skiver` | **Ekte foto.** Original, ferdig tilberedt og skåret i skiver, med kniv ved siden av (4:5) | «Original, i skiver» i «Prototypen» (om-oss.html) |
+| `prototype-tilberedt` | **Ekte foto.** En hel filet i posen ved siden av en som er skåret i skiver (4:5) | «Rett fra posen» i «Prototypen» (om-oss.html) |
 | `og-bare-kylling.jpg` | Beskåret `to-smaker-kjokken`, 1200 × 630 | `og:image` ved deling i sosiale medier |
 | `figurer.svg` | Tegnede figurer: maskot, doodles og ikoner (SVG-sprite) | Alle sider – se `../README.md` |
 
@@ -69,10 +71,11 @@ kanten som kuttes – ikke emballasjen.
 | `ubrukt-prototype-i-hand-2.heic` | Nesten likt `ubrukt-prototype-i-hand`, men hånden er kuttet i kanten |
 | `ubrukt-prototype-skra.heic` | Samme motiv som `prototype-to-smaker`, tatt på skrå og mindre ryddig |
 | `ubrukt-prototype-to-smaker-uskarp.heic` | Tatt et sekund etter `prototype-to-smaker`, men uskarpt |
+| `ubrukt-prototype-pose-gjenskinn.jpeg` | Nærbilde av posen fra samme runde som `prototype-skiver`, men med skygge fra telefonen og mye gjenskinn i plasten |
 
 ## Prototype-bildene (ekte foto)
 
-Originalene er iPhone-bilder i HEIC (`bilder-originaler/prototype-*.heic`).
+Originalene er iPhone-bilder i HEIC eller JPEG (`bilder-originaler/prototype-*`).
 GPS-posisjonen er fjernet fra dem med `exiftool -gps:all= -overwrite_original`.
 Det endrer bare metadataene, ikke selve bildet. Gjør det samme med nye
 mobilbilder før de legges i repoet, for posisjonen viser hvor bildet er tatt.
@@ -86,12 +89,16 @@ Bildene på nettsiden har ingen metadata, fordi Pillow ikke tar med EXIF når
 from PIL import Image, ImageOps, ImageEnhance
 import pillow_heif
 pillow_heif.register_heif_opener()
-UTSNITT = {  # (venstre, topp, høyre, bunn) i originalen, 3024 × 4032
-    'prototype-to-smaker':   (0, 121, 3024, 3901),
-    'prototype-kjokkenbenk': (0, 470, 3024, 4032),
+UTSNITT = {  # (venstre, topp, høyre, bunn) i originalen, stående 3024 × 4032
+    'prototype-to-smaker.heic':    (0, 121, 3024, 3901),
+    'prototype-kjokkenbenk.heic':  (0, 470, 3024, 4032),
+    'prototype-skiver.jpeg':       (0, 150, 3024, 3930),
+    'prototype-tilberedt.jpeg':    (0, 200, 3024, 3980),
 }
-for navn, boks in UTSNITT.items():
-    im = Image.open(f'bilder-originaler/{navn}.heic').convert('RGB').crop(boks)
+for fil, boks in UTSNITT.items():
+    navn = fil.split('.')[0]
+    # exif_transpose: JPEG-ene fra iPhone er lagret liggende og snus med EXIF
+    im = ImageOps.exif_transpose(Image.open(f'bilder-originaler/{fil}')).convert('RGB').crop(boks)
     im = ImageOps.autocontrast(im, cutoff=0.3, preserve_tone=True)
     im = ImageEnhance.Color(ImageEnhance.Contrast(im).enhance(1.05)).enhance(1.05)
     for b in (540, 800, 1200):
