@@ -216,7 +216,7 @@ kontrollert.
 
 Fast i HTML-en (bekreftet, ikke plassholdere): kyllingen er ferdigstekt og
 trenger ingen tilberedning («0 min»), kan spises kald og kan varmes i
-mikrobølgeovn. «200 g» er pakkestørrelsen.
+mikrobølgeovn. «150 g» er pakkestørrelsen.
 
 Sammenligningstabellen på forsiden (`#sammenligning`) viser avrundede anslag,
 ikke målte tall, og noten under tabellen sier det. Alt unntatt proteinbaren er
@@ -260,7 +260,7 @@ aldri noe som ikke er bekreftet.
   ØVERST» i `js/main.js`.
 - Animasjoner (se «T. ANIMASJONER» i `css/style.css` og «4b/4c/5» i
   `js/main.js`): heroen bygges opp når pakkebildet er lastet, pakkene svever
-  og vipper mot musepekeren, «2 smaker»-stempelet spretter inn og «200 g»
+  og vipper mot musepekeren, «2 smaker»-stempelet spretter inn og «150 g»
   teller opp. Rullebånd under heroen, fremdriftslinje i menyen, pulserende
   prikk ved «Kommer snart» og glimt over plassholdertallene. Innhold toner
   inn når du scroller, med små «pop» på ikoner, etiketter og smaksnoter.

@@ -195,7 +195,7 @@
 
   /* 3b. Næringsdeklarasjon, ingredienser og allergener per smak. Per pakke
          regnes ut fra pakkevekten, så det holder å fylle inn per 100 g.     */
-  var vekt = BK.pakkevekt || 200;
+  var vekt = BK.pakkevekt || 150;
   $$('details.decl[data-smak]').forEach(function (decl) {
     var smak = (BK.smaker || {})[decl.getAttribute('data-smak')];
     if (!smak) { return; }
@@ -821,7 +821,7 @@
     vakt.observe(el);
   });
 
-  /* 5b. Tallene i heroen teller opp (bare hele tall, f.eks. «200»). Bredden
+  /* 5b. Tallene i heroen teller opp (bare hele tall, f.eks. «150»). Bredden
          låses først, så enheten ved siden av ikke hopper.                    */
   $$('.hero__stats .stat__v:not(.is-pending) .stat__num').forEach(function (n) {
     var mal = parseInt(n.textContent, 10);

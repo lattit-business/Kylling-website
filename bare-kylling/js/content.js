@@ -54,9 +54,10 @@ window.BK = {
      2. NØKKELTALL I HEROEN — IKKE BEKREFTET
      Tallene under står på pakkedesignet, men er ikke dokumentert gjennom
      næringsanalyse. Heroen viser derfor plassholdere til bekreftet: true.
-     Tallene gjelder én hel pakke (200 g). Avviker smakene, skriv et spenn,
-     f.eks. '36–38'.
-     «0 min tilberedning» og «200 g» står fast i HTML-en, fordi det følger av
+     Tallene gjelder én hel pakke (150 g). Avviker smakene, skriv et spenn,
+     f.eks. '36–38'. NB: 36 g / 185 kcal er fra pakkedesignet, laget da
+     pakken var tenkt på 200 g – sjekk dem mot analysen.
+     «0 min tilberedning» og «150 g» står fast i HTML-en, fordi det følger av
      at kyllingen er ferdigstekt og av pakkestørrelsen.
      --------------------------------------------------------------------------- */
   nokkeltall: {
@@ -119,9 +120,9 @@ window.BK = {
      ingredienser = juridisk ingrediensdeklarasjon. IKKE bekreftet ennå.
      allergener   = allergener som skal utheves. IKKE bekreftet ennå.
      naering      = næringsdeklarasjon per 100 g. IKKE bekreftet ennå.
-                    Per pakke regnes ut automatisk fra pakkevekten (200 g).
+                    Per pakke regnes ut automatisk fra pakkevekten (150 g).
      --------------------------------------------------------------------------- */
-  pakkevekt: 200,
+  pakkevekt: 150,
 
   smaker: {
     'original': {
