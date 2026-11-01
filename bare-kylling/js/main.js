@@ -174,7 +174,7 @@
     return Number(n).toFixed(des).replace('.', ',');
   }
 
-  /* 3a. Nøkkeltall i heroen og i sammenligningstabellen. HTML-en viser
+  /* 3a. Nøkkeltall i heroen. HTML-en viser
          plassholdere; de byttes ut først når tallene er bekreftet.          */
   var nk = BK.nokkeltall || {};
   $$('[data-nokkeltall]').forEach(function (stat) {
@@ -192,14 +192,6 @@
       stat.appendChild(unverifiedBox('Skjult: ' + tall.verdi + ' ' + tall.enhet, 'Kilde: ' + (nk.kilde || 'ukjent')));
     }
   });
-  if (nk.bekreftet) {
-    $$('[data-nokkeltall-tekst]').forEach(function (n) {
-      var tall = nk[n.getAttribute('data-nokkeltall-tekst')];
-      if (!tall) { return; }
-      n.textContent = tall.verdi + ' ' + tall.enhet;
-      n.classList.remove('pending');
-    });
-  }
 
   /* 3b. Næringsdeklarasjon, ingredienser og allergener per smak. Per pakke
          regnes ut fra pakkevekten, så det holder å fylle inn per 100 g.     */
