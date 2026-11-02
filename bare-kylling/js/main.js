@@ -496,7 +496,7 @@
 
   /* ---------------------------------------------------------------------------
      4e. BRYTEREN i «Problemet» – to faner (role="tab") som ser ut som én
-         bryter: «Hva er i sekken?» (vises først) og «Snu pakken». Rekkefølgen
+         bryter: «Snu pakken» (vises først) og «Hva er i sekken?». Rekkefølgen
          følger fanene i HTML-en. Begge visningene ligger i
          samme rute (se C3 i css), så høyden står stille når man bytter.
          .er-klar settes først når alt er koblet opp – uten JavaScript står
@@ -556,7 +556,7 @@
       snu.classList.toggle('er-snudd', snudd);
       knapp.setAttribute('aria-pressed', String(snudd));
       if (ord) { ord.textContent = snudd ? 'Snu tilbake' : 'Snu pakken'; }
-      if (tekst) { tekst.textContent = snudd ? 'Baksiden av Bare Kylling.' : 'En vanlig proteinbar.'; }
+      if (tekst) { tekst.textContent = snudd ? 'Baksiden av en vanlig proteinbar.' : 'En vanlig proteinbar.'; }
       if (snudd) {
         window.setTimeout(function () {
           var r = kort.getBoundingClientRect();
