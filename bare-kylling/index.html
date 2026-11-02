@@ -253,7 +253,8 @@
 <!-- ============================================================
      PROBLEMET – protein på farten
      En bryter veksler mellom to visninger:
-       «Snu pakken»       – proteinbaren snus, og baksiden er vår etikett
+       «Snu pakken»       – proteinbaren snus: baksiden viser typiske ingredienser
+                            med stikkord fra forskningen, og kildene under
        «Hva er i sekken?» – trykk på tingene i sekken og få en kort dom
      Konklusjonen under står alltid synlig. Uten JavaScript vises begge
      visningene under hverandre, og bryteren er skjult. Se «6. BRYTEREN»
@@ -371,24 +372,19 @@
                 </picture>
               </figure>
               <div class="snu__side snu__side--bak">
-                <div class="etikett">
-                  <p class="sr-only">Baksiden av en pakke Bare Kylling:</p>
-                  <p class="etikett__merke" aria-hidden="true">
-                    <svg viewBox="-6 -6 112 112" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                      <path d="M63.5 4c2.5-4 7.5-3 9 1.5 2.5-4 8-3 8.5 1.5 4-1.5 8 1.5 6.5 6 3 2.5 4.5 6 4.5 9.5l7.5 3.5-9 4.5" />
-                      <path d="M90 30.5c-1 4.5-1.5 8-1.5 12.5v15.5C88.5 73.5 77 85 62.5 85h-16C32 85 20.5 73.5 20.5 59c0-1 0-2 .2-3" />
-                      <path d="M21.5 61.5L2 56.5l19-12L1.5 29l25 4.5c12.5 2 24-.5 32-6.5 3.5-2.5 5.5-6.5 5.5-11" />
-                      <path d="M39.5 84.5V97h-8.5M60.5 84.5V97h8.5" />
-                      <circle cx="75.5" cy="18.5" r="2.7" fill="currentColor" stroke="none" />
-                    </svg>
-                    <span class="etikett__ord"><span class="etikett__bare">bare</span><span class="etikett__kylling">Kylling</span></span>
-                  </p>
-                  <p class="etikett__k">Ingredienser</p>
-                  <p class="etikett__v">Kyllingfilet og krydder.</p>
-                  <p class="etikett__fin">Full ingrediensliste med mengder kommer når resepten er låst.</p>
-                  <p class="etikett__band"><span>Ferdigstekt</span><span>150 g</span></p>
+                <div class="baksiden">
+                  <p class="sr-only">Baksiden av en vanlig proteinbar. Typiske ingredienser, og hva forskningen sier om dem:</p>
+                  <p class="baksiden__liste" aria-hidden="true"><b>Ingredienser:</b> melkeproteinblanding (melkeproteinisolat, myseproteinkonsentrat), søtstoff (maltitol), sjokoladeovertrekk (søtstoff (maltitol), kakaomasse, kakaosmør, palmfett, emulgator (soyalecitin)), fuktighetsbevarende middel (glyserol), soyaproteinisolat, kollagenhydrolysat, palmfett, emulgator (E471), aroma, salt, søtstoff (sukralose). Overdrevent forbruk kan ha avførende virkning.</p>
+                  <ul class="baksiden__ord">
+                    <li class="stikk" style="--i:0"><b>Ultraprosessert</b> <span>knyttet til kreft<sup>1</sup></span></li>
+                    <li class="stikk" style="--i:1"><b>E471</b> <span>bryst- og prostatakreft<sup>2</sup></span></li>
+                    <li class="stikk" style="--i:2"><b>Sukralose</b> <span>skadet DNA i celleforsøk<sup>3</sup></span></li>
+                    <li class="stikk" style="--i:3"><b>Søtningsmidler</b> <span>WHO fraråder<sup>4</sup></span></li>
+                    <li class="stikk" style="--i:4"><b>Maltitol</b> <span>kan virke avførende<sup>5</sup></span></li>
+                    <li class="stikk" style="--i:5"><b>Palmfett</b> <span>øker LDL-kolesterolet<sup>6</sup></span></li>
+                  </ul>
+                  <p class="baksiden__band"><span>Bare Kylling:</span><span>kyllingfilet og krydder.</span></p>
                 </div>
-                <span class="etikett__stempel" aria-hidden="true">Ekte<br />mat</span>
               </div>
             </div>
           </div>
@@ -398,6 +394,19 @@
               <span class="snu__ikon" aria-hidden="true">↻</span>
               <span class="snu__ord">Snu pakken</span>
             </button>
+          </div>
+
+          <div class="funn">
+            <h3 class="funn__h">Hva forskningen sier</h3>
+            <ol class="funn__liste">
+              <li><b>Ultraprosessert mat.</b> Når ultraprosessert mat utgjorde ti prosentpoeng mer av kostholdet, var risikoen for kreft 12 % høyere. Studie av 105&nbsp;000 voksne. <a class="link" href="https://doi.org/10.1136/bmj.k322" rel="noopener">Fiolet mfl., BMJ 2018</a></li>
+              <li><b>Emulgator E471</b> (mono- og diglyserider av fettsyrer). De som fikk i seg mest, hadde 15 % høyere risiko for kreft, 24 % for brystkreft og 46 % for prostatakreft. Studie av 92&nbsp;000 voksne. <a class="link" href="https://doi.org/10.1371/journal.pmed.1004338" rel="noopener">Sellem mfl., PLOS Medicine 2024</a></li>
+              <li><b>Sukralose.</b> Sukralose-6-acetat, et stoff som dannes når søtstoffet lages, skadet arvestoffet (DNA) i celleforsøk. <a class="link" href="https://doi.org/10.1080/10937404.2023.2213903" rel="noopener">Schiffman mfl., Journal of Toxicology and Environmental Health 2023</a></li>
+              <li><b>Søtningsmidler.</b> Verdens helseorganisasjon fraråder søtningsmidler for vektkontroll. Langvarig bruk er knyttet til høyere risiko for diabetes type 2 og hjerte- og karsykdom. <a class="link" href="https://www.who.int/news/item/15-05-2023-who-advises-not-to-use-non-sugar-sweeteners-for-weight-control-in-newly-released-guideline" rel="noopener">WHO 2023</a></li>
+              <li><b>Maltitol</b> og andre sukkeralkoholer. Inneholder et produkt mer enn 10 %, må etiketten advare om at «overdrevent forbruk kan ha avførende virkning». <a class="link" href="https://eur-lex.europa.eu/eli/reg/2011/1169/oj" rel="noopener">EU-forordning 1169/2011, vedlegg III</a></li>
+              <li><b>Palmfett.</b> Mye mettet fett. WHO anbefaler å begrense mettet fett, fordi det øker LDL-kolesterolet og risikoen for hjerte- og karsykdom. <a class="link" href="https://www.who.int/publications/i/item/9789240073630" rel="noopener">WHO 2023</a></li>
+            </ol>
+            <p class="funn__note">Ingredienslisten er satt sammen av ingredienser som er vanlige i proteinbarer. Ikke alle barer har alle sammen, så les etiketten. Kostholdsstudiene viser sammenhenger, ikke bevist årsak. Med kyllingfilet og krydder slipper du å lure.</p>
           </div>
         </div>
       </div>

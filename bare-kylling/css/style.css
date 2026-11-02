@@ -631,51 +631,81 @@ body.meny-apen .sticky-cta { display: none; }
   transition: width .3s var(--ease-sprett), height .3s var(--ease-sprett);
 }
 
-/* Baksiden: vår etikett, med sveisede ender som på baren */
-.etikett {
-  position: relative; height: 100%; min-height: 15rem;
-  display: flex; flex-direction: column; align-items: flex-start;
-  padding: clamp(1.1rem, 3.4vw, 2rem) clamp(2.2rem, 7vw, 3.8rem) calc(clamp(2.8rem, 6vw, 3.6rem) + 1rem);
+/* Baksiden av proteinbaren: ingredienslisten som bakgrunn, stikkordene fra
+   forskningen oppå, sveisede ender som på baren og vår etikett i bunnen */
+.baksiden {
+  --bar-bla: #1D3E9C;
+  position: relative; height: 100%; min-height: 15rem; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: clamp(.7rem, 2.4vw, 1.2rem) clamp(1.6rem, 6vw, 3.4rem) calc(clamp(2.4rem, 6vw, 3.2rem) + .6rem);
+  background: var(--bar-bla); color: var(--cream-hi);
+}
+.baksiden::before, .baksiden::after {
+  content: ''; position: absolute; top: 0; bottom: 0; z-index: 1; width: clamp(12px, 2.6vw, 20px);
+  background: repeating-linear-gradient(180deg, #16307A 0 3px, #2A4FB4 3px 6px);
+}
+.baksiden::before { left: 0; } .baksiden::after { right: 0; }
+.baksiden__liste {
+  font-size: clamp(.62rem, 1.5vw, .84rem); line-height: 1.45; opacity: .5; text-wrap: pretty;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden;
+}
+.baksiden__liste b { font-weight: 800; }
+.baksiden__ord {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(.4rem, 1.4vw, .75rem);
+  margin: auto 0; padding: .7rem 0 0; list-style: none;
+}
+@media (min-width: 561px) { .baksiden__ord { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.stikk {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: center; gap: .15rem;
+  padding: .45rem .7rem .5rem; border-radius: var(--r-sm);
   background: var(--cream-hi); color: var(--ink);
+  box-shadow: 0 0 0 2px var(--ink), 3px 4px 0 rgba(17, 17, 15, .35);
+  font-size: clamp(.72rem, 1.5vw, .86rem); line-height: 1.15;
+  rotate: calc((var(--i) - 2.5) * 1.2deg);
 }
-.etikett::before, .etikett::after {
-  content: ''; position: absolute; top: 0; bottom: 0; width: clamp(14px, 3vw, 22px);
-  background: repeating-linear-gradient(180deg, #E2DACB 0 3px, #F4F0E7 3px 6px);
-}
-.etikett::before { left: 0; } .etikett::after { right: 0; }
-.etikett__merke { display: flex; align-items: center; gap: .55rem; }
-.etikett__merke svg { width: clamp(34px, 6vw, 46px); color: var(--forest); flex: none; }
-.etikett__ord { display: flex; flex-direction: column; line-height: .82; }
-.etikett__bare { font-family: var(--display); font-weight: 900; font-size: clamp(1.5rem, 3.6vw, 2.2rem); letter-spacing: -.045em; }
-.etikett__kylling { font-family: var(--display); font-weight: 600; font-size: clamp(.6rem, 1.2vw, .72rem); text-transform: uppercase; letter-spacing: .36em; margin-top: .2rem; }
-.etikett__k {
-  margin-top: clamp(.9rem, 3vw, 1.6rem);
-  font-size: var(--fs-label); font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--paprika-deep);
-}
-.etikett__v {
+.stikk b {
   font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
-  font-size: clamp(2rem, 6vw, 3.5rem); line-height: .95; letter-spacing: -.02em;
-  max-width: 11ch; margin-top: .25rem;
+  font-size: 1.02em; text-transform: uppercase; letter-spacing: 0; color: var(--paprika-deep);
+  hyphens: auto;
 }
-.etikett__fin { margin-top: .7rem; font-size: clamp(.72rem, 1.4vw, .82rem); line-height: 1.4; color: var(--ink-soft); max-width: 34ch; }
-.etikett__band {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  display: flex; justify-content: space-between; gap: 1rem;
-  padding: clamp(.7rem, 1.8vw, .95rem) clamp(2.2rem, 7vw, 3.8rem);
+/* Varseltrekanten sitter som et merke i hjørnet, så stikkordet får hele bredden */
+.stikk::after {
+  content: '!'; position: absolute; top: -.55rem; right: -.4rem;
+  width: 1.35rem; height: 1.35rem; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--honey); color: var(--ink); box-shadow: 0 0 0 2px var(--ink);
+  font-family: var(--display); font-weight: 900; font-size: .8rem; line-height: 1;
+}
+.stikk sup { font-size: .7em; font-weight: 800; margin-left: .1em; }
+.baksiden__band {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; flex-wrap: wrap; gap: 0 .45rem; justify-content: center;
+  padding: clamp(.6rem, 1.6vw, .85rem) 1rem;
   background: var(--forest); color: var(--cream);
   font-family: var(--display); font-weight: 800; font-stretch: var(--condensed);
-  font-size: clamp(1rem, 2.4vw, 1.4rem); text-transform: uppercase; letter-spacing: .02em; line-height: 1;
+  font-size: clamp(.95rem, 2.2vw, 1.3rem); text-transform: uppercase; letter-spacing: .02em; line-height: 1.05;
 }
-.etikett__stempel {
-  position: absolute; right: 9%; top: 11%;
-  width: clamp(68px, 14vw, 98px); aspect-ratio: 1; border-radius: 50%;
-  display: grid; place-items: center; text-align: center;
-  background: var(--honey); color: var(--ink);
-  font-family: var(--display); font-weight: 900; font-stretch: 75%;
-  font-size: clamp(1.05rem, 2.6vw, 1.5rem); line-height: .85; text-transform: uppercase;
-  box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 5px var(--honey), inset 0 0 0 6.5px var(--ink);
-  transform: rotate(-12deg);
+.baksiden__band span:first-child { color: var(--honey); }
+/* Smal skjerm: bare stikkordet på kortet – forklaringen står i lista under */
+@media (max-width: 560px) {
+  .stikk span { display: none; }
+  .baksiden__liste { -webkit-line-clamp: 2; }
 }
+
+/* Hva forskningen sier – kildene under kortet, synlige når baren er snudd */
+.funn { width: min(100%, 620px); }
+.snu.er-klar:not(.er-snudd) .funn { display: none; }
+.funn__h {
+  font-family: var(--display); font-weight: 900; font-stretch: var(--condensed);
+  font-size: clamp(1.2rem, 2.6vw, 1.6rem); line-height: 1.05; margin-bottom: .8rem;
+}
+.funn__liste { display: grid; gap: .7rem; margin: 0; padding-left: 1.4rem; font-size: .92rem; line-height: 1.5; color: var(--ink-soft); }
+.funn__liste li::marker { font-weight: 800; color: var(--paprika-deep); }
+.funn__liste b { color: var(--ink); }
+.funn__liste a { white-space: normal; }
+.funn__note { margin-top: 1rem; font-size: .82rem; line-height: 1.5; color: var(--ink-soft); }
 
 .snu__under { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .8rem 1.4rem; }
 .snu__tekst { font-weight: 700; color: var(--ink-soft); }
@@ -1678,7 +1708,8 @@ kbd {
    Stempelet slås ned når pakken er snudd, kyllingen på bryteren hopper. */
 @keyframes stempel { 0% { opacity: 0; transform: rotate(-32deg) scale(1.9); } 60% { opacity: 1; transform: rotate(-9deg) scale(.92); } 100% { transform: rotate(-12deg) scale(1); } }
 @keyframes rist    { 0%, 100% { rotate: 0deg; } 20% { rotate: -7deg; } 45% { rotate: 6deg; } 70% { rotate: -3deg; } }
-.anim .snu.er-snudd .etikett__stempel { animation: stempel .55s var(--ease-sprett) .6s both; }
+.anim .snu.er-snudd .stikk { animation: pop .5s var(--ease-sprett) calc(.65s + var(--i) * .12s) both; }
+.anim .snu.er-snudd .funn { animation: inn-opp .5s var(--ease-ut) .9s both; }
 .bryter.hopp .bryter__kylling { animation: hopp .6s var(--ease) both; }
 .anim .ting.er-oppe { animation: rist .55s var(--ease) .15s; }
 
@@ -1996,7 +2027,7 @@ html:not(.anim) .pikselkylling, .anim--myk .pikselkylling { left: clamp(1rem, 4v
 .anim--myk .moment--text.is-in .figure,
 .anim--myk .qitem.is-in .qitem__icon, .anim--myk .mascot__knapp.hopp .figure { animation: none; }
 .anim--myk .stat__v.is-pending .stat__num { animation: none; background: none; color: inherit; }
-.anim--myk .snu.er-snudd .etikett__stempel { animation-name: inn; }
+.anim--myk .snu.er-snudd .stikk, .anim--myk .snu.er-snudd .funn { animation-name: inn; }
 .anim--myk .wordmark__icon, .anim--myk .wordmark__icon circle, .anim--myk .foot__icon circle,
 .anim--myk .pikselkylling, .anim--myk .pikselkylling i, .anim--myk .sticky-cta.vrikk,
 .anim--myk .foot__mark.klukk .foot__icon, .anim--myk .egg { animation: none; }
