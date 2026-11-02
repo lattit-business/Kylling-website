@@ -772,11 +772,6 @@ body.meny-apen .sticky-cta { display: none; }
 .compare__table .is-us { background: var(--forest); color: var(--cream); width: 22%; }
 .compare__table thead .is-us { font-size: clamp(1.15rem, 1.9vw, 1.5rem); }
 .compare__table .is-us strong { color: var(--honey); }
-.compare__table .is-us .pending { font-style: normal; }
-.compare__table .is-us .pending::before {
-  content: ''; display: inline-block; width: .5rem; height: .5rem; margin-right: .45rem;
-  border-radius: 50%; background: var(--honey); vertical-align: .08em;
-}
 .compare__hint { margin-top: .8rem; font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
 
 /* ---------------------------------------------------------------------------

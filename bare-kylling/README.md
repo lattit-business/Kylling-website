@@ -198,7 +198,7 @@ dokumentert. I dev-modus vises de i stiplede bokser.
 
 | Opplysning | Hvor i `content.js` | Hva som kreves |
 |---|---|---|
-| Protein og kalorier per pakke (hero og sammenligning) | `nokkeltall` | Næringsanalyse fra laboratorium |
+| Protein og kalorier per pakke (hero) | `nokkeltall` | Næringsanalyse fra laboratorium |
 | Næringsdeklarasjon per 100 g (per pakke regnes ut) | `smaker.*.naering` | Næringsanalyse fra laboratorium |
 | Ingrediensliste | `smaker.*.ingredienser` | Endelig resept med mengder |
 | Allergener | `smaker.*.allergener` | Endelig resept + krydderleverandørens spesifikasjon |
@@ -216,7 +216,21 @@ kontrollert.
 
 Fast i HTML-en (bekreftet, ikke plassholdere): kyllingen er ferdigstekt og
 trenger ingen tilberedning («0 min»), kan spises kald og kan varmes i
-mikrobølgeovn. «200 g» er pakkestørrelsen.
+mikrobølgeovn. «150 g» er pakkestørrelsen.
+
+Sammenligningstabellen på forsiden (`#sammenligning`) viser avrundede anslag,
+ikke målte tall, og noten under tabellen sier det. Alt unntatt proteinbaren er
+regnet ut fra Matvaretabellen (per 100 g × porsjon):
+
+| Kolonne | Matvaretabellen | Porsjon | Protein | Energi |
+|---|---|---|---|---|
+| Bare Kylling | 03.481 Kylling, filet, stekt uten fett | 150 g | 43,7 g | 201 kcal |
+| Ferdigmiddag | 03.315 Lasagne, med kjøttdeig, fryst, kjøpt | 300 g | 15,9 g | 366 kcal |
+| Takeaway | 03.308 Hamburger, enkel, kjøpt + 06.738 Pommes frites, gatekjøkken | 100 g + 135 g | 21,2 g | 665 kcal |
+| Proteinbar | Typisk varedeklarasjon (ikke i Matvaretabellen) | 55 g | 20 g | ca. 200 kcal |
+
+Når næringsanalysen er ferdig, bytter dere Bare Kylling-tallene ut med de
+målte for én hel pakke og oppdaterer noten.
 
 Plassholdertekstene har bevisst en lett, leken tone («Lab-en jobber med
 saken», «Under arbeid», «Fra en kylling – så mye kan vi love»), men lover
@@ -246,7 +260,7 @@ aldri noe som ikke er bekreftet.
   ØVERST» i `js/main.js`.
 - Animasjoner (se «T. ANIMASJONER» i `css/style.css` og «4b/4c/5» i
   `js/main.js`): heroen bygges opp når pakkebildet er lastet, pakkene svever
-  og vipper mot musepekeren, «2 smaker»-stempelet spretter inn og «200 g»
+  og vipper mot musepekeren, «2 smaker»-stempelet spretter inn og «150 g»
   teller opp. Rullebånd under heroen, fremdriftslinje i menyen, pulserende
   prikk ved «Kommer snart» og glimt over plassholdertallene. Innhold toner
   inn når du scroller, med små «pop» på ikoner, etiketter og smaksnoter.
