@@ -30,9 +30,10 @@ window.BK = {
        e.l. Så lenge denne er null lagres INGENTING, og siden sier det ærlig.    */
     ventelisteEndepunkt: 'https://formspree.io/f/xgaveyzd',
 
-    /* Ekte e-postadresse. Så lenge denne er null vises ingen e-postlenke, og
-       siden finner ikke på en adresse. Fyll inn når dere har en.               */
-    kontaktEpost: null,
+    /* Ekte e-postadresse. Brukes i feilmeldingene til påmeldingsskjemaet.
+       Lenken i footeren og kontaktseksjonen på forsiden står fast i HTML-en
+       (med emne), så den virker også uten JavaScript.                          */
+    kontaktEpost: 'post@barekylling.no',
 
     /* Ekte profil-/kontaktlenker. null = vises som «kommer», ikke som lenke.   */
     lenker: {

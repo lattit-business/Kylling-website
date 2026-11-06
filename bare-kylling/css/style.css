@@ -1067,6 +1067,16 @@ body.meny-apen .sticky-cta { display: none; }
 .launch__h2 { margin-bottom: 1rem; }
 .launch__lead { font-size: var(--fs-lead); line-height: 1.5; max-width: 44ch; margin-bottom: clamp(1.4rem, 3vw, 2rem); }
 .launch--band { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
+
+/* Kontakt (forsiden, over footeren): bare en e-postlenke. Knappen er full
+   bredde på mobil, så den er lett å treffe med tommelen. */
+.contact { padding-block: clamp(3.5rem, 7vw, 5.5rem); }
+.contact__head { margin-bottom: 0; }
+.contact__head .lead { margin-top: clamp(.9rem, 2vw, 1.3rem); }
+.contact__ord { white-space: nowrap; } /* «e-post» brytes ikke ved bindestreken */
+.contact__epost { margin-top: clamp(1.4rem, 3vw, 2rem); width: 100%; max-width: 26rem; overflow-wrap: anywhere; }
+.contact__epost .icon { width: 24px; height: 24px; }
+@media (min-width: 600px) { .contact__epost { width: auto; } }
 .launch__mascot { display: flex; }
 .launch--page { overflow: clip; padding-block: clamp(2rem, 5vw, 4rem) clamp(3rem, 6vw, 5rem); }
 .launch__cutout { margin: 0 calc(-1 * var(--gut)); }
@@ -1332,6 +1342,9 @@ body.meny-apen .sticky-cta { display: none; }
 .foot__nav a:hover { color: var(--honey); }
 .foot__nav p { max-width: 32ch; line-height: 1.55; color: rgba(243, 240, 233, .85); }
 .foot__nav p + p { margin-top: .6rem; }
+/* E-postadressen i footeren: litt tydeligere enn de vanlige lenkene */
+.foot__epost { font-weight: 800; overflow-wrap: anywhere; }
+
 .foot__base {
   display: flex; flex-wrap: wrap; gap: .6rem 1.5rem; justify-content: space-between;
   padding-top: 1.5rem; border-top: 1px solid rgba(243, 240, 233, .2);

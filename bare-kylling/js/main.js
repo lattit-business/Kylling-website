@@ -118,15 +118,23 @@
      --------------------------------------------------------------------------- */
   var sticky = $('.sticky-cta');
   var hero = $('.hero, .subhero, .launch--page, .oops');
-  var lansering = $('#lansering');
+  /* Skjules også over kontaktseksjonen, så den ikke dekker e-postknappen */
+  var skjulVed = $$('#lansering, #kontakt');
+  var synlige = [];
   var iLansering = false;
   var ticking = false;
 
-  if (lansering && 'IntersectionObserver' in window) {
-    new IntersectionObserver(function (e) {
-      iLansering = e[0].isIntersecting;
+  if (skjulVed.length && 'IntersectionObserver' in window) {
+    var skjulVakt = new IntersectionObserver(function (e) {
+      e.forEach(function (o) {
+        var i = synlige.indexOf(o.target);
+        if (o.isIntersecting && i < 0) { synlige.push(o.target); }
+        if (!o.isIntersecting && i > -1) { synlige.splice(i, 1); }
+      });
+      iLansering = synlige.length > 0;
       if (!ticking) { ticking = true; requestAnimationFrame(frame); }
-    }, { threshold: 0 }).observe(lansering);
+    }, { threshold: 0 });
+    skjulVed.forEach(function (s) { skjulVakt.observe(s); });
   }
 
   function frame() {
@@ -282,13 +290,16 @@
     }
   }
 
-  /* 3f. Kontakt i footer: ekte lenker når de finnes i content.js, ellers
-         beholdes setningen som står i HTML-en.                             */
+  /* 3f. Kontakt i footer: ekte lenker når de finnes i content.js. Står
+         e-postlenken allerede i HTML-en (med emne), beholdes den urørt.    */
   var kontakt = $('[data-kontakt]');
   var lenker = CFG.lenker || {};
-  if (kontakt && (CFG.kontaktEpost || lenker.instagram)) {
+  var fastEpost = kontakt && $('a[href^="mailto:"]', kontakt);
+  if (kontakt && !fastEpost && (CFG.kontaktEpost || lenker.instagram)) {
     $$('p:not(.foot__h)', kontakt).forEach(function (p) { p.remove(); });
-    if (CFG.kontaktEpost) {
+  }
+  if (kontakt && (CFG.kontaktEpost || lenker.instagram)) {
+    if (CFG.kontaktEpost && !fastEpost) {
       var m = el('a', null, CFG.kontaktEpost);
       m.href = 'mailto:' + CFG.kontaktEpost;
       kontakt.appendChild(m);

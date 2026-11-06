@@ -15,7 +15,8 @@ bare-kylling/
 │                       hero med nøkkeltall, rullebånd, hva du får, problemet
 │                       (bryter: snu pakken / hva er i sekken?), sammenligning,
 │                       en dag som går fort (tidslinje med fordelene),
-│                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
+│                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ,
+│                       og kontakt (#kontakt, e-postlenke) over footeren
 ├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
 ├── om-oss.html         Status øverst (#status), så historien, hvem, slik jobber vi
@@ -184,8 +185,11 @@ Alt styres fra `js/content.js`.
    Formspree. Settes den til `null`, skjules e-postfeltet og siden sier ærlig
    at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle sider)
    og på venteliste.html.
-4. **Fyll inn kontakt.** `config.kontaktEpost` og `config.lenker.instagram`.
-   Så lenge de er `null`, står det en setning i footeren om at de kommer.
+4. **Kontakt.** E-postadressen `post@barekylling.no` står fast i HTML-en som
+   en mailto-lenke med emnet «Henvendelse fra nettsiden»: i footeren (felles
+   `bunn`-blokk, alle sider) og i kontaktseksjonen nederst på forsiden
+   (`#kontakt`). `config.kontaktEpost` brukes i skjemaets feilmeldinger.
+   Gjenstår: `config.lenker.instagram` (legges til i footeren når den fylles inn).
 5. **Legg inn teamet.** I `om-oss.html` ligger en kommentert `.team`-blokk med
    kort per person. Fyll inn navn, rolle og bilde, og fjern kommentartegnene.
 6. **Oppdater statuslista** på Om oss (`#status`) etter hvert som resept,
