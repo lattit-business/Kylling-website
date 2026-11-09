@@ -118,15 +118,23 @@
      --------------------------------------------------------------------------- */
   var sticky = $('.sticky-cta');
   var hero = $('.hero, .subhero, .launch--page, .oops');
-  var lansering = $('#lansering');
+  /* Skjules også over kontaktseksjonen, så den ikke dekker e-postknappen */
+  var skjulVed = $$('#lansering, #kontakt');
+  var synlige = [];
   var iLansering = false;
   var ticking = false;
 
-  if (lansering && 'IntersectionObserver' in window) {
-    new IntersectionObserver(function (e) {
-      iLansering = e[0].isIntersecting;
+  if (skjulVed.length && 'IntersectionObserver' in window) {
+    var skjulVakt = new IntersectionObserver(function (e) {
+      e.forEach(function (o) {
+        var i = synlige.indexOf(o.target);
+        if (o.isIntersecting && i < 0) { synlige.push(o.target); }
+        if (!o.isIntersecting && i > -1) { synlige.splice(i, 1); }
+      });
+      iLansering = synlige.length > 0;
       if (!ticking) { ticking = true; requestAnimationFrame(frame); }
-    }, { threshold: 0 }).observe(lansering);
+    }, { threshold: 0 });
+    skjulVed.forEach(function (s) { skjulVakt.observe(s); });
   }
 
   function frame() {
@@ -282,13 +290,16 @@
     }
   }
 
-  /* 3f. Kontakt i footer: ekte lenker når de finnes i content.js, ellers
-         beholdes setningen som står i HTML-en.                             */
+  /* 3f. Kontakt i footer: ekte lenker når de finnes i content.js. Står
+         e-postlenken allerede i HTML-en (med emne), beholdes den urørt.    */
   var kontakt = $('[data-kontakt]');
   var lenker = CFG.lenker || {};
-  if (kontakt && (CFG.kontaktEpost || lenker.instagram)) {
+  var fastEpost = kontakt && $('a[href^="mailto:"]', kontakt);
+  if (kontakt && !fastEpost && (CFG.kontaktEpost || lenker.instagram)) {
     $$('p:not(.foot__h)', kontakt).forEach(function (p) { p.remove(); });
-    if (CFG.kontaktEpost) {
+  }
+  if (kontakt && (CFG.kontaktEpost || lenker.instagram)) {
+    if (CFG.kontaktEpost && !fastEpost) {
       var m = el('a', null, CFG.kontaktEpost);
       m.href = 'mailto:' + CFG.kontaktEpost;
       kontakt.appendChild(m);
@@ -318,10 +329,17 @@
      --------------------------------------------------------------------------- */
   var form = $('#venteliste');
   if (form) {
-    var input = $('#epost', form);
+    var input = $('#telefon', form);
+    var felle = $('#nettside', form);
     var status = $('#form-status', form);
     var knapp = $('button[type="submit"]', form);
-    var gyldig = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    /* Norsk mobilnummer: 8 siffer som starter på 4 eller 9, med eller uten
+       +47/0047. Samme regel som normaliserTelefon i api/venteliste.js. */
+    var gyldig = function (v) {
+      var s = v.replace(/[\s\-.()]/g, '');
+      if (s.indexOf('+47') === 0) { s = s.slice(3); } else if (s.indexOf('0047') === 0) { s = s.slice(4); }
+      return /^[49]\d{7}$/.test(s);
+    };
     var koblet = !!CFG.ventelisteEndepunkt;
 
     function si(tekst, type, html) {
@@ -342,11 +360,11 @@
       var notice = el('div', 'form__notice');
       if (CFG.kontaktEpost) {
         notice.innerHTML = 'Skjemaet er ikke koblet til ennå. Send en e-post til <a href="mailto:' + CFG.kontaktEpost +
-          '?subject=Sett%20meg%20p%C3%A5%20lista">' + CFG.kontaktEpost + '</a>, så legger vi deg på lista manuelt.';
+          '?subject=Sett%20meg%20p%C3%A5%20lista">' + CFG.kontaktEpost + '</a> med mobilnummeret ditt, så legger vi deg på lista manuelt.';
       } else {
         if (lead) {
           lead.textContent = 'Første batch er under arbeid. Påmeldingen åpner om kort tid – da kan du legge igjen ' +
-            'e-posten din her og få beskjed først når kyllingen er klar.';
+            'mobilnummeret ditt her og få beskjed først når kyllingen er klar.';
         }
         notice.appendChild(el('p', null, 'Fram til da kan du se hvor langt vi er kommet med resept, produksjon og lansering.'));
         var lenke = el('a', 'btn btn--ink', 'Se status på Om oss');
@@ -359,7 +377,7 @@
       if (DEV) {
         form.appendChild(unverifiedBox(
           'Skjemaet er ikke koblet til noe. Ingen påmeldinger blir tatt vare på.',
-          'Sett config.ventelisteEndepunkt (Formspree, Supabase, Mailchimp) i js/content.js før lansering.'
+          'Sett config.ventelisteEndepunkt i js/content.js (api/venteliste, se README) før lansering.'
         ));
       }
     }
@@ -374,9 +392,9 @@
       if (!koblet) { return; }
       var verdi = input.value.trim();
 
-      if (!gyldig.test(verdi)) {
+      if (!gyldig(verdi)) {
         input.setAttribute('aria-invalid', 'true');
-        si('Skriv inn en gyldig e-postadresse.', 'error');
+        si('Skriv inn et norsk mobilnummer med 8 siffer, for eksempel 912 34 567.', 'error');
         input.focus();
         return;
       }
@@ -387,15 +405,30 @@
       fetch(CFG.ventelisteEndepunkt, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ email: verdi, kilde: 'venteliste' })
+        body: JSON.stringify({
+          telefon: verdi,
+          kilde: form.closest('.launch--page') ? 'venteliste' : 'cta',
+          nettside: felle ? felle.value : ''
+        })
       })
         .then(function (r) {
+          if (r.status === 400) { throw new Error('ugyldig'); }
+          if (r.status === 429) { throw new Error('for-mange'); }
           if (!r.ok) { throw new Error('HTTP ' + r.status); }
-          ferdig('Du står på lista.');
+          ferdig('Du står på lista. Vi sender én SMS når kyllingen er klar.');
         })
-        .catch(function () {
+        .catch(function (feil) {
           knapp.disabled = false;
-          si('Noe gikk galt. Prøv igjen om litt.' + (CFG.kontaktEpost
+          if (feil.message === 'ugyldig') {
+            input.setAttribute('aria-invalid', 'true');
+            si('Nummeret ser ikke riktig ut. Skriv inn et norsk mobilnummer med 8 siffer.', 'error');
+            input.focus();
+            return;
+          }
+          var tekst = feil.message === 'for-mange'
+            ? 'For mange forsøk på kort tid. Vent litt og prøv igjen.'
+            : 'Noe gikk galt. Prøv igjen om litt.';
+          si(tekst + (CFG.kontaktEpost
             ? ' Eller send e-post til <a href="mailto:' + CFG.kontaktEpost + '">' + CFG.kontaktEpost + '</a>.'
             : ''), 'error', true);
         });

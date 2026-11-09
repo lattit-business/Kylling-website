@@ -116,6 +116,68 @@ HTTPS-sertifikat ordnes automatisk.
 Blir dere værende på GitHub Pages, kjør med `--pages` i stedet – da lages
 `CNAME`-fila og skriptet sjekker GitHubs fire A-poster.
 
+## Venteliste (Supabase)
+
+Påmeldingsskjemaet (CTA-båndet på alle sider og `venteliste.html`) tar imot et
+**norsk mobilnummer** (8 siffer som starter på 4 eller 9, med eller uten +47).
+Skjemaet sender til Vercel-funksjonen [`api/venteliste.js`](api/venteliste.js),
+som lagrer nummeret i Supabase-tabellen `venteliste` som `+47XXXXXXXX`. Samme
+nummer lagres bare én gang. Den hemmelige Supabase-nøkkelen ligger bare i
+Vercel og sendes aldri til nettleseren.
+
+### Slik kobler du til Supabase (gjøres én gang)
+
+1. Lag et prosjekt på [supabase.com](https://supabase.com). Velg en region i
+   EU, f.eks. **Frankfurt (eu-central-1)** eller **Stockholm (eu-north-1)**,
+   siden lista inneholder personopplysninger.
+2. Åpne **SQL Editor → New query**, lim inn innholdet i
+   [`supabase/venteliste.sql`](supabase/venteliste.sql) og trykk **Run**.
+   Det lager tabellen og slår på Row Level Security, så den offentlige
+   anon-nøkkelen verken kan lese eller skrive.
+3. Legg inn nøklene i Vercel. Enten:
+   - **Med integrasjonen:** Vercel → prosjektet **Kylling-website** →
+     **Storage** (eller *Integrations*) → **Supabase** → koble til prosjektet
+     fra steg 1. Da legges `SUPABASE_URL` og `SUPABASE_SERVICE_ROLE_KEY` inn
+     automatisk.
+   - **For hånd:** *Settings → Environment Variables*. Legg inn
+     `SUPABASE_URL` (Supabase → *Project Settings → API → Project URL*) og
+     `SUPABASE_SERVICE_ROLE_KEY` (den hemmelige nøkkelen, `service_role` eller
+     `sb_secret_…`; funksjonen godtar også navnet `SUPABASE_SECRET_KEY`).
+     Huk av Production og Preview.
+4. **Deployments → ⋯ → Redeploy**, så de nye variablene blir med.
+5. Test: meld deg på med ditt eget nummer på barekylling.no. Raden skal dukke
+   opp i Supabase under **Table Editor → venteliste**.
+
+Uten nøklene svarer funksjonen 503, og skjemaet viser «Noe gikk galt» med
+e-postadressen som reserve. Det samme skjer på kopien på GitHub Pages, som
+ikke kjører Vercel-funksjoner.
+
+### Vern mot spam
+
+- Bare forespørsler fra egen side (samme vert) godtas.
+- Et skjult felt (`nettside`) som bare roboter fyller ut. Da svarer
+  funksjonen ok, men lagrer ingenting.
+- Er Upstash Redis koblet til (samme database som topplista), gjelder en
+  grense på 10 forsøk per 10 minutter per IP-adresse. Bare en hash av
+  adressen brukes.
+
+### Personvern og utsending
+
+- Lista hentes ut i Supabase (**Table Editor → venteliste → Export to CSV**).
+  Selve SMS-utsendingen ved lansering er ikke en del av nettsiden.
+- Folk som vil strykes, ber om det på `post@barekylling.no` (står i FAQ-en).
+  Slett raden i Table Editor.
+- Nummeret brukes bare til én beskjed ved lansering, og det står på siden.
+  Bestem hvor lenge lista skal lagres (f.eks. slettes etter lansering).
+- Tidligere påmeldinger med e-post ligger fortsatt i Formspree. De flyttes ikke
+  automatisk.
+
+Testene kjøres uten Supabase (fetch byttes ut med en falsk tabell):
+
+```bash
+node tools/test-venteliste.js
+```
+
 ## Global toppliste (spillet)
 
 Spillet har en global topp 10 som lagres i en ekte database. Koden er

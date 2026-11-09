@@ -15,7 +15,8 @@ bare-kylling/
 │                       hero med nøkkeltall, rullebånd, hva du får, problemet
 │                       (bryter: snu pakken / hva er i sekken?), sammenligning,
 │                       en dag som går fort (tidslinje med fordelene),
-│                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ
+│                       på farten, de to smakene, kvalitet, næringsinnhold, FAQ,
+│                       og kontakt (#kontakt, e-postlenke) over footeren
 ├── smakene.html        De to smakene (ankere: #original, #sweet-paprika)
 ├── hvorfor.html        Naturens proteinbar: problemet, tre bånd, hva som er i pakken
 ├── om-oss.html         Status øverst (#status), så historien, hvem, slik jobber vi
@@ -80,7 +81,7 @@ Brukes slik, hvor som helst i HTML-en:
 - Doodles: `doodle-salt`, `doodle-pepper` (Original),
   `doodle-paprika`, `doodle-honning` (Sweet Paprika)
 - Ikoner: `ikon-riv-opp`, `ikon-hake`, `ikon-kylling`, `ikon-epost`,
-  `ikon-bjelle`, `ikon-panne`, `ikon-sted`, `ikon-nam`
+  `ikon-mobil`, `ikon-bjelle`, `ikon-panne`, `ikon-sted`, `ikon-nam`
 - Sekken og tingene i «Problemet» (bar, shake, pulver, Bare Kylling-pakken) og
   pikselkyllingen i footeren er tegnet direkte i HTML/CSS, ikke i spriten.
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
@@ -180,12 +181,17 @@ Alt styres fra `js/content.js`.
    `bekreftet: true`. Se tabellen under.
 2. **Oppdater paprika-etiketten.** Smakene heter «Original – Salt, Pepper &
    Urter» og «Sweet Paprika», men pakkedesignet på bildene sier bare «Paprika».
-3. **Koble påmeldingsskjemaet.** `config.ventelisteEndepunkt` er satt til
-   Formspree. Settes den til `null`, skjules e-postfeltet og siden sier ærlig
-   at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle sider)
-   og på venteliste.html.
-4. **Fyll inn kontakt.** `config.kontaktEpost` og `config.lenker.instagram`.
-   Så lenge de er `null`, står det en setning i footeren om at de kommer.
+3. **Koble påmeldingsskjemaet.** Skjemaet tar imot mobilnummer og sender til
+   `api/venteliste` (Vercel-funksjon som lagrer i Supabase). Supabase må
+   settes opp én gang; se «Venteliste (Supabase)» i rot-README. Settes
+   `config.ventelisteEndepunkt` til `null`, skjules nummerfeltet og siden sier
+   ærlig at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle
+   sider) og på venteliste.html.
+4. **Kontakt.** E-postadressen `post@barekylling.no` står fast i HTML-en som
+   en mailto-lenke med emnet «Henvendelse fra nettsiden»: i footeren (felles
+   `bunn`-blokk, alle sider) og i kontaktseksjonen nederst på forsiden
+   (`#kontakt`). `config.kontaktEpost` brukes i skjemaets feilmeldinger.
+   Gjenstår: `config.lenker.instagram` (legges til i footeren når den fylles inn).
 5. **Legg inn teamet.** I `om-oss.html` ligger en kommentert `.team`-blokk med
    kort per person. Fyll inn navn, rolle og bilde, og fjern kommentartegnene.
 6. **Oppdater statuslista** på Om oss (`#status`) etter hvert som resept,
