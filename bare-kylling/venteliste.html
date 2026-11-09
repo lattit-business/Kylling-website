@@ -18,16 +18,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261106a" />
+<link rel="stylesheet" href="css/style.css?v=20261109a" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
 <!-- BK:FELLES hode END -->
 
 <title>Venteliste – Bare Kylling</title>
-<meta name="description" content="Sett deg på lista, så får du én e-post når Bare Kylling lanserer – og hvor du får tak i den. Ingen nyhetsbrev." />
+<meta name="description" content="Sett deg på lista, så får du én SMS når Bare Kylling lanserer – og hvor du får tak i den. Ingen reklame." />
 <meta property="og:title" content="Venteliste – Bare Kylling" />
-<meta property="og:description" content="Sett deg på lista, så får du én e-post når Bare Kylling lanserer – og hvor du får tak i den. Ingen nyhetsbrev." />
+<meta property="og:description" content="Sett deg på lista, så får du én SMS når Bare Kylling lanserer – og hvor du får tak i den. Ingen reklame." />
 <meta property="og:url" content="https://barekylling.no/venteliste" />
 <link rel="canonical" href="https://barekylling.no/venteliste" />
 </head>
@@ -116,19 +116,24 @@
       <p class="kicker">Venteliste &middot; kommer snart</p>
       <h1 class="display launch__h2" id="launch-tittel">Vil du smake først?</h1>
       <p class="launch__lead">
-        Første batch er under arbeid. Legg igjen e-posten din, så får du én
-        beskjed når Bare Kylling er klar – og hvor du får tak i den.
+        Første batch er under arbeid. Legg igjen mobilnummeret ditt, så får du
+        én SMS når Bare Kylling er klar – og hvor du får tak i den.
       </p>
 
       <form class="form" id="venteliste" novalidate>
         <div class="form__row">
-          <label class="sr-only" for="epost">E-postadresse</label>
-          <input class="form__input" id="epost" name="epost" type="email" inputmode="email"
-                 autocomplete="email" placeholder="din@epost.no" required
+          <label class="sr-only" for="telefon">Mobilnummer</label>
+          <input class="form__input" id="telefon" name="telefon" type="tel" inputmode="tel"
+                 autocomplete="tel" placeholder="Mobilnummer (8 siffer)" maxlength="20" required
                  aria-describedby="form-status" />
           <button class="btn btn--ink btn--lg" type="submit">Sett meg på lista</button>
         </div>
-        <p class="form__fine">Én e-post ved lansering. Ingen nyhetsbrev, og adressen deles ikke videre.</p>
+        <!-- Skjult felt mot spamroboter: mennesker ser det ikke og fyller det aldri ut -->
+        <div class="form__hp" aria-hidden="true">
+          <label for="nettside">La dette feltet stå tomt</label>
+          <input id="nettside" name="nettside" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <p class="form__fine">Én SMS ved lansering. Ingen reklame, og nummeret deles ikke videre.</p>
         <p class="form__status" id="form-status" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -156,10 +161,10 @@
 
     <ol class="steps">
       <li class="step">
-        <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-epost"></use></svg>
+        <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-mobil"></use></svg>
         <span class="step__num" aria-hidden="true">1</span>
-        <h3 class="step__h3">Du legger igjen e-posten</h3>
-        <p>Det er alt vi trenger. Vi bruker den kun til å si fra om lansering.</p>
+        <h3 class="step__h3">Du legger igjen mobilnummeret</h3>
+        <p>Det er alt vi trenger. Vi bruker det kun til å si fra om lansering.</p>
       </li>
       <li class="step">
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-panne"></use></svg>
@@ -171,7 +176,7 @@
         <svg class="icon step__icon" aria-hidden="true" focusable="false"><use href="images/figurer.svg#ikon-bjelle"></use></svg>
         <span class="step__num" aria-hidden="true">3</span>
         <h3 class="step__h3">Du får beskjed først</h3>
-        <p>Én e-post når kyllingen er klar, med informasjon om hvor du får tak i den.</p>
+        <p>Én SMS når kyllingen er klar, med informasjon om hvor du får tak i den.</p>
       </li>
     </ol>
 
@@ -234,7 +239,7 @@
 </footer>
 <!-- BK:FELLES bunn END -->
 
-<script src="js/content.js?v=20261106a"></script>
-<script src="js/main.js?v=20261106a"></script>
+<script src="js/content.js?v=20261109a"></script>
+<script src="js/main.js?v=20261109a"></script>
 </body>
 </html>

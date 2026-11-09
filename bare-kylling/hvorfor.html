@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..900&family=Manrope:wght@400..700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/style.css?v=20261106a" />
+<link rel="stylesheet" href="css/style.css?v=20261109a" />
 <!-- Slår på animasjoner før første opptegning (ingen blinking). Har brukeren
      «redusert bevegelse» på, brukes bare myke toninger (.anim--myk). -->
 <script>(function(h){if(!('IntersectionObserver'in window))return;h.classList.add('anim');if(matchMedia('(prefers-reduced-motion: reduce)').matches)h.classList.add('anim--myk');setTimeout(function(){[].forEach.call(document.querySelectorAll('.hero__img,.launch__cutout img'),function(i){i.classList.add('klar')})},3000)})(document.documentElement)</script>
@@ -253,19 +253,24 @@
       <p class="kicker">Kommer snart</p>
       <h2 class="display launch__h2" id="launch-tittel">Vil du smake først?</h2>
       <p class="launch__lead">
-        Første batch er under arbeid. Legg igjen e-posten din, så får du én
-        beskjed når Bare Kylling er klar – og hvor du får tak i den.
+        Første batch er under arbeid. Legg igjen mobilnummeret ditt, så får du
+        én SMS når Bare Kylling er klar – og hvor du får tak i den.
       </p>
 
       <form class="form" id="venteliste" novalidate>
         <div class="form__row">
-          <label class="sr-only" for="epost">E-postadresse</label>
-          <input class="form__input" id="epost" name="epost" type="email" inputmode="email"
-                 autocomplete="email" placeholder="din@epost.no" required
+          <label class="sr-only" for="telefon">Mobilnummer</label>
+          <input class="form__input" id="telefon" name="telefon" type="tel" inputmode="tel"
+                 autocomplete="tel" placeholder="Mobilnummer (8 siffer)" maxlength="20" required
                  aria-describedby="form-status" />
           <button class="btn btn--ink btn--lg" type="submit">Sett meg på lista</button>
         </div>
-        <p class="form__fine">Én e-post ved lansering. Ingen nyhetsbrev, og adressen deles ikke videre.</p>
+        <!-- Skjult felt mot spamroboter: mennesker ser det ikke og fyller det aldri ut -->
+        <div class="form__hp" aria-hidden="true">
+          <label for="nettside">La dette feltet stå tomt</label>
+          <input id="nettside" name="nettside" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+        <p class="form__fine">Én SMS ved lansering. Ingen reklame, og nummeret deles ikke videre.</p>
         <p class="form__status" id="form-status" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -336,7 +341,7 @@
 
 <a class="sticky-cta" href="venteliste">Få beskjed ved lansering</a>
 
-<script src="js/content.js?v=20261106a"></script>
-<script src="js/main.js?v=20261106a"></script>
+<script src="js/content.js?v=20261109a"></script>
+<script src="js/main.js?v=20261109a"></script>
 </body>
 </html>

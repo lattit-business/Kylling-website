@@ -81,7 +81,7 @@ Brukes slik, hvor som helst i HTML-en:
 - Doodles: `doodle-salt`, `doodle-pepper` (Original),
   `doodle-paprika`, `doodle-honning` (Sweet Paprika)
 - Ikoner: `ikon-riv-opp`, `ikon-hake`, `ikon-kylling`, `ikon-epost`,
-  `ikon-bjelle`, `ikon-panne`, `ikon-sted`, `ikon-nam`
+  `ikon-mobil`, `ikon-bjelle`, `ikon-panne`, `ikon-sted`, `ikon-nam`
 - Sekken og tingene i «Problemet» (bar, shake, pulver, Bare Kylling-pakken) og
   pikselkyllingen i footeren er tegnet direkte i HTML/CSS, ikke i spriten.
 - Snakkeboble: `<div class="mascot"><svg class="figure …"/><p class="bubble">Tekst</p></div>`
@@ -181,10 +181,12 @@ Alt styres fra `js/content.js`.
    `bekreftet: true`. Se tabellen under.
 2. **Oppdater paprika-etiketten.** Smakene heter «Original – Salt, Pepper &
    Urter» og «Sweet Paprika», men pakkedesignet på bildene sier bare «Paprika».
-3. **Koble påmeldingsskjemaet.** `config.ventelisteEndepunkt` er satt til
-   Formspree. Settes den til `null`, skjules e-postfeltet og siden sier ærlig
-   at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle sider)
-   og på venteliste.html.
+3. **Koble påmeldingsskjemaet.** Skjemaet tar imot mobilnummer og sender til
+   `api/venteliste` (Vercel-funksjon som lagrer i Supabase). Supabase må
+   settes opp én gang; se «Venteliste (Supabase)» i rot-README. Settes
+   `config.ventelisteEndepunkt` til `null`, skjules nummerfeltet og siden sier
+   ærlig at påmeldingen åpner snart. Skjemaet ligger både i CTA-båndet (alle
+   sider) og på venteliste.html.
 4. **Kontakt.** E-postadressen `post@barekylling.no` står fast i HTML-en som
    en mailto-lenke med emnet «Henvendelse fra nettsiden»: i footeren (felles
    `bunn`-blokk, alle sider) og i kontaktseksjonen nederst på forsiden
