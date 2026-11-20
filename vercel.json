@@ -45,6 +45,12 @@
       "includeFiles": "bare-kylling/js/spill/bane.mjs"
     }
   },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "0 6 * * *"
+    }
+  ],
   "redirects": [
     {
       "source": "/index.html",
