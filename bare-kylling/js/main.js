@@ -964,7 +964,7 @@
     boks.setAttribute('aria-label', 'Informasjonskapsler og statistikk');
     boks.setAttribute('aria-live', 'polite');
     boks.appendChild(el('p', 'cookie__tekst',
-      'Vi bruker anonym besøksstatistikk (Vercel) for å se hvor mange som er innom. Ingen sporing på tvers av nettsteder, og ingen personopplysninger.'));
+      'Vi bruker anonym besøksstatistikk for å se hvor mange som er innom. Ingen sporing på tvers av nettsteder, og ingen personopplysninger.'));
 
     var knapper = el('div', 'cookie__knapper');
     var ja = el('button', 'btn btn--honey cookie__knapp', 'Godta');
