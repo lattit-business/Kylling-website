@@ -933,4 +933,50 @@
     img.addEventListener('load', vis, { once: true });
     img.addEventListener('error', vis, { once: true });
   });
+
+  /* ---------------------------------------------------------------------------
+     6. INFORMASJONSKAPSLER (samtykke)
+     Siden bruker Vercel Web Analytics for anonym besøksstatistikk: ingen
+     informasjonskapsler på tvers av nettsteder, ingen personopplysninger.
+     Statistikk-skriptet lastes først når den besøkende sier «Godta». Valget
+     huskes i nettleseren, så banneret vises bare én gang.
+     --------------------------------------------------------------------------- */
+  (function () {
+    var NOKKEL = 'bk-samtykke';
+    var valg = null;
+    try { valg = localStorage.getItem(NOKKEL); } catch (e) { valg = null; }
+
+    function lastStatistikk() {
+      if (document.getElementById('bk-analyse')) { return; }
+      var s = document.createElement('script');
+      s.id = 'bk-analyse';
+      s.defer = true;
+      s.src = '/_vercel/insights/script.js';
+      document.head.appendChild(s);
+    }
+    function husk(svar) { try { localStorage.setItem(NOKKEL, svar); } catch (e) { /* privat modus */ } }
+
+    if (valg === 'godta') { lastStatistikk(); return; }
+    if (valg === 'avvis') { return; }
+
+    var boks = el('div', 'cookie');
+    boks.setAttribute('role', 'dialog');
+    boks.setAttribute('aria-label', 'Informasjonskapsler og statistikk');
+    boks.setAttribute('aria-live', 'polite');
+    boks.appendChild(el('p', 'cookie__tekst',
+      'Vi bruker anonym besøksstatistikk (Vercel) for å se hvor mange som er innom. Ingen sporing på tvers av nettsteder, og ingen personopplysninger.'));
+
+    var knapper = el('div', 'cookie__knapper');
+    var ja = el('button', 'btn btn--honey cookie__knapp', 'Godta');
+    var nei = el('button', 'btn btn--ghost cookie__knapp', 'Avvis');
+    ja.type = 'button';
+    nei.type = 'button';
+    function lukk() { if (boks.parentNode) { boks.parentNode.removeChild(boks); } }
+    ja.addEventListener('click', function () { husk('godta'); lastStatistikk(); lukk(); });
+    nei.addEventListener('click', function () { husk('avvis'); lukk(); });
+    knapper.appendChild(ja);
+    knapper.appendChild(nei);
+    boks.appendChild(knapper);
+    document.body.appendChild(boks);
+  })();
 })();

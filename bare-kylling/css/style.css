@@ -2267,3 +2267,29 @@ html:not(.anim) .pikselkylling, .anim--myk .pikselkylling { left: clamp(1rem, 4v
 }
 .spill__ny-rekord { display: inline-flex; align-items: center; gap: .4rem; }
 .spill__ny-rekord .krone path:first-child { fill: var(--cream-hi, #FAF8F3); }
+
+/* Informasjonskapsler / samtykke. Vises til den besøkende har valgt. */
+.cookie {
+  position: fixed;
+  left: 1rem; right: 1rem; bottom: 1rem;
+  z-index: 1000;
+  max-width: 680px;
+  margin-inline: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .8rem 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--cream-hi);
+  color: var(--ink);
+  border: 1px solid var(--beige);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(17, 17, 15, .18);
+}
+.cookie__tekst { flex: 1 1 240px; margin: 0; font-size: .95rem; line-height: 1.5; }
+.cookie__knapper { display: flex; gap: .6rem; flex: 0 0 auto; }
+.cookie__knapp { min-height: 44px; padding: .55rem 1.1rem; font-size: .95rem; }
+@media (max-width: 480px) {
+  .cookie__knapper { width: 100%; }
+  .cookie__knapp { flex: 1; }
+}
