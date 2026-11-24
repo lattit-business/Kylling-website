@@ -183,9 +183,10 @@
             <form class="spill__navn" data-navn-skjema hidden novalidate>
               <label class="spill__navn-tekst" for="kallenavn">Du er på topp 10! Skriv inn et kallenavn:</label>
               <div class="spill__navn-rad">
-                <input class="form__input spill__navn-felt" id="kallenavn" data-navn type="text" maxlength="16" autocomplete="nickname" spellcheck="false" />
+                <input class="form__input spill__navn-felt" id="kallenavn" data-navn type="text" maxlength="16" autocomplete="nickname" spellcheck="false" aria-describedby="kallenavn-hint" />
                 <button class="btn btn--ink" type="submit">Lagre</button>
               </div>
+              <p class="spill__navn-hint" id="kallenavn-hint">Vises for alle på topplista. Bruk et kallenavn, ikke fullt navn eller noe annet som avslører hvem du er. <a class="link" href="personvern#spillet">Personvern</a></p>
               <p class="spill__navn-status" data-navn-status role="status" aria-live="polite"></p>
             </form>
             <p class="spill__slutt-info" data-slutt-info role="status" aria-live="polite"></p>
@@ -223,9 +224,10 @@
             <form class="spill__navn" novalidate>
               <label class="spill__navn-tekst" for="nytt-kallenavn">Nytt kallenavn:</label>
               <div class="spill__navn-rad">
-                <input class="form__input spill__navn-felt" id="nytt-kallenavn" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" />
+                <input class="form__input spill__navn-felt" id="nytt-kallenavn" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" aria-describedby="nytt-kallenavn-hint" />
                 <button class="btn btn--ink" type="submit">Lagre</button>
               </div>
+              <p class="spill__navn-hint" id="nytt-kallenavn-hint">Vises for alle på topplista. Bruk et kallenavn, ikke fullt navn eller noe annet som avslører hvem du er. <a class="link" href="personvern#spillet">Personvern</a></p>
               <p class="spill__navn-status" data-navnevindu-status role="status" aria-live="polite"></p>
             </form>
             <button class="btn btn--ink" type="button" data-gud-av hidden>Slå av gud-modus</button>
@@ -305,6 +307,7 @@
         <p class="foot__h">Kontakt</p>
         <a class="link foot__epost" href="mailto:post@barekylling.no?subject=Henvendelse%20fra%20nettsiden">post@barekylling.no</a>
         <p>Spørsmål, smakeprøver eller samarbeid? Send oss en e-post.</p>
+        <a href="personvern">Personvern og informasjonskapsler</a>
       </div>
     </div>
 

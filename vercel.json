@@ -91,6 +91,11 @@
       "source": "/venteliste.html",
       "destination": "/venteliste",
       "statusCode": 301
+    },
+    {
+      "source": "/personvern.html",
+      "destination": "/personvern",
+      "statusCode": 301
     }
   ]
 }
