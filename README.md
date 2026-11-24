@@ -7,7 +7,7 @@ Ren HTML, CSS og JavaScript – ingen rammeverk, ingen byggesteg.
 **Live:** https://barekylling.no/ (Vercel). Kopi på GitHub Pages:
 https://lattit-business.github.io/Kylling-website/ – `canonical` peker til barekylling.no.
 
-Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju sider:
+Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av disse sidene:
 
 | Fil | Side |
 |---|---|
@@ -17,6 +17,7 @@ Selve nettsiden ligger i [`bare-kylling/`](bare-kylling/) og består av sju side
 | `om-oss.html` | Om oss |
 | `faq.html` | Spørsmål og svar |
 | `venteliste.html` | Venteliste |
+| `personvern.html` | Personvernerklæring og avmelding fra ventelista |
 | `404.html` | Feilside |
 | `spill.html` | Spillet «Veien til Jobbsenteret» |
 
@@ -161,22 +162,93 @@ ikke kjører Vercel-funksjoner.
   grense på 10 forsøk per 10 minutter per IP-adresse. Bare en hash av
   adressen brukes.
 
-### Personvern og utsending
+### Samtykke, avmelding og utsending
 
+- Skjemaet har en **uforhåndskrysset samtykkeboks** («Ja, send meg én SMS når
+  Bare Kylling lanserer …»). Uten avkrysning sendes ingenting, og
+  `api/venteliste.js` avviser forespørsler uten `samtykke: true` (400
+  `samtykke-mangler`). Tidspunkt og tekstversjon lagres i `samtykke_tid` og
+  `samtykke_versjon`. **Kjør `supabase/venteliste.sql` på nytt** for å lage
+  kolonnene (trygt å kjøre flere ganger). Til det er gjort, lagres nummeret
+  uten dem, og loggen sier fra.
+- Endrer du samtykketeksten i skjemaet, bytt `SAMTYKKE_VERSJON` i
+  `api/venteliste.js`.
+- **Avmelding:** skjemaet på `personvern#avmelding` sender
+  `{ handling: 'avmeld', telefon }`, og raden slettes. Svaret er alltid det
+  samme, så ingen kan sjekke hvem som står på lista. E-post til
+  `post@barekylling.no` virker også: slett raden i Table Editor.
 - Lista hentes ut i Supabase (**Table Editor → venteliste → Export to CSV**).
-  Selve SMS-utsendingen ved lansering er ikke en del av nettsiden.
-- Folk som vil strykes, ber om det på `post@barekylling.no` (står i FAQ-en).
-  Slett raden i Table Editor.
-- Nummeret brukes bare til én beskjed ved lansering, og det står på siden.
-  Bestem hvor lenge lista skal lagres (f.eks. slettes etter lansering).
+  Selve SMS-utsendingen ved lansering er ikke en del av nettsiden. Se
+  «SMS-utsending» under.
+- **Lagringstid** (står i personvernerklæringen): slett hele lista senest 30
+  dager etter at SMS-en er sendt, og numre som har ligget der i over 12
+  måneder uten lansering. SQL-en står nederst i `supabase/venteliste.sql`.
+  Slett også CSV-filer du har lastet ned.
+- Rader fra før 24.11.2026 har ikke samtykkefeltene (samtykkeboksen fantes
+  ikke da). Se «Åpne spørsmål» under.
 - Tidligere påmeldinger med e-post ligger fortsatt i Formspree. De flyttes ikke
-  automatisk.
+  automatisk. De bør slettes der (eller tas med i vurderingen over).
 
 Testene kjøres uten Supabase (fetch byttes ut med en falsk tabell):
 
 ```bash
 node tools/test-venteliste.js
 ```
+
+## Personvern (GDPR) – databehandlere og dataregion
+
+Personvernerklæringen ligger i
+[`bare-kylling/personvern.html`](bare-kylling/personvern.html) og lenkes fra
+footeren, samtykkeboksen, samtykkebanneret og kallenavnfeltet i spillet.
+Endrer du hva som lagres, oppdater siden og datoen «Sist oppdatert».
+
+> **Ingen av avtalene under er bekreftet inngått.** Dette er en sjekkliste.
+> Kryss av og skriv dato når hver er gjort.
+
+### Sjekkliste før lansering
+
+| | Leverandør | Hva de behandler | Databehandleravtale (DPA) | Overføringsgrunnlag | Dataregion |
+|---|---|---|---|---|---|
+| ☐ | **Supabase** | Ventelista (mobilnummer, samtykketid) | Selvbetjent: [supabase.com/legal/dpa](https://supabase.com/legal/dpa). Følg stegene der for å signere DPA-en for organisasjonen, og ta vare på PDF-en. | SCC (EUs standardklausuler) i DPA-en. Supabase har også en Transfer Impact Assessment. DPF er ikke bekreftet. | Velges når prosjektet lages og **kan ikke endres** etterpå. Sjekk: *Project Settings → General → Region*. Skal være en konkret EU-region, f.eks. Frankfurt (`eu-central-1`) eller Stockholm (`eu-north-1`). Står den utenfor EU: lag et nytt prosjekt i EU, kjør SQL-en, flytt radene, bytt nøkler i Vercel. |
+| ☐ | **Upstash** (via Vercel Marketplace) | Topplista (kallenavn, poeng), IP-hasher for spamvern | [upstash.com/trust/dpa.pdf](https://upstash.com/trust/dpa.pdf). Les om den gjelder automatisk via vilkårene, eller om den må signeres. Ta vare på en kopi. | SCC i DPA-ens europeiske vedlegg. | Velges når databasen lages, kan ikke flyttes. Sjekk i Upstash-konsollen (Vercel → Storage → databasen → *Open in Upstash*). Skal være `eu-central-1` (Frankfurt). |
+| ☐ | **Vercel** | Drift, serverfunksjoner, logger, Web Analytics | [vercel.com/legal/dpa](https://vercel.com/legal/dpa). Inngår i Vercels vilkår. Les den og ta vare på en kopi med dato. | EU–US Data Privacy Framework (Vercel er sertifisert, se [kunngjøringen](https://vercel.com/changelog/vercel-is-now-certified-under-the-eu-us-data-privacy-framework-dpf)) og SCC. Sjekk at Vercel står på [dataprivacyframework.gov](https://www.dataprivacyframework.gov/list). | Serverfunksjonene kjører i én region. Sett den til EU: *Settings → Functions → Function Region* → **Frankfurt (`fra1`)**, eller legg `"regions": ["fra1"]` i `vercel.json`. Det er ikke gjort ennå. Selve nettsiden serveres fra Vercels globale nettverk. |
+| ☐ | **SMS-leverandør** (ikke valgt) | Mobilnumrene ved utsending | Krev DPA før du laster opp lista. | Velg helst en leverandør i EU/EØS. | Legg leverandøren inn i personvernerklæringen **før** utsending. |
+| ☐ | **Google Fonts** | IP-adressen til alle besøkende (skrifttypene hentes fra Google) | Ingen DPA. Google er ikke databehandler her. | – | Anbefalt: last ned Archivo og Manrope og server dem fra `bare-kylling/` i stedet. Da forsvinner Google fra lista, og avsnittet «Når du besøker nettsiden» i personvernerklæringen kan forenkles. |
+
+Skriv inn i personvernerklæringen hvis noe av dette ikke stemmer (for eksempel
+hvis Supabase-prosjektet ikke ligger i EU).
+
+### SMS-utsending (gjør det lovlig)
+
+- Send bare til numre med samtykke. Bestem først hva som gjelder for radene
+  uten `samtykke_tid`.
+- Meldingen skal si tydelig at den kommer fra Bare Kylling, og den skal gi en
+  enkel og gratis måte å reservere seg mot flere meldinger (markedsføringsloven
+  § 15). Selv om det bare blir én SMS, skriv f.eks. «Svar STOPP» eller lenke til
+  `barekylling.no/personvern#avmelding`.
+- Én SMS, slik det er lovet. Vil du sende flere, trenger du nytt samtykke.
+- Slett lista senest 30 dager etterpå (se `supabase/venteliste.sql`).
+
+### Åpne spørsmål – bør sjekkes med Datatilsynets veiledere eller advokat
+
+- **Behandlingsansvarlig og org.nr.** Foretaket er under registrering.
+  Personvernerklæringen sier det rett ut. Org.nr. må inn før lansering.
+- **Alder.** Er innehaveren under 18 år, trengs samtykke fra verge og
+  godkjenning fra Statsforvalteren for å drive næring (vergemålsloven). Sjekk
+  før foretaket registreres.
+- **Barn som brukere.** Spillet og videoene treffer unge. Samtykke til
+  SMS-markedsføring fra barn under 13 år (GDPR art. 8 og personopplysningsloven
+  § 5), og markedsføring rettet mot barn generelt (markedsføringsloven §§ 19–20),
+  bør vurderes. Trenger ventelista en aldersgrense?
+- **Numre fra før samtykkeboksen.** De som meldte seg på før 24.11.2026,
+  skrev inn nummeret sitt etter å ha lest «Én SMS ved lansering», men krysset
+  ikke av i noen boks. Er det et gyldig samtykke etter markedsføringsloven § 15,
+  eller bør de slettes?
+- **Berettiget interesse for topplista.** Bør dokumenteres med en kort
+  interesseavveining.
+- **Google Fonts** uten samtykke. Enklest å fjerne (se tabellen over).
+- **Protokoll over behandlingsaktiviteter** (GDPR art. 30). Små virksomheter
+  kan være unntatt, men det er lite arbeid å føre en.
 
 ## Global toppliste (spillet)
 

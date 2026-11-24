@@ -331,6 +331,7 @@
   if (form) {
     var input = $('#telefon', form);
     var felle = $('#nettside', form);
+    var samtykke = $('#samtykke', form);
     var status = $('#form-status', form);
     var knapp = $('button[type="submit"]', form);
     /* Norsk mobilnummer: 8 siffer som starter på 4 eller 9, med eller uten
@@ -373,6 +374,7 @@
       }
       $('.form__row', form).hidden = true;
       $('.form__fine', form).hidden = true;
+      if (samtykke) { samtykke.closest('.form__samtykke').hidden = true; }
       form.appendChild(notice);
       if (DEV) {
         form.appendChild(unverifiedBox(
@@ -386,6 +388,12 @@
       input.removeAttribute('aria-invalid');
       if (status.classList.contains('is-error')) { si('', 'info'); }
     });
+    if (samtykke) {
+      samtykke.addEventListener('change', function () {
+        samtykke.removeAttribute('aria-invalid');
+        if (samtykke.checked && status.classList.contains('is-error')) { si('', 'info'); }
+      });
+    }
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -399,6 +407,13 @@
         return;
       }
 
+      /* Samtykke kreves (markedsføringsloven § 15). Serveren sjekker det også. */
+      if (!samtykke || !samtykke.checked) {
+        if (samtykke) { samtykke.setAttribute('aria-invalid', 'true'); samtykke.focus(); }
+        si('Kryss av for at du vil få SMS-en ved lansering, så setter vi deg på lista.', 'error');
+        return;
+      }
+
       knapp.disabled = true;
       si('Sender …', 'info');
 
@@ -407,18 +422,28 @@
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           telefon: verdi,
+          samtykke: true,
           kilde: form.closest('.launch--page') ? 'venteliste' : 'cta',
           nettside: felle ? felle.value : ''
         })
       })
         .then(function (r) {
-          if (r.status === 400) { throw new Error('ugyldig'); }
+          if (r.status === 400) {
+            return r.json().catch(function () { return {}; }).then(function (d) {
+              throw new Error(d && d.feil === 'samtykke-mangler' ? 'samtykke' : 'ugyldig');
+            });
+          }
           if (r.status === 429) { throw new Error('for-mange'); }
           if (!r.ok) { throw new Error('HTTP ' + r.status); }
           ferdig('Du står på lista. Vi sender én SMS når kyllingen er klar.');
         })
         .catch(function (feil) {
           knapp.disabled = false;
+          if (feil.message === 'samtykke') {
+            if (samtykke) { samtykke.setAttribute('aria-invalid', 'true'); samtykke.focus(); }
+            si('Kryss av for at du vil få SMS-en ved lansering, så setter vi deg på lista.', 'error');
+            return;
+          }
           if (feil.message === 'ugyldig') {
             input.setAttribute('aria-invalid', 'true');
             si('Nummeret ser ikke riktig ut. Skriv inn et norsk mobilnummer med 8 siffer.', 'error');
@@ -431,6 +456,57 @@
           si(tekst + (CFG.kontaktEpost
             ? ' Eller send e-post til <a href="mailto:' + CFG.kontaktEpost + '">' + CFG.kontaktEpost + '</a>.'
             : ''), 'error', true);
+        });
+    });
+  }
+
+  /* ---------------------------------------------------------------------------
+     4a. AVMELDING (personvern.html) – sletter nummeret fra ventelista.
+         Svaret er det samme om nummeret sto der eller ikke.
+     --------------------------------------------------------------------------- */
+  var avForm = $('#avmelding-skjema');
+  if (avForm) {
+    var avInput = $('#avmeld-telefon', avForm);
+    var avFelle = $('#avmeld-nettside', avForm);
+    var avStatus = $('#avmeld-status', avForm);
+    var avKnapp = $('button[type="submit"]', avForm);
+    var avSi = function (tekst, type) { avStatus.className = 'form__status is-' + type; avStatus.textContent = tekst; };
+    var avGyldig = function (v) {
+      var s = v.replace(/[\s\-.()]/g, '');
+      if (s.indexOf('+47') === 0) { s = s.slice(3); } else if (s.indexOf('0047') === 0) { s = s.slice(4); }
+      return /^[49]\d{7}$/.test(s);
+    };
+    avForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var verdi = avInput.value.trim();
+      if (!avGyldig(verdi)) {
+        avInput.setAttribute('aria-invalid', 'true');
+        avSi('Skriv inn mobilnummeret du meldte deg på med, 8 siffer.', 'error');
+        avInput.focus();
+        return;
+      }
+      avInput.removeAttribute('aria-invalid');
+      if (!CFG.ventelisteEndepunkt) {
+        avSi('Avmeldingen er ikke koblet til her. Send en e-post til post@barekylling.no, så sletter vi nummeret.', 'error');
+        return;
+      }
+      avKnapp.disabled = true;
+      avSi('Sender …', 'info');
+      fetch(CFG.ventelisteEndepunkt, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ handling: 'avmeld', telefon: verdi, nettside: avFelle ? avFelle.value : '' })
+      })
+        .then(function (r) {
+          if (r.status === 429) { throw new Error('for-mange'); }
+          if (!r.ok) { throw new Error('HTTP ' + r.status); }
+          avForm.reset();
+          avSi('Ferdig. Sto nummeret på lista, er det nå slettet, og du får ingen SMS fra oss.', 'ok');
+        })
+        .catch(function (feil) {
+          avKnapp.disabled = false;
+          avSi((feil.message === 'for-mange' ? 'For mange forsøk på kort tid. Vent litt og prøv igjen.' : 'Noe gikk galt.') +
+            ' Du kan også sende en e-post til post@barekylling.no, så sletter vi nummeret.', 'error');
         });
     });
   }
@@ -937,7 +1013,10 @@
   /* ---------------------------------------------------------------------------
      6. INFORMASJONSKAPSLER (samtykke)
      Siden bruker Vercel Web Analytics for anonym besøksstatistikk: ingen
-     informasjonskapsler på tvers av nettsteder, ingen personopplysninger.
+     informasjonskapsler og ingen sporing på tvers av nettsteder. Vercel ser
+     IP-adressen et øyeblikk for å telle unike besøk (en hash som kastes
+     etter 24 timer), så banneret lover ikke «ingen personopplysninger».
+     Se personvern.html.
      Statistikk-skriptet lastes først når den besøkende sier «Godta». Valget
      huskes i nettleseren, så banneret vises bare én gang.
      --------------------------------------------------------------------------- */
@@ -956,6 +1035,21 @@
     }
     function husk(svar) { try { localStorage.setItem(NOKKEL, svar); } catch (e) { /* privat modus */ } }
 
+    /* «Endre valget» på personvernsiden: glemmer valget og viser banneret
+       på nytt. Å trekke samtykket skal være like lett som å gi det. */
+    var endre = $('[data-samtykke-endre]');
+    if (endre) {
+      var visValg = $('[data-samtykke-valg]');
+      if (visValg) {
+        visValg.textContent = valg === 'godta' ? 'Du har godtatt anonym statistikk.'
+          : valg === 'avvis' ? 'Du har avvist statistikk.' : 'Du har ikke valgt ennå.';
+      }
+      endre.addEventListener('click', function () {
+        try { localStorage.setItem(NOKKEL, ''); } catch (e) { /* privat modus */ }
+        location.reload();
+      });
+    }
+
     if (valg === 'godta') { lastStatistikk(); return; }
     if (valg === 'avvis') { return; }
 
@@ -963,8 +1057,13 @@
     boks.setAttribute('role', 'dialog');
     boks.setAttribute('aria-label', 'Informasjonskapsler og statistikk');
     boks.setAttribute('aria-live', 'polite');
-    boks.appendChild(el('p', 'cookie__tekst',
-      'Vi bruker anonym besøksstatistikk for å se hvor mange som er innom. Ingen sporing på tvers av nettsteder, og ingen personopplysninger.'));
+    var tekst = el('p', 'cookie__tekst',
+      'Vil du hjelpe oss å telle besøk? Vi bruker anonym statistikk: ingen informasjonskapsler og ingen sporing på tvers av nettsteder. ');
+    var mer = el('a', 'link', 'Les personvernerklæringen');
+    mer.href = 'personvern#statistikk';
+    tekst.appendChild(mer);
+    tekst.appendChild(document.createTextNode('.'));
+    boks.appendChild(tekst);
 
     var knapper = el('div', 'cookie__knapper');
     var ja = el('button', 'btn btn--honey cookie__knapp', 'Godta');

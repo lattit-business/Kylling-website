@@ -114,7 +114,7 @@ def main() -> int:
         for fil, s in html.items():
             b = blokk(s, navn)
             if b is None:
-                if navn == "cta" and fil in ("venteliste.html", "404.html", "spill.html"):
+                if navn == "cta" and fil in ("venteliste.html", "404.html", "spill.html", "personvern.html"):
                     continue
                 feil.append(f"{fil}: mangler blokk BK:FELLES {navn}")
             elif normaliser(b) != normaliser(ref):

@@ -888,7 +888,11 @@
           <label for="nettside">La dette feltet stå tomt</label>
           <input id="nettside" name="nettside" type="text" tabindex="-1" autocomplete="off" />
         </div>
-        <p class="form__fine">Én SMS ved lansering. Ingen reklame, og nummeret deles ikke videre.</p>
+        <label class="form__samtykke">
+          <input class="form__boks" id="samtykke" name="samtykke" type="checkbox" required />
+          <span>Ja, send meg én SMS når Bare Kylling lanserer. Jeg kan trekke samtykket når som helst. Les <a class="link" href="personvern">personvernerklæringen</a>.</span>
+        </label>
+        <p class="form__fine">Bare én SMS om lanseringen – ingenting mer. Nummeret selges ikke og deles ikke med andre.</p>
         <p class="form__status" id="form-status" role="status" aria-live="polite"></p>
       </form>
     </div>
@@ -963,6 +967,7 @@
         <p class="foot__h">Kontakt</p>
         <a class="link foot__epost" href="mailto:post@barekylling.no?subject=Henvendelse%20fra%20nettsiden">post@barekylling.no</a>
         <p>Spørsmål, smakeprøver eller samarbeid? Send oss en e-post.</p>
+        <a href="personvern">Personvern og informasjonskapsler</a>
       </div>
     </div>
 

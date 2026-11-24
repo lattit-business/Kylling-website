@@ -9,14 +9,22 @@ const path = require('path');
 const FIL = path.join(__dirname, '..', 'api', 'venteliste.js');
 
 /* Falsk Supabase (+ valgfri Upstash for grensen per IP) */
-let rader, kall, redis, supabaseNede;
-function nullstill() { rader = new Map(); kall = []; redis = new Map(); supabaseNede = false; }
+let rader, kall, redis, supabaseNede, utenSamtykkeKolonner;
+function nullstill() { rader = new Map(); kall = []; redis = new Map(); supabaseNede = false; utenSamtykkeKolonner = false; }
 
 global.fetch = async (url, opts) => {
   kall.push({ url, opts });
   if (url.includes('/rest/v1/venteliste')) {
     if (supabaseNede) { return { ok: false, status: 500, text: async () => 'nede' }; }
+    if (opts.method === 'DELETE') {
+      const nr = decodeURIComponent(url.split('telefon=eq.')[1]);
+      rader.delete(nr);
+      return { ok: true, status: 204, text: async () => '' };
+    }
     const kropp = JSON.parse(opts.body);
+    if (utenSamtykkeKolonner && 'samtykke_tid' in kropp) {
+      return { ok: false, status: 400, text: async () => '{"code":"PGRST204","message":"Could not find the \'samtykke_tid\' column"}' };
+    }
     if (!rader.has(kropp.telefon)) { rader.set(kropp.telefon, kropp); }
     return { ok: true, status: 201, text: async () => '' };
   }
@@ -68,14 +76,14 @@ const ENV = { SUPABASE_URL: 'https://abc.supabase.co/', SUPABASE_SERVICE_ROLE_KE
   /* Uten Supabase: 503 */
   nullstill();
   let fn = last({});
-  let r = await kjor(fn, { body: { telefon: '91234567' } });
+  let r = await kjor(fn, { body: { samtykke: true, telefon: '91234567' } });
   assert.strictEqual(r.status, 503);
   assert.strictEqual(kall.length, 0);
 
   /* Lagring med gammel JWT-nøkkel */
   nullstill();
   fn = last(ENV);
-  r = await kjor(fn, { body: { telefon: '912 34 567', kilde: 'cta' }, headers: { origin: 'https://barekylling.no' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '912 34 567', kilde: 'cta' }, headers: { origin: 'https://barekylling.no' } });
   assert.strictEqual(r.status, 200);
   assert.deepStrictEqual(r.data, { ok: true });
   assert.strictEqual(r.hoder['cache-control'], 'no-store');
@@ -83,17 +91,21 @@ const ENV = { SUPABASE_URL: 'https://abc.supabase.co/', SUPABASE_SERVICE_ROLE_KE
   assert.strictEqual(kall[0].opts.headers.apikey, 'eyJtest');
   assert.strictEqual(kall[0].opts.headers.Authorization, 'Bearer eyJtest');
   assert.match(kall[0].opts.headers.Prefer, /ignore-duplicates/);
-  assert.deepStrictEqual(JSON.parse(kall[0].opts.body), { telefon: '+4791234567', kilde: 'cta' });
+  const lagret = JSON.parse(kall[0].opts.body);
+  assert.strictEqual(lagret.telefon, '+4791234567');
+  assert.strictEqual(lagret.kilde, 'cta');
+  assert.strictEqual(lagret.samtykke_versjon, 'sms-lansering-2026-11-24');
+  assert.ok(!isNaN(Date.parse(lagret.samtykke_tid)), 'samtykketidspunkt lagres');
 
   /* Samme nummer to ganger: ok, én rad */
-  r = await kjor(fn, { body: { telefon: '+4791234567' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '+4791234567' } });
   assert.strictEqual(r.status, 200);
   assert.strictEqual(rader.size, 1);
 
   /* Ny nøkkeltype (sb_secret_…): bare apikey */
   nullstill();
   fn = last({ SUPABASE_URL: 'https://abc.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_x' });
-  r = await kjor(fn, { body: { telefon: '41234567' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '41234567' } });
   assert.strictEqual(r.status, 200);
   assert.strictEqual(kall[0].opts.headers.apikey, 'sb_secret_x');
   assert.strictEqual(kall[0].opts.headers.Authorization, undefined);
@@ -101,34 +113,79 @@ const ENV = { SUPABASE_URL: 'https://abc.supabase.co/', SUPABASE_SERVICE_ROLE_KE
   /* Ugyldig nummer, feil metode, feil opphav, robotfelle */
   nullstill();
   fn = last(ENV);
-  r = await kjor(fn, { body: { telefon: '12345678' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '12345678' } });
   assert.strictEqual(r.status, 400);
   r = await kjor(fn, { body: { email: 'a@b.no' } });
   assert.strictEqual(r.status, 400, 'e-post godtas ikke lenger');
   r = await kjor(fn, { method: 'GET' });
   assert.strictEqual(r.status, 405);
-  r = await kjor(fn, { body: { telefon: '91234567' }, headers: { origin: 'https://ond.example' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '91234567' }, headers: { origin: 'https://ond.example' } });
   assert.strictEqual(r.status, 403);
-  r = await kjor(fn, { body: { telefon: '91234567', nettside: 'http://spam' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '91234567', nettside: 'http://spam' } });
   assert.strictEqual(r.status, 200);
   assert.strictEqual(rader.size, 0, 'robotfella lagrer ikke');
 
   /* Supabase feiler: 502 */
   supabaseNede = true;
-  r = await kjor(fn, { body: { telefon: '91234567' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '91234567' } });
   assert.strictEqual(r.status, 502);
 
   /* Grense per IP når Upstash finnes */
   nullstill();
   fn = last({ ...ENV, KV_REST_API_URL: 'https://redis.example', KV_REST_API_TOKEN: 't' });
   for (let i = 0; i < 10; i++) {
-    r = await kjor(fn, { body: { telefon: '9123456' + (i % 10) } });
+    r = await kjor(fn, { body: { samtykke: true, telefon: '9123456' + (i % 10) } });
     assert.strictEqual(r.status, 200, 'forsøk ' + (i + 1));
   }
-  r = await kjor(fn, { body: { telefon: '91234500' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '91234500' } });
   assert.strictEqual(r.status, 429);
-  r = await kjor(fn, { body: { telefon: '91234500' }, headers: { 'x-forwarded-for': '5.6.7.8' } });
+  r = await kjor(fn, { body: { samtykke: true, telefon: '91234500' }, headers: { 'x-forwarded-for': '5.6.7.8' } });
   assert.strictEqual(r.status, 200, 'annen IP');
+
+  /* Uten samtykke: 400, ingenting lagres */
+  nullstill();
+  fn = last(ENV);
+  r = await kjor(fn, { body: { telefon: '91234567' } });
+  assert.strictEqual(r.status, 400);
+  assert.strictEqual(r.data.feil, 'samtykke-mangler');
+  r = await kjor(fn, { body: { telefon: '91234567', samtykke: 'true' } });
+  assert.strictEqual(r.status, 400, 'bare ekte true teller');
+  assert.strictEqual(rader.size, 0);
+  assert.strictEqual(kall.length, 0, 'Supabase kalles ikke uten samtykke');
+
+  /* Robotfella virker fortsatt, også uten samtykke */
+  r = await kjor(fn, { body: { telefon: '91234567', nettside: 'x' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(kall.length, 0);
+
+  /* Samtykkekolonnene mangler i Supabase: lagres likevel, uten dem */
+  nullstill();
+  utenSamtykkeKolonner = true;
+  fn = last(ENV);
+  r = await kjor(fn, { body: { telefon: '91234567', samtykke: true } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(rader.size, 1);
+  assert.deepStrictEqual(JSON.parse(kall[1].opts.body), { telefon: '+4791234567', kilde: 'venteliste' });
+
+  /* Avmelding: raden slettes, samme svar om nummeret ikke fantes */
+  nullstill();
+  fn = last(ENV);
+  await kjor(fn, { body: { telefon: '91234567', samtykke: true } });
+  assert.strictEqual(rader.size, 1);
+  r = await kjor(fn, { body: { handling: 'avmeld', telefon: '912 34 567' }, headers: { origin: 'https://barekylling.no' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(rader.size, 0, 'nummeret er slettet');
+  assert.strictEqual(kall[1].opts.method, 'DELETE');
+  assert.strictEqual(kall[1].url, 'https://abc.supabase.co/rest/v1/venteliste?telefon=eq.%2B4791234567');
+  r = await kjor(fn, { body: { handling: 'avmeld', telefon: '41234567' } });
+  assert.strictEqual(r.status, 200, 'samme svar når nummeret ikke sto der');
+  r = await kjor(fn, { body: { handling: 'avmeld', telefon: '123' } });
+  assert.strictEqual(r.status, 400);
+  r = await kjor(fn, { body: { handling: 'avmeld', telefon: '91234567' }, headers: { origin: 'https://ond.example' } });
+  assert.strictEqual(r.status, 403, 'avmelding bare fra egen side');
+  supabaseNede = true;
+  r = await kjor(fn, { body: { handling: 'avmeld', telefon: '91234567' } });
+  assert.strictEqual(r.status, 502);
 
   console.log('venteliste: alle tester bestått');
 })().catch((e) => { console.error(e); process.exit(1); });

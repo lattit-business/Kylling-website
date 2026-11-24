@@ -1,14 +1,26 @@
 /* =============================================================================
    BARE KYLLING — VENTELISTE (Vercel-funksjon)
 
-   POST /api/venteliste { telefon, kilde?, nettside? }
+   POST /api/venteliste { telefon, samtykke: true, kilde?, nettside? }
      → 200 { ok: true }                    nummeret står på lista (også om det sto der fra før)
      → 400 { feil: 'ugyldig-nummer' }       ikke et norsk mobilnummer
+     → 400 { feil: 'samtykke-mangler' }     samtykkeboksen er ikke krysset av
+   POST /api/venteliste { handling: 'avmeld', telefon, nettside? }
+     → 200 { ok: true }                    nummeret er slettet (samme svar om det
+                                            ikke sto på lista, så ingen kan sjekke
+                                            hvem som står der)
      → 403 / 405 / 413 / 429                feil opphav, metode, størrelse eller for mange forsøk
      → 503 { feil: 'ikke-koblet' }          Supabase er ikke satt opp
 
    Lagres i Supabase-tabellen «venteliste» (se supabase/venteliste.sql). Nummeret
    lagres som +47XXXXXXXX, og samme nummer lagres bare én gang.
+
+   Samtykke (markedsføringsloven § 15 og GDPR art. 6 nr. 1 a): skjemaet har en
+   uforhåndskrysset boks, og serveren lagrer ingenting uten samtykke: true.
+   Tidspunktet og hvilken tekst som ble godtatt lagres i kolonnene
+   samtykke_tid og samtykke_versjon. Mangler kolonnene (SQL-en i
+   supabase/venteliste.sql er ikke kjørt på nytt), lagres nummeret uten dem,
+   og loggen sier fra, så påmeldingen aldri stopper av den grunn.
 
    Miljøvariabler (Vercel → Settings → Environment Variables, eller automatisk
    fra Supabase-integrasjonen i Vercel Marketplace):
@@ -32,6 +44,8 @@ const crypto = require('crypto');
 
 const TABELL = 'venteliste';
 const GRENSE = { antall: 10, vindu: 600 };
+/* Bytt når samtykketeksten i skjemaet endres, så vi vet hva hver enkelt sa ja til */
+const SAMTYKKE_VERSJON = 'sms-lansering-2026-11-24';
 
 function supabase(env) {
   const url = env.SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -141,32 +155,56 @@ module.exports = async function venteliste(req, res) {
   const telefon = normaliserTelefon(kropp.telefon);
   if (!telefon) { return send(res, 400, { feil: 'ugyldig-nummer' }); }
 
+  const avmeld = kropp.handling === 'avmeld';
+  if (!avmeld && kropp.samtykke !== true) { return send(res, 400, { feil: 'samtykke-mangler' }); }
+
   const redis = upstash(process.env);
   if (await forMange(redis, ipHash(req, redis ? redis.token : ''))) {
     return send(res, 429, { feil: 'for-mange' });
   }
 
-  const kilde = typeof kropp.kilde === 'string' ? kropp.kilde.slice(0, 40) : 'venteliste';
-
   /* Nye Supabase-nøkler (sb_secret_…) skal bare i apikey; de gamle JWT-nøklene
      (service_role, starter med «eyJ») skal også i Authorization. */
-  const hoder = {
-    apikey: db.nokkel,
-    'Content-Type': 'application/json',
-    Prefer: 'resolution=ignore-duplicates,return=minimal'
-  };
+  const hoder = { apikey: db.nokkel, 'Content-Type': 'application/json', Prefer: 'return=minimal' };
   if (db.nokkel.startsWith('eyJ')) { hoder.Authorization = 'Bearer ' + db.nokkel; }
 
   try {
-    const svar = await fetch(`${db.url}/rest/v1/${TABELL}?on_conflict=telefon`, {
+    /* Avmelding: raden slettes for godt. Svaret er det samme enten nummeret
+       sto på lista eller ikke. */
+    if (avmeld) {
+      const svar = await fetch(`${db.url}/rest/v1/${TABELL}?telefon=eq.${encodeURIComponent(telefon)}`, {
+        method: 'DELETE',
+        headers: hoder
+      });
+      if (!svar.ok) {
+        const tekst = await svar.text().catch(() => '');
+        console.error('venteliste: sletting feilet, Supabase svarte ' + svar.status + ' ' + tekst.slice(0, 300));
+        return send(res, 502, { feil: 'lagring' });
+      }
+      return send(res, 200, { ok: true });
+    }
+
+    const kilde = typeof kropp.kilde === 'string' ? kropp.kilde.slice(0, 40) : 'venteliste';
+    const rad = { telefon, kilde, samtykke_tid: new Date().toISOString(), samtykke_versjon: SAMTYKKE_VERSJON };
+    const leggInn = (data) => fetch(`${db.url}/rest/v1/${TABELL}?on_conflict=telefon`, {
       method: 'POST',
-      headers: hoder,
-      body: JSON.stringify({ telefon, kilde })
+      headers: { ...hoder, Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify(data)
     });
+
+    let svar = await leggInn(rad);
     if (!svar.ok) {
-      const tekst = await svar.text().catch(() => '');
-      console.error('venteliste: Supabase svarte ' + svar.status + ' ' + tekst.slice(0, 300));
-      return send(res, 502, { feil: 'lagring' });
+      let tekst = await svar.text().catch(() => '');
+      /* Samtykkekolonnene finnes ikke ennå (PGRST204): lagre uten dem */
+      if (svar.status === 400 && /PGRST204|samtykke_/.test(tekst)) {
+        console.warn('venteliste: kolonnene samtykke_tid/samtykke_versjon mangler. Kjør supabase/venteliste.sql på nytt.');
+        svar = await leggInn({ telefon, kilde });
+        tekst = svar.ok ? '' : await svar.text().catch(() => '');
+      }
+      if (!svar.ok) {
+        console.error('venteliste: Supabase svarte ' + svar.status + ' ' + tekst.slice(0, 300));
+        return send(res, 502, { feil: 'lagring' });
+      }
     }
     return send(res, 200, { ok: true });
   } catch (e) {
